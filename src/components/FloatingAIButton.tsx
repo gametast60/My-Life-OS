@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, Plus, BookOpen, Target, CheckSquare, Eye, Heart, Bot } from "lucide-react";
+import { Sparkles, Plus, Target, CheckSquare, Eye, Heart, Bot } from "lucide-react";
 
 interface FloatingAIButtonProps {
   onOpenAICoach: () => void;
@@ -39,16 +39,6 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
             <span>Daily Check-in</span>
           </button>
 
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              onQuickAction("journal");
-            }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#131913] text-[#EBF1EA] hover:text-[#6B9361] hover:bg-[#182218] border border-[#1F2B1F] text-xs shadow-md font-medium transition-all"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-[#6B9361]" />
-            <span>บันทึกด่วน</span>
-          </button>
 
           <button
             onClick={() => {
