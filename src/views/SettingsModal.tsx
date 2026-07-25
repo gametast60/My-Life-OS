@@ -240,7 +240,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               rel="noreferrer"
               className="text-[11px] text-[#6B9361] hover:underline inline-flex items-center gap-1 mt-1 font-mono"
             >
-              <span>รับ API Key ฟรี (ต้องขึ้นต้นด้วย AIzaSy...)</span>
+              <span>รับ API Key ฟรีจาก Google AI Studio</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
