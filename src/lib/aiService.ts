@@ -29,6 +29,9 @@ async function callGeminiRestApi(
   userPrompt: string
 ): Promise<string> {
   const cleanKey = apiKey.trim();
+  if (!cleanKey.startsWith("AIzaSy")) {
+    throw new Error(`API Key ไม่ถูกต้อง: API Key ของ Google Gemini จะขึ้นต้นด้วย 'AIzaSy...' เท่านั้น (คีย์ที่คุณใส่ขึ้นต้นด้วย '${cleanKey.substring(0, 5)}...') กรุณาขอ API Key ฟรีได้ที่ https://aistudio.google.com/app/apikey`);
+  }
   const activeModel = model && model.trim() ? model.trim() : "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${encodeURIComponent(cleanKey)}`;
 
@@ -138,6 +141,13 @@ export async function testAIConnection(
   const cleanKey = apiKey?.trim();
   if (!cleanKey) {
     return { success: false, message: "กรุณากรอก API Key จาก Google AI Studio" };
+  }
+
+  if (!cleanKey.startsWith("AIzaSy")) {
+    return {
+      success: false,
+      message: `API Key ไม่ถูกต้อง: API Key ของ Google Gemini จะขึ้นต้นด้วย 'AIzaSy...' เท่านั้น (คีย์ที่คุณใส่ขึ้นต้นด้วย '${cleanKey.substring(0, 5)}...')`
+    };
   }
 
   const activeModel = model && model.trim() ? model.trim() : "gemini-2.5-flash";
