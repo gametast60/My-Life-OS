@@ -25,7 +25,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<"happy" | "neutral" | "sad" | "energetic">("happy");
   const [tags, setTags] = useState<string[]>(presetTags.slice(0, 2));
-  const [customTagInput, setCustomTagInput] = useState("");
   const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -49,18 +48,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setEditingId(null);
     setContent("");
     setMood("happy");
-    setTags(["การทำงาน", "พัฒนาตนเอง"]);
-    setCustomTagInput("");
-  };
-
-  // Add Custom Tag
-  const handleAddCustomTag = () => {
-    const trimmed = customTagInput.trim().replace(/^#/, "");
-    if (!trimmed) return;
-    if (!tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-    }
-    setCustomTagInput("");
+    setTags(presetTags.slice(0, 2));
   };
 
   // Toggle Preset Tag
@@ -109,7 +97,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
       };
       onAddJournal(newEntry);
       setContent("");
-      setCustomTagInput("");
     }
   };
 
@@ -272,31 +259,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Add Custom Tag Input */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="text"
-                  value={customTagInput}
-                  onChange={(e) => setCustomTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustomTag();
-                    }
-                  }}
-                  placeholder="พิมพ์แท็กใหม่ เช่น #การเรียน..."
-                  className="flex-1 px-3 py-1.5 rounded-xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomTag}
-                  disabled={!customTagInput.trim()}
-                  className="px-3 py-1.5 rounded-xl bg-[#182218] border border-[#273727] text-xs font-semibold text-[#6B9361] hover:bg-[#233323] disabled:opacity-40 transition-colors"
-                >
-                  + เพิ่มแท็ก
-                </button>
               </div>
             </div>
 
