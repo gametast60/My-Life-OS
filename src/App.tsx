@@ -61,6 +61,7 @@ export default function App() {
   const [memories, setMemories] = useState<MemoryItem[]>(() => RoomDatabase.getMemories());
   const [checkins, setCheckins] = useState<DailyCheckin[]>(() => RoomDatabase.getCheckins());
   const [profileVector, setProfileVector] = useState<UserProfileVector>(() => RoomDatabase.getProfileVector());
+  const [presetTags, setPresetTags] = useState<string[]>(() => RoomDatabase.getPresetTags());
 
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -73,6 +74,11 @@ export default function App() {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+
+  const handleSavePresetTags = (tags: string[]) => {
+    setPresetTags(tags);
+    RoomDatabase.savePresetTags(tags);
+  };
 
   // Reload handler after import or reset
   const handleReloadData = () => {
@@ -91,6 +97,7 @@ export default function App() {
     setMemories(RoomDatabase.getMemories());
     setCheckins(RoomDatabase.getCheckins());
     setProfileVector(RoomDatabase.getProfileVector());
+    setPresetTags(RoomDatabase.getPresetTags());
   };
 
   // Auto-migrate: wipe old v1 keys that contain mock data
@@ -280,11 +287,13 @@ export default function App() {
             missions={missions}
             recentJournals={journals}
             todayCheckin={todayCheckin}
+            presetTags={presetTags}
             onToggleMission={handleToggleMission}
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenQuickAction={handleQuickAction}
             onOpenCheckinModal={() => setIsCheckinOpen(true)}
             onAddJournal={handleAddJournal}
+            onSavePresetTags={handleSavePresetTags}
           />
         )}
 
@@ -313,9 +322,11 @@ export default function App() {
           <JournalView
             journals={journals}
             settings={settings}
+            presetTags={presetTags}
             onAddJournal={handleAddJournal}
             onEditJournal={handleEditJournal}
             onDeleteJournal={handleDeleteJournal}
+            onSavePresetTags={handleSavePresetTags}
           />
         )}
 

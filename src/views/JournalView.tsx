@@ -1,37 +1,32 @@
 import React, { useState, useRef } from "react";
 import { JournalEntry, UserSettings } from "../types";
-import { Plus, Smile, Frown, Meh, Zap, Edit2, Trash2, X, Tag } from "lucide-react";
+import { Plus, Smile, Frown, Meh, Zap, Edit2, Trash2, X, Tag, Settings2 } from "lucide-react";
+import { ManageTagsModal } from "../components/ManageTagsModal";
 
 interface JournalViewProps {
   journals: JournalEntry[];
   settings: UserSettings;
+  presetTags: string[];
   onAddJournal: (entry: JournalEntry) => void;
   onEditJournal?: (entry: JournalEntry) => void;
   onDeleteJournal?: (id: string) => void;
+  onSavePresetTags: (tags: string[]) => void;
 }
-
-const PRESET_TAGS = [
-  "การทำงาน",
-  "พัฒนาตนเอง",
-  "สุขภาพ",
-  "การเงิน",
-  "ความสัมพันธ์",
-  "ครอบครัว",
-  "เป้าหมาย",
-  "ไอเดีย",
-];
 
 export const JournalView: React.FC<JournalViewProps> = ({
   journals,
+  presetTags,
   onAddJournal,
   onEditJournal,
   onDeleteJournal,
+  onSavePresetTags,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<"happy" | "neutral" | "sad" | "energetic">("happy");
-  const [tags, setTags] = useState<string[]>(["การทำงาน", "พัฒนาตนเอง"]);
+  const [tags, setTags] = useState<string[]>(presetTags.slice(0, 2));
   const [customTagInput, setCustomTagInput] = useState("");
+  const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Start Editing
@@ -222,10 +217,20 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
             {/* Custom Tag Selector */}
             <div className="space-y-2">
-              <label className="text-xs text-[#869883] block flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-[#6B9361]" />
-                <span>เลือก / เพิ่มแท็ก (Tags)</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-[#869883] flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-[#6B9361]" />
+                  <span>เลือก / เพิ่มแท็ก (Tags)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsManageTagsOpen(true)}
+                  className="text-[11px] text-[#6B9361] hover:underline flex items-center gap-1 font-medium transition-all"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  <span>จัดการแท็ก</span>
+                </button>
+              </div>
 
               {/* Selected Tags Badge List */}
               {tags.length > 0 && (
@@ -250,7 +255,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
               {/* Preset Tags Chips */}
               <div className="flex flex-wrap gap-1.5">
-                {PRESET_TAGS.map((pt) => {
+                {presetTags.map((pt) => {
                   const isSelected = tags.includes(pt);
                   return (
                     <button
@@ -373,6 +378,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
           </div>
         </div>
       </div>
+
+      <ManageTagsModal
+        isOpen={isManageTagsOpen}
+        onClose={() => setIsManageTagsOpen(false)}
+        presetTags={presetTags}
+        onSavePresetTags={onSavePresetTags}
+      />
     </div>
   );
 };

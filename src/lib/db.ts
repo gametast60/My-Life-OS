@@ -35,6 +35,7 @@ const KEYS = {
   MEMORIES: "mylifeos_memories_v2",
   CHECKINS: "mylifeos_checkins_v2",
   PROFILE_VECTOR: "mylifeos_profile_vector_v2",
+  PRESET_TAGS: "mylifeos_preset_tags_v2",
 };
 
 // Seed Defaults (Clean Slate for Real User Usage)
@@ -296,11 +297,29 @@ export class RoomDatabase {
     this.set(KEYS.CHECKINS, checkins);
   }
 
+export const DEFAULT_PRESET_TAGS: string[] = [
+  "การทำงาน",
+  "พัฒนาตนเอง",
+  "สุขภาพ",
+  "การเงิน",
+  "ความสัมพันธ์",
+  "ครอบครัว",
+  "เป้าหมาย",
+  "ไอเดีย",
+];
+
   static getProfileVector(): UserProfileVector {
     return this.get<UserProfileVector>(KEYS.PROFILE_VECTOR, DEFAULT_PROFILE_VECTOR);
   }
   static saveProfileVector(vector: UserProfileVector) {
     this.set(KEYS.PROFILE_VECTOR, vector);
+  }
+
+  static getPresetTags(): string[] {
+    return this.get<string[]>(KEYS.PRESET_TAGS, DEFAULT_PRESET_TAGS);
+  }
+  static savePresetTags(tags: string[]) {
+    this.set(KEYS.PRESET_TAGS, tags);
   }
 
   // Utility to export backup ZIP

@@ -20,7 +20,9 @@ import {
   Frown,
   Meh,
   BookOpen,
+  Settings2,
 } from "lucide-react";
+import { ManageTagsModal } from "../components/ManageTagsModal";
 
 interface HomeViewProps {
   settings: UserSettings;
@@ -29,23 +31,14 @@ interface HomeViewProps {
   missions: TodayMission[];
   recentJournals: JournalEntry[];
   todayCheckin?: DailyCheckin;
+  presetTags: string[];
   onToggleMission: (id: string) => void;
   onNavigateTab: (tab: "home" | "journey" | "coach" | "journal" | "progress") => void;
   onOpenQuickAction: (action: string) => void;
   onOpenCheckinModal: () => void;
   onAddJournal: (entry: JournalEntry) => void;
+  onSavePresetTags: (tags: string[]) => void;
 }
-
-const PRESET_TAGS = [
-  "การทำงาน",
-  "พัฒนาตนเอง",
-  "สุขภาพ",
-  "การเงิน",
-  "ความสัมพันธ์",
-  "ครอบครัว",
-  "เป้าหมาย",
-  "ไอเดีย",
-];
 
 const MOODS = [
   { id: "😊", label: "มีความสุข" },
@@ -73,8 +66,10 @@ function saveRemindersToStorage(items: ReminderItem[]) {
 export const HomeView: React.FC<HomeViewProps> = ({
   settings,
   todayCheckin,
+  presetTags,
   onOpenCheckinModal,
   onAddJournal,
+  onSavePresetTags,
 }) => {
   // ── Reminder State ──
   const [reminders, setReminders] = useState<ReminderItem[]>(loadReminders);
@@ -84,6 +79,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [popupItem, setPopupItem] = useState<ReminderItem | null>(null);
   const [selectedMood, setSelectedMood] = useState<string>("😊");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -350,12 +346,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             {/* Tag Picker */}
             <div className="space-y-2">
-              <label className="text-xs text-[#869883] flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-[#6B9361]" />
-                เลือกแท็ก (ไม่บังคับ)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-[#869883] flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-[#6B9361]" />
+                  <span>เลือกแท็ก (ไม่บังคับ)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsManageTagsOpen(true)}
+                  className="text-[11px] text-[#6B9361] hover:underline flex items-center gap-1 font-medium transition-all"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  <span>จัดการแท็ก</span>
+                </button>
+              </div>
               <div className="flex flex-wrap gap-1.5">
-                {PRESET_TAGS.map((tag) => {
+                {presetTags.map((tag) => {
                   const isSelected = selectedTags.includes(tag);
                   return (
                     <button
@@ -393,6 +399,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       )}
+
+      <ManageTagsModal
+        isOpen={isManageTagsOpen}
+        onClose={() => setIsManageTagsOpen(false)}
+        presetTags={presetTags}
+        onSavePresetTags={onSavePresetTags}
+      />
     </div>
   );
 };
