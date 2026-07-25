@@ -1,9 +1,10 @@
-const CACHE_NAME = "my-life-os-v1";
+const CACHE_NAME = "my-life-os-v2";
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/icon.svg"
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 // Install Event - Pre-cache core shell
@@ -74,7 +75,7 @@ self.addEventListener("fetch", (event) => {
       }).catch(() => {
         // Return index.html for navigation requests if offline
         if (event.request.mode === "navigate") {
-          return caches.match("/index.html");
+          return caches.match("./index.html");
         }
       });
     })
