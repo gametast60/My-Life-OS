@@ -26,7 +26,8 @@ async function callGeminiRestApi(
   apiKey: string,
   model: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  isRetry: boolean = false
 ): Promise<string> {
   const cleanKey = apiKey.trim();
   const activeModel = model && model.trim() ? model.trim() : "gemini-2.5-flash";
@@ -53,7 +54,8 @@ async function callGeminiRestApi(
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "x-goog-api-key": cleanKey
     },
     body: JSON.stringify(payload)
   });
@@ -64,12 +66,19 @@ async function callGeminiRestApi(
     console.error("[Gemini REST API Error Log]:", {
       status: response.status,
       statusText: response.statusText,
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent`,
+      model: activeModel,
       errorBody: responseBody
     });
 
-    const errorMsg = responseBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMsg);
+    const googleErrorMsg = responseBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+
+    // Auto-fallback to gemini-2.0-flash or gemini-1.5-flash if selected model is not found or unsupported
+    if (!isRetry && (response.status === 404 || googleErrorMsg.includes("not found") || googleErrorMsg.includes("models/")) && activeModel !== "gemini-2.0-flash") {
+      console.warn(`[Gemini REST API] Model ${activeModel} failed (${googleErrorMsg}). Retrying with gemini-2.0-flash...`);
+      return callGeminiRestApi(apiKey, "gemini-2.0-flash", systemPrompt, userPrompt, true);
+    }
+
+    throw new Error(`[HTTP ${response.status}] ${googleErrorMsg}`);
   }
 
   const generatedText = responseBody?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -137,19 +146,20 @@ export async function testAIConnection(
 ): Promise<{ success: boolean; message: string }> {
   const cleanKey = apiKey?.trim();
   if (!cleanKey) {
-    return { success: false, message: "กรุณากรอก API Key จาก Google AI Studio" };
+    return { success: false, message: "กรุณากรอก API Key ในช่องด้านบน" };
   }
 
   const activeModel = model && model.trim() ? model.trim() : "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${encodeURIComponent(cleanKey)}`;
 
-  console.log(`[Test Connection] Testing ${url.replace(cleanKey, "HIDDEN_KEY")}...`);
+  console.log(`[Test Connection] Testing ${activeModel}...`);
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-goog-api-key": cleanKey
       },
       body: JSON.stringify({
         contents: [
@@ -173,13 +183,21 @@ export async function testAIConnection(
     console.error("[Test Connection Error Response]:", {
       status: response.status,
       statusText: response.statusText,
+      model: activeModel,
       body: responseBody
     });
 
-    const errorMsg = responseBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+    const googleErrorMsg = responseBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+
+    // If activeModel is 404 or unsupported, attempt testing with gemini-2.0-flash automatically
+    if ((response.status === 404 || googleErrorMsg.includes("not found")) && activeModel !== "gemini-2.0-flash") {
+      console.warn(`[Test Connection] ${activeModel} returned 404, testing gemini-2.0-flash fallback...`);
+      return testAIConnection(apiKey, "gemini-2.0-flash");
+    }
+
     return {
       success: false,
-      message: `การเชื่อมต่อล้มเหลว (${errorMsg})`
+      message: `การเชื่อมต่อล้มเหลว [HTTP ${response.status}]: ${googleErrorMsg}`
     };
   } catch (err: any) {
     console.error("[Test Connection Exception]:", err);
