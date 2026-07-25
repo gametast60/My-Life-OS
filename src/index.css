@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-app: #0A0E0A;
+    --color-text-main: #EBF1EA;
+    --color-text-muted: #869883;
+    --color-text-subtle: #697A66;
+    --color-accent: #4E7345;
+    --color-accent-light: #6B9361;
+    --color-accent-dark: #3F5C3A;
+    --color-accent-tint: #182218;
+    --color-border-subtle: #1F2B1F;
+    --color-border-accent: #273727;
+  }
+
+  html, body {
+    background-color: #0A0E0A;
+    color: #EBF1EA;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Tactical Dark Olive Glassmorphism Card System */
+.glass-card {
+  background-color: #131913;
+  color: #EBF1EA;
+  border: 1px solid #1F2B1F;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.glass-card-dark {
+  background-color: #0E140E;
+  color: #FFFFFF;
+  border: 1px solid #243224;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.glass-card-accent {
+  background-color: #182218;
+  color: #EBF1EA;
+  border: 1px solid #273727;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card-warm {
+  background-color: #1A211A;
+  border: 1px solid #2A382A;
+  border-radius: 1.5rem;
+}
+
+/* Custom scrollbars */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

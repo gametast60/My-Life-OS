@@ -1,0 +1,6 @@
+{
+  "name": "My Life OS",
+  "description": "An AI-powered Life Operating System that helps users become the person they want to become, combining Life Dashboard, Journal, Gratitude, Affirmation, Habit Tracker, Goal Tracker, AI Coach & Therapist, Vision Board, Analytics, Timeline, and Personal Knowledge Base.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

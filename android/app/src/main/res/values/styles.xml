@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">#4E7345</item>
+        <item name="colorPrimaryDark">#0A0E0A</item>
+        <item name="colorAccent">#6B9361</item>
+        <item name="android:windowBackground">#0A0E0A</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+        <item name="android:background">#0A0E0A</item>
+    </style>
+</resources>
