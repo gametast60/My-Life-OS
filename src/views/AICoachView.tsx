@@ -1,6 +1,31 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { AIMode, AIChatMessage, UserSettings, CharacterStatus, MemoryItem, UserProfileVector, JournalEntry, HabitItem, GoalItem } from "../types";
 import { sendAIChatRequest, generateLifeContextGreeting } from "../lib/aiService";
+
+const LC_CACHE_KEY = "mylifeos_lc_greeting_cache";
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function loadCachedGreeting(): string {
+  try {
+    const raw = localStorage.getItem(LC_CACHE_KEY);
+    if (!raw) return "";
+    const { date, greeting } = JSON.parse(raw);
+    if (date === getTodayKey()) return greeting as string;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function saveCachedGreeting(greeting: string) {
+  try {
+    localStorage.setItem(LC_CACHE_KEY, JSON.stringify({ date: getTodayKey(), greeting }));
+  } catch {}
+}
 import {
   Bot,
   User,
@@ -49,7 +74,7 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
   const [activeMode, setActiveMode] = useState<AIMode>("Life Coach");
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [lifeGreeting, setLifeGreeting] = useState<string>("");
+  const [lifeGreeting, setLifeGreeting] = useState<string>(() => loadCachedGreeting());
   const [isGeneratingGreeting, setIsGeneratingGreeting] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
@@ -57,27 +82,33 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Generate Life Context Greeting on initial view load if API key available
-  useEffect(() => {
-    if (settings.aiApiKey && !lifeGreeting && !isGeneratingGreeting) {
-      setIsGeneratingGreeting(true);
-      generateLifeContextGreeting(
-        {
-          userName: settings.userName || "ผู้ใช้งาน",
-          recentJournals: journals.slice(0, 5),
-          goals: goals.map((g) => ({ title: g.title, progressPercent: g.progressPercent, priority: g.priority })),
-          habits: habits.map((h) => ({ title: h.title, currentStreak: h.currentStreak })),
-          memories: memories.slice(0, 8),
-          profileVector,
-          character,
-        },
-        settings
-      )
-        .then((greeting) => setLifeGreeting(greeting))
-        .catch(() => setLifeGreeting(`สวัสดี ${settings.userName || "ผู้ใช้งาน"} 👋 AI Coach พร้อมให้คำปรึกษาแล้วครับ`))
-        .finally(() => setIsGeneratingGreeting(false));
-    }
-  }, [settings.aiApiKey]);
+  const handleGenerateGreeting = useCallback(() => {
+    if (!settings.aiApiKey || isGeneratingGreeting) return;
+    setIsGeneratingGreeting(true);
+    setLifeGreeting("");
+    generateLifeContextGreeting(
+      {
+        userName: settings.userName || "ผู้ใช้งาน",
+        recentJournals: journals.slice(0, 5),
+        goals: goals.map((g) => ({ title: g.title, progressPercent: g.progressPercent, priority: g.priority })),
+        habits: habits.map((h) => ({ title: h.title, currentStreak: h.currentStreak })),
+        memories: memories.slice(0, 8),
+        profileVector,
+        character,
+      },
+      settings
+    )
+      .then((greeting) => {
+        setLifeGreeting(greeting);
+        saveCachedGreeting(greeting);
+      })
+      .catch(() => {
+        const fallback = `สวัสดี ${settings.userName || "ผู้ใช้งาน"} 👋 AI Coach พร้อมให้คำปรึกษาแล้วครับ`;
+        setLifeGreeting(fallback);
+        saveCachedGreeting(fallback);
+      })
+      .finally(() => setIsGeneratingGreeting(false));
+  }, [settings, journals, goals, habits, memories, profileVector, character, isGeneratingGreeting]);
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputText;
@@ -165,27 +196,61 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Life Context Intelligence
               </span>
+              {lifeGreeting && (
+                <span className="text-[10px] text-[#697A66] normal-case font-normal font-mono">แคชวันนี้</span>
+              )}
             </div>
 
-            <p className="text-xs sm:text-sm font-semibold text-[#EBF1EA] leading-relaxed">
-              {settings.aiApiKey
-                ? lifeGreeting || "กำลังประมวลผลข้อมูลบริบทชีวิต..."
-                : "ยังไม่ได้เชื่อมต่อ AI — กรุณาตั้งค่า API Key เพื่อเปิดใช้งาน AI Coach"}
-            </p>
+            {!settings.aiApiKey ? (
+              <p className="text-xs text-[#869883] leading-relaxed">
+                ยังไม่ได้เชื่อมต่อ AI — กรุณาตั้งค่า API Key เพื่อเปิดใช้งาน AI Coach
+              </p>
+            ) : isGeneratingGreeting ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-3 bg-[#273727] rounded-full w-full" />
+                <div className="h-3 bg-[#273727] rounded-full w-4/5" />
+                <div className="h-3 bg-[#273727] rounded-full w-3/5" />
+                <p className="text-[11px] text-[#697A66] font-mono pt-1">กำลังวิเคราะห์บริบทชีวิต...</p>
+              </div>
+            ) : lifeGreeting ? (
+              <p className="text-xs sm:text-sm text-[#EBF1EA] leading-relaxed">{lifeGreeting}</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-[#869883] leading-relaxed">กดปุ่มด้านล่างเพื่อให้ AI วิเคราะห์บริบทชีวิตของคุณ (1 ครั้ง/วัน)</p>
+                <button
+                  onClick={handleGenerateGreeting}
+                  className="w-full py-2 rounded-xl bg-[#233523] border border-[#2E452E] text-[#6B9361] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#2E452E] active:scale-95 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  ดูบทวิเคราะห์ชีวิตวันนี้
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-[11px] text-[#869883] pt-2 border-t border-[#273727]">
               <span className="flex items-center gap-1">
                 <Brain className="w-3.5 h-3.5 text-[#6B9361]" />
                 {memories.length} ความทรงจำ
               </span>
-              {onOpenMemoryModal && (
-                <button
-                  onClick={onOpenMemoryModal}
-                  className="text-[#6B9361] hover:underline font-medium flex items-center gap-0.5"
-                >
-                  เปิดดูสมอง <ChevronRight className="w-3 h-3" />
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {lifeGreeting && !isGeneratingGreeting && (
+                  <button
+                    onClick={handleGenerateGreeting}
+                    className="text-[#697A66] hover:text-[#6B9361] text-[10px] font-mono transition-colors"
+                    title="รีเฟรชบทวิเคราะห์ (ใช้โทเค็นเพิ่ม)"
+                  >
+                    🔄 รีเฟรช
+                  </button>
+                )}
+                {onOpenMemoryModal && (
+                  <button
+                    onClick={onOpenMemoryModal}
+                    className="text-[#6B9361] hover:underline font-medium flex items-center gap-0.5"
+                  >
+                    เปิดดูสมอง <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
