@@ -13,6 +13,9 @@ import {
   RefreshCw,
   ExternalLink,
   Trash2,
+  Clipboard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface SettingsModalProps {
@@ -34,6 +37,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string }>({});
   const [isTesting, setIsTesting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setFormData((prev) => ({ ...prev, aiApiKey: text.trim() }));
+        }
+      }
+    } catch (err) {
+      console.log("Clipboard read failed", err);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -185,17 +202,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs text-[#869883] flex items-center justify-between">
+            <label className="text-xs text-[#869883] flex items-center justify-between mb-1">
               <span>Google AI Studio API Key (จัดเก็บปลอดภัยในเครื่อง)</span>
               <span className="text-[10px] text-[#6B9361] font-mono">Local Storage Only</span>
             </label>
-            <input
-              type="password"
-              value={formData.aiApiKey || ""}
-              onChange={(e) => setFormData({ ...formData, aiApiKey: e.target.value })}
-              placeholder="วาง API Key ที่นี่ (ขึ้นต้นด้วย AIzaSy...)"
-              className="w-full mt-1 p-2.5 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA] font-mono"
-            />
+            <div className="flex gap-1.5 items-center">
+              <div className="relative flex-1">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={formData.aiApiKey || ""}
+                  onChange={(e) => setFormData({ ...formData, aiApiKey: e.target.value })}
+                  placeholder="วาง API Key ที่นี่"
+                  className="w-full p-2.5 pr-9 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA] font-mono select-text"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#869883] hover:text-[#EBF1EA] p-1"
+                  title={showApiKey ? "ซ่อน Key" : "แสดง Key"}
+                >
+                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handlePasteClipboard}
+                className="px-3 py-2.5 rounded-xl bg-[#233523] text-[#6B9361] border border-[#2E452E] text-xs font-mono flex items-center gap-1.5 hover:bg-[#2E452E] active:scale-95 transition-all shrink-0"
+                title="วางจากคลิปบอร์ด"
+              >
+                <Clipboard className="w-3.5 h-3.5" />
+                <span>วาง</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between pt-2">
