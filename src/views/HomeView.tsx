@@ -9,13 +9,7 @@ import {
   ReminderItem,
 } from "../types";
 import {
-  Check,
-  Zap,
-  ChevronRight,
-  Lock,
-  Cog,
   Plus,
-  Target,
   Sparkles,
   CheckCircle2,
   CalendarDays,
@@ -42,15 +36,6 @@ interface HomeViewProps {
   onAddJournal: (entry: JournalEntry) => void;
 }
 
-const CHAR_STATS = [
-  { key: "discipline" as keyof CharacterStatus, label: "วินัย", color: "#4E7345" },
-  { key: "health" as keyof CharacterStatus, label: "สุขภาพ", color: "#6B9361" },
-  { key: "finance" as keyof CharacterStatus, label: "การเงิน", color: "#B07A60" },
-  { key: "mindset" as keyof CharacterStatus, label: "ความคิด", color: "#4E7345" },
-  { key: "energy" as keyof CharacterStatus, label: "พลังงาน", color: "#7A9B61" },
-  { key: "confidence" as keyof CharacterStatus, label: "ความมั่นใจ", color: "#6B9361" },
-];
-
 const PRESET_TAGS = [
   "การทำงาน",
   "พัฒนาตนเอง",
@@ -63,11 +48,11 @@ const PRESET_TAGS = [
 ];
 
 const MOODS = [
-  { id: "😊", label: "มีความสุข", icon: Smile },
-  { id: "🤩", label: "กระปรี้", icon: Zap },
-  { id: "😐", label: "ปกติ", icon: Meh },
-  { id: "😕", label: "เหนื่อย", icon: Frown },
-  { id: "😫", label: "หนักใจ", icon: Frown },
+  { id: "😊", label: "มีความสุข" },
+  { id: "🤩", label: "กระปรี้" },
+  { id: "😐", label: "ปกติ" },
+  { id: "😕", label: "เหนื่อย" },
+  { id: "😫", label: "หนักใจ" },
 ] as const;
 
 const REMINDERS_KEY = "mylifeos_reminders";
@@ -87,10 +72,7 @@ function saveRemindersToStorage(items: ReminderItem[]) {
 
 export const HomeView: React.FC<HomeViewProps> = ({
   settings,
-  character,
-  journey,
   todayCheckin,
-  onNavigateTab,
   onOpenCheckinModal,
   onAddJournal,
 }) => {
@@ -102,35 +84,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [popupItem, setPopupItem] = useState<ReminderItem | null>(null);
   const [selectedMood, setSelectedMood] = useState<string>("😊");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  const journeySteps = [
-    { label: "เริ่มต้น", status: "current", icon: Check },
-    { label: "นิสัย", status: "upcoming", icon: Zap },
-    { label: "ตัวตน", status: "upcoming", icon: Cog },
-    { label: "แรงขับ", status: "locked", icon: Target },
-    { label: "อิสรภาพ", status: "locked", icon: Lock },
-  ];
-
-  const steps =
-    journey.length > 0
-      ? journey.map((phase, idx) => {
-          const iconMap = [Check, Zap, Cog, Target, Lock];
-          return {
-            label: phase.titleTh,
-            status:
-              phase.status === "completed"
-                ? "completed"
-                : phase.status === "current"
-                ? "active"
-                : "locked",
-            icon: iconMap[idx] || Cog,
-          };
-        })
-      : journeySteps;
-
-  const hasCharacterData = Object.values(character).some(
-    (v) => typeof v === "number" && v > 0
-  );
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -259,65 +212,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
         )}
       </section>
 
-      {/* 4. Life Journey Section */}
-      <section className="bg-[#131913] rounded-3xl p-5 sm:p-6 border border-[#1F2B1F] shadow-lg space-y-6">
-        <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-4">
-          <h2 className="font-bold text-base sm:text-lg text-[#EBF1EA]">เส้นทางชีวิต</h2>
-          <button
-            onClick={() => onNavigateTab("journey")}
-            className="text-xs text-[#6B9361] hover:underline flex items-center gap-1"
-          >
-            ดูทั้งหมด <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="relative flex items-center justify-between px-2 pt-2">
-          <div className="absolute top-[28px] left-[32px] right-[32px] h-[2px] bg-[#1F2B1F] -z-0" />
-          <div
-            className="absolute top-[28px] left-[32px] h-[2px] bg-[#4E7345] -z-0 transition-all duration-500"
-            style={{
-              width: `${
-                (steps.filter((s) => s.status === "completed").length /
-                  Math.max(steps.length - 1, 1)) *
-                100
-              }%`,
-            }}
-          />
-
-          {steps.map((step, idx) => {
-            const StepIcon = step.icon;
-            const isCompleted = step.status === "completed";
-            const isActive = step.status === "active" || step.status === "current";
-            const isLocked = step.status === "locked";
-
-            return (
-              <div key={idx} className="flex flex-col items-center gap-2 z-10">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    isCompleted
-                      ? "bg-[#3F5C3A] text-white shadow-md border border-[#4E7345]"
-                      : isActive
-                      ? "bg-[#4E7345] text-white shadow-lg shadow-[#4E7345]/30 ring-4 ring-[#4E7345]/20 border border-[#6B9361]"
-                      : isLocked
-                      ? "bg-[#182018] text-[#556653] border border-[#223022]"
-                      : "bg-[#182018] text-[#869883] border border-[#273727]"
-                  }`}
-                >
-                  <StepIcon className="w-5 h-5" />
-                </div>
-                <span
-                  className={`text-[11px] font-medium text-center ${
-                    isActive || isCompleted ? "text-[#EBF1EA]" : "text-[#697A66]"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* 5. เตือนความจำ Section */}
       <section className="bg-[#131913] rounded-3xl p-5 sm:p-6 border border-[#1F2B1F] shadow-lg space-y-4">
         <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-4">
@@ -387,50 +281,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </button>
               </div>
             ))}
-          </div>
-        )}
-      </section>
-
-      {/* 6. Character Stats Section */}
-      <section className="bg-[#131913] rounded-3xl p-5 sm:p-6 border border-[#1F2B1F] shadow-lg space-y-5">
-        <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-4">
-          <h2 className="font-bold text-base sm:text-lg text-[#EBF1EA]">สถานะตัวละคร</h2>
-          <button
-            onClick={() => onNavigateTab("progress")}
-            className="text-xs text-[#6B9361] hover:underline flex items-center gap-1"
-          >
-            ดูรายละเอียด <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {!hasCharacterData ? (
-          <div className="text-center py-4 space-y-1">
-            <p className="text-[#869883] text-sm">ยังไม่มีข้อมูลสถานะ</p>
-            <p className="text-xs text-[#697A66]">
-              สถานะจะอัปเดตอัตโนมัติเมื่อคุณทำภารกิจและบันทึกนิสัยต่างๆ
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {CHAR_STATS.map(({ key, label, color }) => {
-              const val = character[key] ?? 0;
-              return (
-                <div key={key} className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-[#EBF1EA]">{label}</span>
-                    <span className="font-mono" style={{ color }}>
-                      {val}%
-                    </span>
-                  </div>
-                  <div className="h-2.5 w-full bg-[#182018] rounded-full overflow-hidden border border-[#223022]">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${val}%`, backgroundColor: color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
       </section>
