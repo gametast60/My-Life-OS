@@ -284,6 +284,7 @@ export default function App() {
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenQuickAction={handleQuickAction}
             onOpenCheckinModal={() => setIsCheckinOpen(true)}
+            onAddJournal={handleAddJournal}
           />
         )}
 

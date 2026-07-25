@@ -241,3 +241,9 @@ export interface TimelineEvent {
   audioUrl?: string;
   badge?: string;
 }
+
+export interface ReminderItem {
+  id: string;
+  text: string;
+  createdAt: number;
+}
