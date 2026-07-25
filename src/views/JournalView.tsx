@@ -1,38 +1,65 @@
 import React, { useState, useRef } from "react";
 import { JournalEntry, UserSettings } from "../types";
-import { Plus, Smile, Frown, Meh, Zap, Edit2, Trash2, X, Tag, Settings2 } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Tag, Settings2, Smile, BookOpen, ChevronRight } from "lucide-react";
 import { ManageTagsModal } from "../components/ManageTagsModal";
+import { ManageMoodsModal } from "../components/ManageMoodsModal";
+import { PresetMood } from "../lib/db";
 
 interface JournalViewProps {
   journals: JournalEntry[];
   settings: UserSettings;
   presetTags: string[];
+  presetMoods: PresetMood[];
   onAddJournal: (entry: JournalEntry) => void;
   onEditJournal?: (entry: JournalEntry) => void;
   onDeleteJournal?: (id: string) => void;
   onSavePresetTags: (tags: string[]) => void;
+  onSavePresetMoods: (moods: PresetMood[]) => void;
 }
 
 export const JournalView: React.FC<JournalViewProps> = ({
   journals,
   presetTags,
+  presetMoods,
   onAddJournal,
   onEditJournal,
   onDeleteJournal,
   onSavePresetTags,
+  onSavePresetMoods,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [content, setContent] = useState("");
-  const [mood, setMood] = useState<"happy" | "neutral" | "sad" | "energetic">("happy");
+  const [moodId, setMoodId] = useState<string>(presetMoods[0]?.id ?? "happy");
   const [tags, setTags] = useState<string[]>(presetTags.slice(0, 2));
   const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
+  const [isManageMoodsOpen, setIsManageMoodsOpen] = useState(false);
+  const [isAllJournalsOpen, setIsAllJournalsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Helper: today's date string for comparison (YYYY-MM-DD)
+  const todayKey = new Date().toISOString().split("T")[0];
+
+  // Filter: only today's entries for the right column feed
+  const todayJournals = journals.filter((j) => {
+    // timestamp-based comparison
+    if (j.timestamp) {
+      const d = new Date(j.timestamp);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return key === todayKey;
+    }
+    return false;
+  });
+
+  // Get selected mood object
+  const selectedMood = presetMoods.find((m) => m.id === moodId) ?? presetMoods[0];
 
   // Start Editing
   const handleStartEdit = (j: JournalEntry) => {
     setEditingId(j.id);
     setContent(j.content);
-    setMood((j.mood as any) || "happy");
+    // Map stored mood to presetMoods id
+    const matchedMood = presetMoods.find((m) => m.id === j.mood || m.emoji === j.mood || m.label === j.mood);
+    setMoodId(matchedMood?.id ?? presetMoods[0]?.id ?? "happy");
     setTags(j.tags || []);
     setTimeout(() => {
       if (textareaRef.current) {
@@ -47,7 +74,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const handleCancelEdit = () => {
     setEditingId(null);
     setContent("");
-    setMood("happy");
+    setMoodId(presetMoods[0]?.id ?? "happy");
     setTags(presetTags.slice(0, 2));
   };
 
@@ -71,13 +98,12 @@ export const JournalView: React.FC<JournalViewProps> = ({
     if (!content.trim()) return;
 
     if (editingId) {
-      // Find original entry to preserve date and id
       const existing = journals.find((j) => j.id === editingId);
       if (existing && onEditJournal) {
         onEditJournal({
           ...existing,
           content: content.trim(),
-          mood,
+          mood: moodId as any,
           tags,
         });
       }
@@ -92,8 +118,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
         }),
         timestamp: Date.now(),
         content: content.trim(),
-        mood,
+        mood: moodId as any,
         tags,
+        title: "",
+        mode: "Normal Diary",
+        emotion: selectedMood?.label ?? "",
+        favorite: false,
+        pinned: false,
       };
       onAddJournal(newEntry);
       setContent("");
@@ -105,32 +136,78 @@ export const JournalView: React.FC<JournalViewProps> = ({
     if (onDeleteJournal) onDeleteJournal(id);
   };
 
-  const getMoodIcon = (m: string) => {
-    switch (m) {
-      case "happy":
-      case "😊":
-        return <Smile className="w-4 h-4 text-[#6B9361]" />;
-      case "energetic":
-      case "🤩":
-        return <Zap className="w-4 h-4 text-amber-400" />;
-      case "neutral":
-      case "😐":
-        return <Meh className="w-4 h-4 text-[#869883]" />;
-      case "sad":
-      case "😫":
-      case "😕":
-        return <Frown className="w-4 h-4 text-blue-400" />;
-      default:
-        return <Smile className="w-4 h-4 text-[#6B9361]" />;
-    }
+  // Get mood display for a journal entry
+  const getMoodDisplay = (j: JournalEntry) => {
+    const matched = presetMoods.find(
+      (m) => m.id === j.mood || m.emoji === j.mood || m.label === j.mood
+    );
+    if (matched) return <span className="text-base">{matched.emoji}</span>;
+    // Fallback: treat as raw emoji or string
+    return <span className="text-base">{j.mood}</span>;
   };
+
+  // Journal card component (reused in both main view and popup)
+  const JournalCard = ({ j, inPopup = false }: { j: JournalEntry; inPopup?: boolean }) => (
+    <div
+      key={j.id}
+      className={`bg-[#131913] rounded-3xl p-5 border shadow-lg space-y-3 transition-all ${
+        editingId === j.id ? "border-[#4E7345] ring-2 ring-[#4E7345]/30" : "border-[#1F2B1F]"
+      }`}
+    >
+      <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-3">
+        <div className="flex items-center gap-2">
+          {getMoodDisplay(j)}
+          <span className="text-xs font-bold text-[#EBF1EA]">{j.date}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5 flex-wrap">
+            {j.tags?.map((t) => (
+              <span
+                key={t}
+                className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#182218] text-[#6B9361] border border-[#273727] font-mono"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+
+          {/* Action Buttons: Edit & Delete */}
+          {!inPopup && (
+            <div className="flex items-center gap-1 ml-2 border-l border-[#1F2B1F] pl-2">
+              <button
+                onClick={() => handleStartEdit(j)}
+                className="p-1.5 rounded-lg text-[#869883] hover:text-[#EBF1EA] hover:bg-[#182218] transition-colors"
+                title="แก้ไขบันทึกนี้"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              {onDeleteJournal && (
+                <button
+                  onClick={() => handleDelete(j.id)}
+                  className="p-1.5 rounded-lg text-[#869883] hover:text-red-400 hover:bg-[#2A1818] transition-colors"
+                  title="ลบบันทึกนี้"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="text-xs sm:text-sm text-[#EBF1EA] leading-relaxed whitespace-pre-wrap">
+        {j.content}
+      </p>
+    </div>
+  );
 
   return (
     <div className="space-y-6 pb-28 animate-in fade-in duration-300">
       {/* Top Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">ไดอารี่ & บันทึกความคิด</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">Daily</h2>
           <p className="text-xs text-[#869883]">ทบทวนบทเรียน ความรู้สึก และไอเดียใหม่ประจำวัน</p>
         </div>
       </div>
@@ -160,29 +237,33 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
             {/* Mood Picker */}
             <div>
-              <label className="text-xs text-[#869883] block mb-2">อารมณ์ความรู้สึกวันนี้</label>
-              <div className="flex gap-2">
-                {[
-                  { id: "happy", label: "มีความสุข", icon: Smile },
-                  { id: "energetic", label: "กระปรี้กระเปร่า", icon: Zap },
-                  { id: "neutral", label: "ปกติ", icon: Meh },
-                  { id: "sad", label: "เหนื่อยล้า", icon: Frown },
-                ].map((item) => {
-                  const ItemIcon = item.icon;
-                  const isSelected = mood === item.id;
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-[#869883]">อารมณ์ความรู้สึกวันนี้</label>
+                <button
+                  type="button"
+                  onClick={() => setIsManageMoodsOpen(true)}
+                  className="text-[11px] text-[#6B9361] hover:underline flex items-center gap-1 font-medium transition-all"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  <span>จัดการอารมณ์</span>
+                </button>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {presetMoods.map((item) => {
+                  const isSelected = moodId === item.id;
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setMood(item.id as any)}
-                      className={`flex-1 p-2.5 rounded-2xl border flex flex-col items-center gap-1 transition-all ${
+                      onClick={() => setMoodId(item.id)}
+                      className={`flex-1 min-w-[60px] p-2.5 rounded-2xl border flex flex-col items-center gap-1 transition-all ${
                         isSelected
                           ? "bg-[#3F5C3A] border-[#4E7345] text-white shadow-sm"
                           : "bg-[#182018] border-[#223022] text-[#869883] hover:border-[#273727]"
                       }`}
                     >
-                      <ItemIcon className="w-4 h-4" />
-                      <span className="text-[10px] font-medium">{item.label}</span>
+                      <span className="text-base leading-none">{item.emoji}</span>
+                      <span className="text-[9px] font-medium text-center leading-tight">{item.label}</span>
                     </button>
                   );
                 })}
@@ -267,86 +348,98 @@ export const JournalView: React.FC<JournalViewProps> = ({
               disabled={!content.trim()}
               className="w-full py-3 rounded-2xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white font-bold text-xs font-mono uppercase tracking-wider transition-colors disabled:opacity-40 shadow-sm"
             >
-              {editingId ? "บันทึกการแก้ไข" : "บันทึกไดอารี่"}
+              {editingId ? "บันทึกการแก้ไข" : "บันทึก Daily"}
             </button>
           </form>
         </div>
 
-        {/* Right Column: Journal Feed */}
+        {/* Right Column: Today's Journal Feed */}
         <div className="md:col-span-7 space-y-4">
-          <h3 className="font-bold text-xs text-[#869883] uppercase tracking-widest px-1">
-            ประวัติการบันทึก ({journals.length})
-          </h3>
+          {/* Section Header */}
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-bold text-xs text-[#869883] uppercase tracking-widest">
+              บันทึกวันนี้ ({todayJournals.length})
+            </h3>
+            {journals.length > 0 && (
+              <button
+                onClick={() => setIsAllJournalsOpen(true)}
+                className="flex items-center gap-1 text-[11px] text-[#6B9361] hover:underline font-semibold transition-all"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>ดูทั้งหมด ({journals.length})</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
 
           <div className="space-y-4">
-            {journals.length === 0 ? (
+            {todayJournals.length === 0 ? (
               <div className="text-center py-10 bg-[#131913] rounded-3xl border border-[#1F2B1F] text-[#869883] text-sm">
-                ยังไม่มีบันทึก เขียนไดอารี่แรกของคุณในช่องด้านซ้ายได้เลย!
+                ยังไม่มีบันทึกวันนี้ เขียน Daily แรกของวันนี้ในช่องด้านซ้ายได้เลย!
               </div>
             ) : (
-              journals.map((j) => (
-                <div
-                  key={j.id}
-                  className={`bg-[#131913] rounded-3xl p-5 border shadow-lg space-y-3 transition-all ${
-                    editingId === j.id ? "border-[#4E7345] ring-2 ring-[#4E7345]/30" : "border-[#1F2B1F]"
-                  }`}
-                >
-                  <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-3">
-                    <div className="flex items-center gap-2">
-                      {getMoodIcon(j.mood)}
-                      <span className="text-xs font-bold text-[#EBF1EA]">{j.date}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {j.tags?.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#182218] text-[#6B9361] border border-[#273727] font-mono"
-                          >
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Action Buttons: Edit & Delete */}
-                      <div className="flex items-center gap-1 ml-2 border-l border-[#1F2B1F] pl-2">
-                        <button
-                          onClick={() => handleStartEdit(j)}
-                          className="p-1.5 rounded-lg text-[#869883] hover:text-[#EBF1EA] hover:bg-[#182218] transition-colors"
-                          title="แก้ไขบันทึกนี้"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        {onDeleteJournal && (
-                          <button
-                            onClick={() => handleDelete(j.id)}
-                            className="p-1.5 rounded-lg text-[#869883] hover:text-red-400 hover:bg-[#2A1818] transition-colors"
-                            title="ลบบันทึกนี้"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-[#EBF1EA] leading-relaxed whitespace-pre-wrap">
-                    {j.content}
-                  </p>
-                </div>
-              ))
+              todayJournals.map((j) => <JournalCard key={j.id} j={j} />)
             )}
           </div>
         </div>
       </div>
 
+      {/* Manage Tags Modal */}
       <ManageTagsModal
         isOpen={isManageTagsOpen}
         onClose={() => setIsManageTagsOpen(false)}
         presetTags={presetTags}
         onSavePresetTags={onSavePresetTags}
       />
+
+      {/* Manage Moods Modal */}
+      <ManageMoodsModal
+        isOpen={isManageMoodsOpen}
+        onClose={() => setIsManageMoodsOpen(false)}
+        presetMoods={presetMoods}
+        onSavePresetMoods={onSavePresetMoods}
+      />
+
+      {/* All Journals Popup */}
+      {isAllJournalsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
+          style={{ backgroundColor: "rgba(0,0,0,0.80)", backdropFilter: "blur(8px)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsAllJournalsOpen(false);
+          }}
+        >
+          <div className="w-full max-w-2xl bg-[#0F160F] rounded-3xl border border-[#1F2B1F] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 mb-8">
+            {/* Popup Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1F2B1F] sticky top-0 bg-[#0F160F] z-10">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#6B9361]" />
+                <h3 className="font-bold text-base text-[#EBF1EA]">บันทึกทั้งหมด</h3>
+                <span className="text-xs text-[#869883] bg-[#182018] px-2 py-0.5 rounded-full border border-[#223022]">
+                  {journals.length} รายการ
+                </span>
+              </div>
+              <button
+                onClick={() => setIsAllJournalsOpen(false)}
+                className="p-1.5 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-[#182218] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Popup Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {journals.length === 0 ? (
+                <div className="text-center py-16 text-[#869883] text-sm">
+                  ยังไม่มีบันทึกเลย เริ่มเขียน Daily แรกได้เลย!
+                </div>
+              ) : (
+                journals.map((j) => <JournalCard key={j.id} j={j} inPopup={true} />)
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

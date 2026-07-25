@@ -22,6 +22,7 @@ import { MemoryModal } from "./views/MemoryModal";
 
 import { RoomDatabase } from "./lib/db";
 import { extractMemoryFromJournal, updateProfileVector } from "./lib/aiService";
+import { PresetMood } from "./lib/db";
 import {
   UserSettings,
   CharacterStatus,
@@ -62,6 +63,7 @@ export default function App() {
   const [checkins, setCheckins] = useState<DailyCheckin[]>(() => RoomDatabase.getCheckins());
   const [profileVector, setProfileVector] = useState<UserProfileVector>(() => RoomDatabase.getProfileVector());
   const [presetTags, setPresetTags] = useState<string[]>(() => RoomDatabase.getPresetTags());
+  const [presetMoods, setPresetMoods] = useState<PresetMood[]>(() => RoomDatabase.getPresetMoods());
 
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -78,6 +80,11 @@ export default function App() {
   const handleSavePresetTags = (tags: string[]) => {
     setPresetTags(tags);
     RoomDatabase.savePresetTags(tags);
+  };
+
+  const handleSavePresetMoods = (moods: PresetMood[]) => {
+    setPresetMoods(moods);
+    RoomDatabase.savePresetMoods(moods);
   };
 
   // Reload handler after import or reset
@@ -98,6 +105,7 @@ export default function App() {
     setCheckins(RoomDatabase.getCheckins());
     setProfileVector(RoomDatabase.getProfileVector());
     setPresetTags(RoomDatabase.getPresetTags());
+    setPresetMoods(RoomDatabase.getPresetMoods());
   };
 
   // Auto-migrate: wipe old v1 keys that contain mock data
@@ -323,10 +331,12 @@ export default function App() {
             journals={journals}
             settings={settings}
             presetTags={presetTags}
+            presetMoods={presetMoods}
             onAddJournal={handleAddJournal}
             onEditJournal={handleEditJournal}
             onDeleteJournal={handleDeleteJournal}
             onSavePresetTags={handleSavePresetTags}
+            onSavePresetMoods={handleSavePresetMoods}
           />
         )}
 

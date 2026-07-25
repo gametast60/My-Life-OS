@@ -36,6 +36,7 @@ const KEYS = {
   CHECKINS: "mylifeos_checkins_v2",
   PROFILE_VECTOR: "mylifeos_profile_vector_v2",
   PRESET_TAGS: "mylifeos_preset_tags_v2",
+  PRESET_MOODS: "mylifeos_preset_moods_v2",
 };
 
 // Seed Defaults (Clean Slate for Real User Usage)
@@ -101,6 +102,24 @@ export const DEFAULT_PRESET_TAGS: string[] = [
   "ครอบครัว",
   "เป้าหมาย",
   "ไอเดีย",
+  "Gratitude",
+];
+
+export interface PresetMood {
+  id: string;
+  emoji: string;
+  label: string;
+}
+
+export const DEFAULT_PRESET_MOODS: PresetMood[] = [
+  { id: "happy", emoji: "😊", label: "มีความสุข" },
+  { id: "energetic", emoji: "🤩", label: "กระปรี้กระเปร่า" },
+  { id: "neutral", emoji: "😐", label: "ปกติ" },
+  { id: "sad", emoji: "😫", label: "เหนื่อยล้า" },
+  { id: "grateful", emoji: "🙏", label: "ขอบคุณ" },
+  { id: "anxious", emoji: "😰", label: "กังวล" },
+  { id: "calm", emoji: "😌", label: "สงบ" },
+  { id: "excited", emoji: "🥳", label: "ตื่นเต้น" },
 ];
 
 export const DEFAULT_JOURNEY: LifeJourneyPhase[] = [
@@ -320,6 +339,13 @@ export class RoomDatabase {
   }
   static savePresetTags(tags: string[]) {
     this.set(KEYS.PRESET_TAGS, tags);
+  }
+
+  static getPresetMoods(): PresetMood[] {
+    return this.get<PresetMood[]>(KEYS.PRESET_MOODS, DEFAULT_PRESET_MOODS);
+  }
+  static savePresetMoods(moods: PresetMood[]) {
+    this.set(KEYS.PRESET_MOODS, moods);
   }
 
   // Utility to export backup ZIP
