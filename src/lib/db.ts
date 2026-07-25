@@ -92,6 +92,17 @@ export const DEFAULT_PROFILE_VECTOR: UserProfileVector = {
   updateCount: 0,
 };
 
+export const DEFAULT_PRESET_TAGS: string[] = [
+  "การทำงาน",
+  "พัฒนาตนเอง",
+  "สุขภาพ",
+  "การเงิน",
+  "ความสัมพันธ์",
+  "ครอบครัว",
+  "เป้าหมาย",
+  "ไอเดีย",
+];
+
 export const DEFAULT_JOURNEY: LifeJourneyPhase[] = [
   {
     id: "phase-1",
@@ -296,17 +307,6 @@ export class RoomDatabase {
   static saveCheckins(checkins: DailyCheckin[]) {
     this.set(KEYS.CHECKINS, checkins);
   }
-
-export const DEFAULT_PRESET_TAGS: string[] = [
-  "การทำงาน",
-  "พัฒนาตนเอง",
-  "สุขภาพ",
-  "การเงิน",
-  "ความสัมพันธ์",
-  "ครอบครัว",
-  "เป้าหมาย",
-  "ไอเดีย",
-];
 
   static getProfileVector(): UserProfileVector {
     return this.get<UserProfileVector>(KEYS.PROFILE_VECTOR, DEFAULT_PROFILE_VECTOR);
