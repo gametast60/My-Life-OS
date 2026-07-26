@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { JournalEntry, UserSettings } from "../types";
-import { Plus, Edit2, Trash2, X, Tag, Settings2, Smile, BookOpen, ChevronRight } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Tag, Settings2, Smile, BookOpen, ChevronRight, Brain, Sparkles } from "lucide-react";
+
 import { ManageTagsModal } from "../components/ManageTagsModal";
 import { ManageMoodsModal } from "../components/ManageMoodsModal";
 import { PresetMood } from "../lib/db";
@@ -147,7 +148,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   };
 
   // Journal card component (reused in both main view and popup)
-  const JournalCard = ({ j, inPopup = false }: { j: JournalEntry; inPopup?: boolean }) => (
+  const JournalCard = ({ j, inPopup = false }: { j: JournalEntry; inPopup?: boolean; key?: string }) => (
+
     <div
       key={j.id}
       className={`bg-[#131913] rounded-3xl p-5 border shadow-lg space-y-3 transition-all ${
@@ -272,7 +274,18 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
             {/* Content Textarea */}
             <div>
-              <label className="text-xs text-[#869883] block mb-1.5">เนื้อหาบันทึก</label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-xs text-[#869883] block">เนื้อหาบันทึก</label>
+                <span
+                  className={`text-[11px] font-mono px-2 py-0.5 rounded-full border transition-colors ${
+                    content.trim() && content.trim().split(/\s+/).length >= 100
+                      ? "bg-[#233523] border-[#4E7345] text-[#6B9361] font-bold"
+                      : "bg-[#182018] border-[#223022] text-[#869883]"
+                  }`}
+                >
+                  {content.trim() ? content.trim().split(/\s+/).length : 0}/100 คำ
+                </span>
+              </div>
               <textarea
                 ref={textareaRef}
                 rows={5}
@@ -281,7 +294,12 @@ export const JournalView: React.FC<JournalViewProps> = ({
                 placeholder="วันนี้มีเรื่องอะไรน่าจดจำ หรือมีบทเรียนอะไรที่อยากบันทึกไว้..."
                 className="w-full p-3.5 rounded-2xl bg-[#182018] border border-[#223022] text-xs sm:text-sm text-[#EBF1EA] placeholder-[#697A66] focus:outline-none focus:border-[#4E7345] resize-none"
               />
+              <p className="text-[10px] text-[#697A66] mt-1.5 flex items-center gap-1">
+                <Brain className="w-3.5 h-3.5 text-[#6B9361] flex-shrink-0" />
+                <span>ยิ่งเขียนมากกว่า 100 คำ AI จะยิ่งเข้าใจตัวคุณได้ลึกซึ้งและแม่นยำยิ่งขึ้น</span>
+              </p>
             </div>
+
 
             {/* Custom Tag Selector */}
             <div className="space-y-2">

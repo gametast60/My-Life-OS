@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { DailyCheckin, MoodType, UserSettings } from "../types";
 import { summarizeDailyCheckin } from "../lib/aiService";
-import { X, Sparkles, CheckCircle2, Heart, HelpCircle, Target, Lightbulb } from "lucide-react";
+import { X, Sparkles, CheckCircle2, Heart, HelpCircle, Target, Lightbulb, Brain } from "lucide-react";
+
 
 interface DailyCheckinModalProps {
   isOpen: boolean;
@@ -213,8 +214,42 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
           </div>
         )}
 
+
+        {/* Word Counter & Learning Indicator Banner */}
+
+        {(() => {
+          const totalWords = [wentWell, challenge, learned, grateful, tomorrow]
+            .join(" ")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean).length;
+          return (
+            <div className="flex items-center justify-between bg-[#182018] px-3.5 py-2 rounded-xl border border-[#223022]">
+              <div className="flex items-center gap-1.5 text-xs text-[#869883]">
+                <Brain className="w-3.5 h-3.5 text-[#6B9361]" />
+                <span>คำตอบทบทวนทั้งหมด:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-mono px-2.5 py-0.5 rounded-full border transition-colors ${
+                    totalWords >= 100
+                      ? "bg-[#233523] border-[#4E7345] text-[#6B9361] font-bold"
+                      : "bg-[#131913] border-[#1F2B1F] text-[#869883]"
+                  }`}
+                >
+                  {totalWords}/100 คำ
+                </span>
+                <span className="text-[10px] text-[#697A66] hidden sm:inline">
+                  (ยิ่งตอบมาก AI ยิ่งเรียนรู้ได้ลึกซึ้ง)
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Footer Navigation Buttons */}
         <div className="flex items-center justify-between border-t border-[#1F2B1F] pt-4">
+
           {step > 1 ? (
             <button
               type="button"

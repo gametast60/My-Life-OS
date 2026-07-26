@@ -141,7 +141,8 @@ export const DEFAULT_JOURNEY: LifeJourneyPhase[] = [
     title: "Habits",
     titleTh: "นิสัย",
     subtitle: "การสร้างและรักษารูปแบบพฤติกรรมเชิงบวกอย่างต่อเนื่อง",
-    status: "upcoming",
+    status: "locked",
+
     progressPercent: 0,
     nextMilestone: "ทำ Habit Streak ครบ 21 วัน",
     estimatedCompletion: "เฟสถัดไป",

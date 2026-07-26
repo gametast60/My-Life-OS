@@ -1,4 +1,5 @@
-import { AIMode, UserSettings, MemoryItem, DailyCheckin, UserProfileVector, JournalEntry } from "../types";
+import { AIMode, UserSettings, MemoryItem, MemoryCategory, DailyCheckin, UserProfileVector, JournalEntry, AILearningFeedback } from "../types";
+
 
 export interface AIChatOptions {
   prompt: string;
@@ -208,66 +209,328 @@ export async function testAIConnection(
   }
 }
 
+
 // ══════════════════════════════════════════════════════════
-// Intelligence Layer Functions
+// ══════════════════════════════════════════════════════════
+// Intelligence Layer Functions — Personal Intelligence Engine V1.1
 // ══════════════════════════════════════════════════════════
 
+export const CONFIDENCE_CONFIG = {
+  BASE_CONFIDENCE: 0.15,
+  FREQUENCY_WEIGHT: 0.25,  // Weight for number of mentions (up to 5 mentions = max)
+  RECENCY_WEIGHT: 0.30,    // Weight for days since last mention (freshness)
+  EVIDENCE_WEIGHT: 0.30,   // Weight for unique sources (Journal, Check-in, Interview)
+  MAX_CONFIDENCE: 1.00,
+};
+
 /**
- * Semi-auto memory extraction from a journal entry.
- * Only triggers when entry.wordCount > 100.
- * Returns only memories with confidence >= 0.75.
+ * Calculates dynamic Confidence Score based on CONFIG parameters
+ */
+export function calculateConfidenceScore(
+  mentionCount: number,
+  lastMentionedAt: number,
+  confirmedBy: string[]
+): number {
+  const now = Date.now();
+  const daysOld = Math.max(0, (now - lastMentionedAt) / (1000 * 60 * 60 * 24));
+  
+  // Frequency score: 1 mention -> 0.05, 5+ mentions -> 0.25
+  const frequencyScore = Math.min(CONFIDENCE_CONFIG.FREQUENCY_WEIGHT, Math.max(1, mentionCount) * 0.05);
+
+  // Recency score: 0 days -> 0.30, decays slowly over 180 days
+  const recencyScore = Math.max(0, CONFIDENCE_CONFIG.RECENCY_WEIGHT * (1 - daysOld / 180));
+
+  // Evidence score: 1 source -> 0.10, 3+ sources -> 0.30
+  const uniqueSources = new Set(confirmedBy).size;
+  const evidenceScore = Math.min(CONFIDENCE_CONFIG.EVIDENCE_WEIGHT, uniqueSources * 0.10);
+
+  const rawConfidence = CONFIDENCE_CONFIG.BASE_CONFIDENCE + frequencyScore + recencyScore + evidenceScore;
+  return Math.min(CONFIDENCE_CONFIG.MAX_CONFIDENCE, Math.round(rawConfidence * 100) / 100);
+}
+
+/**
+ * Multi-Tier Deduplication Matcher
+ * Tier 1: Exact / Normalized Match
+ * Tier 2: Lexical Keyphrase Overlap Heuristics
+ * Tier 3: Architecture plug for future LLM / Vector Embeddings
+ */
+export function multiTierDedupMatch(
+  rawContent: string,
+  category: MemoryCategory,
+  existingMemories: MemoryItem[]
+): MemoryItem | null {
+  const normRaw = rawContent.trim().toLowerCase();
+  const categoryMemories = existingMemories.filter((m) => m.category === category);
+
+  // Tier 1: Exact Match
+  const exactMatch = categoryMemories.find((m) => m.content.trim().toLowerCase() === normRaw);
+  if (exactMatch) return exactMatch;
+
+  // Tier 2: Keyphrase / Lexical Overlap
+  const rawWords = new Set(normRaw.split(/[\s,._-]+/).filter((w) => w.length > 2));
+  if (rawWords.size > 0) {
+    for (const mem of categoryMemories) {
+      const memWords = new Set(mem.content.trim().toLowerCase().split(/[\s,._-]+/).filter((w) => w.length > 2));
+      let overlapCount = 0;
+      for (const word of rawWords) {
+        if (memWords.has(word)) overlapCount++;
+      }
+      const jaccardOverlap = overlapCount / Math.max(rawWords.size, memWords.size);
+      if (jaccardOverlap >= 0.35) {
+        return mem;
+      }
+    }
+  }
+
+  // Tier 3: (Future Semantic Vector Matching Plug)
+  return null;
+}
+
+export interface LearnFromTextResult {
+  memories: MemoryItem[];
+  feedback: AILearningFeedback;
+}
+
+/**
+ * Universal Learning Function (Personal Intelligence Engine V1.1)
+ * Takes text input, extracts raw insights, consolidates with existing knowledge,
+ * computes dual metrics (Confidence & Importance), and classifies changes.
+ */
+export async function learnFromText(
+  text: string,
+  sourceContext: string, // e.g. "Journal Entry", "Brain Interview", "Daily Check-in"
+  existingMemories: MemoryItem[],
+  existingProfile: UserProfileVector,
+  settings?: UserSettings
+): Promise<LearnFromTextResult> {
+  const apiKey = settings?.aiApiKey?.trim();
+  const defaultFeedback: AILearningFeedback = {
+    patternObservations: [],
+    evolutionShifts: [],
+    newDiscoveries: ["AI รับทราบข้อมูลแล้ว และเพิ่มเข้าสู่คลังความรู้ของคุณเรียบร้อยครับ"],
+    followupQuestion: undefined,
+  };
+
+  if (!apiKey || !text.trim()) {
+    return { memories: existingMemories, feedback: defaultFeedback };
+  }
+
+  try {
+    const systemPrompt = `คุณคือ Personal Intelligence Engine (V1.1 Architecture) ของ My Life OS
+หน้าที่ของคุณ: วิเคราะห์ข้อความสกัดความรู้เกี่ยวกับผู้ใช้ และแยกแยะ 2 มิติสำคัญ:
+1. Confidence: ความแน่นอนของข้อมูล (0.0 - 1.0)
+2. Importance: ความสำคัญต่อชีวิต/เป้าหมายของผู้ใช้ (0.0 - 1.0) (เช่น ชอบกินน้ำอัดลม = 0.1, อยากเป็น Trader = 0.9)
+
+รวมทั้งแยกแยะรูปแบบการเปลี่ยนแปลงความรู้เทียบกับของเดิม:
+- "none": ความรู้ใหม่ถอดด้าม
+- "merged": ความรู้เดิมเรื่องเดียวกัน
+- "conflict": ข้อมูลขัดแย้งกับเดิมโดยตรงในเวลาเดียวกัน
+- "evolution": ความสนใจ/เป้าหมายพัฒนาหรือเปลี่ยนไปตามเวลา
+- "temporary_state": อารมณ์/ความรู้สึกชั่วคราว ณ วันนั้น (ไม่ใช่เป้าหมายยาว)
+
+กรุณาตอบเป็น JSON Object รูปแบบนี้เท่านั้น:
+{
+  "memories": [
+    {
+      "category": "value" | "fear" | "dream" | "strength" | "weakness" | "lesson" | "pattern" | "belief",
+      "content": "ข้อความสรุปความรู้สั้นๆ ชัดเจน",
+      "importance": 0.85,
+      "confidence": 0.80,
+      "changeType": "none" | "merged" | "conflict" | "evolution" | "temporary_state",
+      "changeNote": "เหตุผลสั้นๆ ถ้าเป็น conflict/evolution/temporary_state"
+    }
+  ],
+  "feedback": {
+    "patternObservations": [
+      "ข้อสังเกตเชิงพฤติกรรม/เทรนด์ (ภาษาคน อบอุ่น ไม่ใช้ศัพท์เทคนิค)"
+    ],
+    "evolutionShifts": [
+      "พัฒนาการการเปลี่ยนแปลงมิติกาลเวลา หรือ Priority Shift"
+    ],
+    "newDiscoveries": [
+      "สิ่งที่ AI เพิ่งเรียนรู้ใหม่เกี่ยวกับผู้ใช้"
+    ],
+    "followupQuestion": "คำถามสัมภาษณ์เจาะลึก 1 ข้อที่น่าสนใจต่อยอดจากเรื่องนี้"
+  }
+}`;
+
+    const userPrompt = `[ประเภทข้อมูล]: ${sourceContext}
+[ข้อความปัจจุบัน]:
+${text}
+
+[คลังความทรงจำเดิม (${existingMemories.length} รายการ)]:
+${JSON.stringify(existingMemories.slice(-15).map((m) => ({ category: m.category, content: m.content, importance: m.importance, confidence: m.confidence, mentionCount: m.mentionCount, confirmedBy: m.confirmedBy })))}
+
+[โปรไฟล์เดิม]:
+Values: ${existingProfile.values.join(", ")}
+Patterns: ${existingProfile.patterns.join(", ")}`;
+
+    const model = settings?.aiModel || "gemini-2.5-flash";
+    const raw = await callGeminiRestApi(apiKey, model, systemPrompt, userPrompt);
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { memories: existingMemories, feedback: defaultFeedback };
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const now = Date.now();
+
+    // ── Consolidation Pipeline ──
+    const updatedMemoriesList = [...existingMemories];
+
+    const rawExtracted = parsed.memories || [];
+    for (const rawItem of rawExtracted) {
+      if (!rawItem.content) continue;
+
+      const matchedExisting = multiTierDedupMatch(rawItem.content, rawItem.category, updatedMemoriesList);
+
+      if (matchedExisting) {
+        // MERGE / UPDATE EXISTING MEMORY
+        matchedExisting.mentionCount = (matchedExisting.mentionCount || 1) + 1;
+        matchedExisting.lastMentionedAt = now;
+
+        if (!matchedExisting.confirmedBy) matchedExisting.confirmedBy = [matchedExisting.extractedFrom || sourceContext];
+        if (!matchedExisting.confirmedBy.includes(sourceContext)) {
+          matchedExisting.confirmedBy.push(sourceContext);
+        }
+
+        // Recalculate Confidence with CONFIDENCE_CONFIG
+        matchedExisting.confidence = calculateConfidenceScore(
+          matchedExisting.mentionCount,
+          matchedExisting.lastMentionedAt,
+          matchedExisting.confirmedBy
+        );
+
+        // Update Importance (take higher of existing vs newly assessed)
+        matchedExisting.importance = Math.max(
+          matchedExisting.importance || 0.5,
+          typeof rawItem.importance === "number" ? rawItem.importance : 0.5
+        );
+
+        // Update status & change tracking
+        const changeType = rawItem.changeType || "merged";
+        matchedExisting.changeType = changeType;
+        if (changeType === "conflict") matchedExisting.status = "conflicted";
+        else if (changeType === "evolution") matchedExisting.status = "evolved";
+
+        if (rawItem.changeNote) matchedExisting.changeNote = rawItem.changeNote;
+      } else {
+        // CREATE NEW MEMORY ITEM
+        const initialSources = [sourceContext];
+        const initialConfidence = calculateConfidenceScore(1, now, initialSources);
+
+        const newMemory: MemoryItem = {
+          id: "mem-" + now + "-" + Math.random().toString(36).slice(2, 7),
+          category: rawItem.category as MemoryCategory,
+          content: rawItem.content,
+          extractedFrom: sourceContext,
+          timestamp: now,
+          confidence: Math.max(initialConfidence, rawItem.confidence || 0.7),
+          importance: typeof rawItem.importance === "number" ? rawItem.importance : 0.5,
+          mentionCount: 1,
+          lastMentionedAt: now,
+          confirmedBy: initialSources,
+          status: rawItem.changeType === "temporary_state" ? "weakening" : "active",
+          changeType: rawItem.changeType || "none",
+          changeNote: rawItem.changeNote,
+          pinned: false,
+        };
+
+        updatedMemoriesList.push(newMemory);
+      }
+    }
+
+    const feedback: AILearningFeedback = {
+      patternObservations: parsed.feedback?.patternObservations || [],
+      evolutionShifts: parsed.feedback?.evolutionShifts || [],
+      newDiscoveries: parsed.feedback?.newDiscoveries || [
+        `AI ได้เรียนรู้เกี่ยวกับคุณเพิ่มขึ้นและปรับปรุงฐานข้อมูลเรียบร้อยแล้ว`,
+      ],
+      followupQuestion: parsed.feedback?.followupQuestion || undefined,
+    };
+
+    return { memories: updatedMemoriesList, feedback };
+  } catch (err) {
+    console.error("[learnFromText] error:", err);
+    return { memories: existingMemories, feedback: defaultFeedback };
+  }
+}
+
+/**
+ * Backward compatibility wrapper for extractMemoryFromJournal
  */
 export async function extractMemoryFromJournal(
   entry: JournalEntry,
   settings?: UserSettings
 ): Promise<MemoryItem[]> {
-  const apiKey = settings?.aiApiKey?.trim();
-  if (!apiKey) return [];
+  const result = await learnFromText(
+    entry.content,
+    `Journal Entry (${entry.mode})`,
+    [],
+    {
+      personality: { riskTaking: "medium", thinkingStyle: "balanced", motivation: "growth", workStyle: "systems" },
+      values: [],
+      patterns: [],
+      coreStrengths: [],
+      growthAreas: [],
+      lastUpdated: Date.now(),
+      updateCount: 0,
+    },
+    settings
+  );
+  return result.memories;
+}
+
+/**
+ * Smart Question Generator for "สมองฉัน" (AI Self-Interview)
+ * Mode A: Random life reflection questions
+ * Mode B: Targeted follow-up / Gap questions based on user's existing knowledge & timeline
+ */
+export async function generateSmartQuestion(
+  mode: "random" | "followup",
+  existingMemories: MemoryItem[],
+  existingProfile: UserProfileVector,
+  settings?: UserSettings
+): Promise<string> {
+  const defaultRandomQuestions = [
+    "อะไรคือค่านิยมหลักที่คุณจะยอมไม่เสียสละเด็ดขาด แม้เจอกับความท้าทาย?",
+    "ถ้ามีโอกาสพูดกับตัวเองเมื่อ 5 ปีก่อน คุณอยากจะบอกอะไรกับเขาที่สุด?",
+    "อะไรคือความกลัวที่ลึกที่สุดที่ยังคอยฉุดรั้งคุณอยู่ตอนนี้?",
+    "เป้าหมายชีวิตชิ้นไหนที่คุณตั้งใจจะทำให้สำเร็จให้ได้ภายใน 3 ปีนี้?",
+    "การตัดสินใจครั้งไหนในอดีตที่เปลี่ยนชีวิตคุณไปมากที่สุด และได้เรียนรู้อะไรจากมัน?",
+    "รูปแบบการทำงานหรือสไตล์ชีวิตแบบไหนที่ทำให้คุณรู้สึกมีความสุขและมีพลังที่สุด?",
+    "สิ่งไหนในชีวิตที่คุณรู้สึกขอบคุณมากที่สุดในตอนนี้?",
+    "ถ้าชีวิตคุณสำเร็จตามความฝันแล้ว วันธรรมดาหนึ่งวันของคุณจะมีหน้าตาเป็นอย่างไร?"
+  ];
+
+  if (mode === "random" || !settings?.aiApiKey || existingMemories.length === 0) {
+    const randomIndex = Math.floor(Math.random() * defaultRandomQuestions.length);
+    return defaultRandomQuestions[randomIndex];
+  }
 
   try {
-    const systemPrompt = `คุณคือ Memory Extractor AI สำหรับ My Life OS
-งานของคุณ: วิเคราะห์บันทึกส่วนตัวและสกัด "ความทรงจำสำคัญ" ออกมาเป็น JSON array
-แต่ละ memory ต้องมี: category, content, confidence (0.0-1.0)
-categories ที่ใช้ได้: value, fear, dream, strength, weakness, lesson, pattern, belief
+    const apiKey = settings.aiApiKey.trim();
+    const systemPrompt = `คุณคือ Personal Intelligence Engine สำหรับ My Life OS
+หน้าที่ของคุณ: สร้างคำถามสัมภาษณ์เชิงลึก 1 ข้อ (ภาษาไทย) เพื่อช่วยให้ผู้ใช้ได้ทบทวนชีวิตและช่วยให้ AI เข้าใจมิติชีวิตของผู้ใช้ลึกซึ้งยิ่งขึ้น
 
-ตัวอย่าง output ที่ถูกต้อง:
-[
-  {"category":"dream","content":"ต้องการเป็น trader เต็มเวลาภายใน 3 ปี","confidence":0.92},
-  {"category":"strength","content":"ทำงานดีที่สุดเมื่อมีระบบที่ชัดเจน","confidence":0.85}
-]
+แนวทาง:
+- ใช้อ้างอิงจากข้อมูลความทรงจำเดิมที่มีอยู่ เพื่อถามเจาะลึกต่อ หรือถามว่าความคิดเปลี่ยนแปลงไปอย่างไรตามกาลเวลา
+- ตั้งคำถามอย่างอบอุ่น ให้เกียรติ และกระตุ้นความคิดเชิงลึก (Self-Reflection)
+- ตอบเฉพาะข้อความคำถาม 1 ประโยคเท่านั้น ห้ามมีคำเกริ่นอื่น`;
 
-กฎ:
-- ถ้าไม่พบ memory ที่มีนัยสำคัญ ให้ return []
-- อย่า extract ข้อมูลที่ไม่สำคัญ (กินข้าว, เดินทาง)
-- confidence < 0.75 = ไม่มีนัยสำคัญพอ
-- ตอบด้วย JSON array เท่านั้น ห้ามมีข้อความอื่น`;
+    const userPrompt = `ความทรงจำเดิมของผู้ใช้:
+${JSON.stringify(existingMemories.slice(-10))}
 
-    const userPrompt = `Journal Entry:\nTitle: ${entry.title}\nMode: ${entry.mode}\nMood: ${entry.mood}\nContent: ${entry.content}`;
+ค่านิยมเดิม: ${existingProfile.values.join(", ")}
+รูปแบบความคิด: ${existingProfile.personality.thinkingStyle}`;
+
     const model = settings?.aiModel || "gemini-2.5-flash";
-
-    const raw = await callGeminiRestApi(apiKey, model, systemPrompt, userPrompt);
-
-    // Parse JSON from response (may have markdown code fences)
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return [];
-
-    const parsed = JSON.parse(jsonMatch[0]) as { category: string; content: string; confidence: number }[];
-    const now = Date.now();
-
-    return parsed
-      .filter(m => m.confidence >= 0.75)
-      .map(m => ({
-        id: "mem-" + now + "-" + Math.random().toString(36).slice(2, 7),
-        category: m.category as MemoryItem["category"],
-        content: m.content,
-        extractedFrom: entry.id,
-        timestamp: now,
-        confidence: m.confidence,
-        pinned: false,
-      }));
-  } catch (err) {
-    console.error("[extractMemoryFromJournal] error:", err);
-    return [];
+    const question = await callGeminiRestApi(apiKey, model, systemPrompt, userPrompt);
+    return question.trim() || defaultRandomQuestions[0];
+  } catch {
+    const randomIndex = Math.floor(Math.random() * defaultRandomQuestions.length);
+    return defaultRandomQuestions[randomIndex];
   }
 }
 
@@ -349,6 +612,18 @@ export async function summarizeDailyCheckin(
 }
 
 /**
+ * Alias for updateProfileVector -> updateUserKnowledge
+ */
+export async function updateUserKnowledge(
+  currentVector: UserProfileVector,
+  recentMemories: MemoryItem[],
+  recentCheckins: DailyCheckin[],
+  settings?: UserSettings
+): Promise<UserProfileVector | null> {
+  return updateProfileVector(currentVector, recentMemories, recentCheckins, settings);
+}
+
+/**
  * Incrementally update User Profile Vector based on accumulated memories and checkins.
  * Should be called periodically (e.g. after every 5 new memories).
  */
@@ -402,4 +677,5 @@ Check-in ล่าสุด: ${JSON.stringify(recentCheckins.slice(-7).map(c => 
     return null;
   }
 }
+
 

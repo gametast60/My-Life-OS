@@ -30,15 +30,50 @@ export type MemoryCategory =
   | "pattern"
   | "belief";
 
+export type KnowledgeChangeType =
+  | "none"
+  | "merged"
+  | "conflict"
+  | "evolution"
+  | "temporary_state";
+
 export interface MemoryItem {
   id: string;
   category: MemoryCategory;
   content: string;
-  extractedFrom: string; // journal id or "manual"
+  extractedFrom: string; // journal id, checkin, or "Brain Interview"
   timestamp: number;
-  confidence: number; // 0.0 – 1.0 (only saved when >= 0.75)
+  
+  // Dual Metrics V1.1
+  confidence: number;      // 0.0 – 1.0 (AI มั่นใจแค่ไหนว่าข้อมูลนี้ถูกต้อง)
+  importance: number;      // 0.0 – 1.0 (สำคัญต่อเป้าหมายและชีวิตผู้ใช้แค่ไหน)
+  
+  // Evidence & Temporal Metadata
+  mentionCount: number;    // จำนวนครั้งที่ถูกพูดถึง
+  lastMentionedAt: number; // timestamp ล่าสุดที่ถูกกล่าวถึง
+  confirmedBy: string[];   // แหล่งข้อมูลที่ยืนยัน เช่น ["Journal Entry", "Daily Check-in"]
+  
+  // Status & Knowledge Evolution Tracking
+  status: "active" | "weakening" | "conflicted" | "evolved";
+  changeType?: KnowledgeChangeType;
+  changeNote?: string;
   pinned?: boolean;
 }
+
+export interface AILearningFeedback {
+  patternObservations: string[]; // ข้อสังเกตเชิงพฤติกรรม & เทรนด์
+  evolutionShifts: string[];     // พัฒนาการและการเปลี่ยนแปลงมิติด้านเวลา
+  newDiscoveries: string[];      // ข้อมูลใหม่ที่ค้นพบ
+  followupQuestion?: string;     // AI มีคำถามสงสัยต่อ
+}
+
+export interface QuestionHistoryItem {
+  questionId: string;
+  category: string;
+  lastAskedTimestamp: number;
+  answerLength: number; // ความยาวคำตอบเพื่อประเมินความลึก
+}
+
 
 export interface DailyCheckin {
   id: string;

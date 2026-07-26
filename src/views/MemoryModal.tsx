@@ -66,29 +66,43 @@ export const MemoryModal: React.FC<MemoryModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex gap-2 border-b border-[#1F2B1F] pb-3 flex-shrink-0">
-          <button
-            onClick={() => setActiveTab("memories")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              activeTab === "memories"
-                ? "bg-[#3F5C3A] border-[#4E7345] text-white"
-                : "bg-[#182018] border-[#223022] text-[#869883] hover:text-[#EBF1EA]"
-            }`}
-          >
-            🧠 ความทรงจำที่สกัดได้ ({memories.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              activeTab === "profile"
-                ? "bg-[#3F5C3A] border-[#4E7345] text-white"
-                : "bg-[#182018] border-[#223022] text-[#869883] hover:text-[#EBF1EA]"
-            }`}
-          >
-            🧬 User Profile Vector
-          </button>
+        {/* Tab Switcher & Brain Interview Button */}
+        <div className="flex items-center justify-between border-b border-[#1F2B1F] pb-3 flex-shrink-0 flex-wrap gap-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("memories")}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                activeTab === "memories"
+                  ? "bg-[#3F5C3A] border-[#4E7345] text-white"
+                  : "bg-[#182018] border-[#223022] text-[#869883] hover:text-[#EBF1EA]"
+              }`}
+            >
+              🧠 ความทรงจำที่สกัดได้ ({memories.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                activeTab === "profile"
+                  ? "bg-[#3F5C3A] border-[#4E7345] text-white"
+                  : "bg-[#182018] border-[#223022] text-[#869883] hover:text-[#EBF1EA]"
+              }`}
+            >
+              🧬 สิ่งที่ AI รู้จักและเข้าใจเกี่ยวกับคุณ
+            </button>
+          </div>
+
+          {onTriggerManualExtraction && (
+            <button
+              onClick={onTriggerManualExtraction}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#3F5C3A] hover:bg-[#4E7345] text-white border border-[#4E7345] transition-all flex items-center gap-1.5 shadow-sm"
+              title="สัมภาษณ์ตัวเองเพื่อให้ข้อมูล AI"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span>🧠 สมองฉัน</span>
+            </button>
+          )}
         </div>
+
 
         {activeTab === "memories" ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
@@ -146,23 +160,39 @@ export const MemoryModal: React.FC<MemoryModalProps> = ({
                       }`}
                     >
                       <div className="space-y-1.5 flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span
                             className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white font-mono"
                             style={{ backgroundColor: catInfo.color }}
                           >
                             {catInfo.label}
                           </span>
-                          <span className="text-[10px] font-mono text-[#6B9361] bg-[#131913] px-2 py-0.5 rounded border border-[#1F2B1F]">
-                            Confidence: {Math.round(mem.confidence * 100)}%
+                          <span className="text-[10px] font-mono text-[#6B9361] bg-[#131913] px-2 py-0.5 rounded border border-[#1F2B1F]" title="ความแน่ใจของ AI ที่คำนวณจากความถี่และความสม่ำเสมอ">
+                            ความแน่ใจ: {Math.round((mem.confidence || 0.7) * 100)}%
                           </span>
+                          <span className="text-[10px] font-mono text-[#EBF1EA] bg-[#1C281C] px-2 py-0.5 rounded border border-[#3F5C3A]" title="ความสำคัญต่อเป้าหมายชีวิตของคุณ">
+                            ความสำคัญ: {Math.round((mem.importance || 0.5) * 100)}%
+                          </span>
+                          {mem.mentionCount && mem.mentionCount > 1 && (
+                            <span className="text-[10px] font-mono text-[#869883] bg-[#131913] px-1.5 py-0.5 rounded">
+                              พูดถึง {mem.mentionCount} ครั้ง
+                            </span>
+                          )}
+                          {mem.status && mem.status !== "active" && (
+                            <span className="text-[10px] font-mono text-[#B07A60] bg-[#2A1818] px-1.5 py-0.5 rounded border border-[#3A2222]">
+                              {mem.status === "conflicted" ? "⚡ ข้อมูลขัดแย้ง" : mem.status === "evolved" ? "🌱 พัฒนาขึ้น" : "⏳ อารมณ์ชั่วคราว"}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm font-medium text-[#EBF1EA] leading-relaxed">
                           "{mem.content}"
                         </p>
-                        <span className="text-[10px] text-[#697A66] block">
-                          บันทึกเมื่อ: {new Date(mem.timestamp).toLocaleDateString("th-TH")}
-                        </span>
+                        <div className="flex items-center justify-between text-[10px] text-[#697A66] pt-0.5">
+                          <span>บันทึกเมื่อ: {new Date(mem.timestamp).toLocaleDateString("th-TH")}</span>
+                          {mem.confirmedBy && mem.confirmedBy.length > 0 && (
+                            <span>ยืนยันจาก: {mem.confirmedBy.join(", ")}</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-1 flex-shrink-0">

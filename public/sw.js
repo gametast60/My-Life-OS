@@ -1,4 +1,4 @@
-const CACHE_NAME = "my-life-os-v2";
+const CACHE_NAME = "my-life-os-v1.1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",

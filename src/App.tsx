@@ -19,9 +19,11 @@ import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
 import { MemoryModal } from "./views/MemoryModal";
+import { BrainInterviewModal } from "./components/BrainInterviewModal";
 
 import { RoomDatabase } from "./lib/db";
-import { extractMemoryFromJournal, updateProfileVector } from "./lib/aiService";
+import { learnFromText, updateUserKnowledge } from "./lib/aiService";
+
 import { PresetMood } from "./lib/db";
 import {
   UserSettings,
@@ -76,6 +78,8 @@ export default function App() {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+  const [isBrainInterviewOpen, setIsBrainInterviewOpen] = useState(false);
+
 
   const handleSavePresetTags = (tags: string[]) => {
     setPresetTags(tags);
@@ -145,98 +149,148 @@ export default function App() {
     RoomDatabase.saveCharacter(updatedCharacter);
   };
 
-  // Handlers — Journal & Semi-auto Memory Extraction (>100 words)
-  const handleAddJournal = async (entry: JournalEntry) => {
-    const wordCount = entry.content.trim().split(/\s+/).length;
-    const entryWithMeta: JournalEntry = { ...entry, wordCount };
+    // Handlers — Journal & AI Learning Engine
+    const handleAddJournal = async (entry: JournalEntry) => {
+      const wordCount = entry.content.trim().split(/\s+/).length;
+      const entryWithMeta: JournalEntry = { ...entry, wordCount };
 
-    const updated = [entryWithMeta, ...journals];
-    setJournals(updated);
-    RoomDatabase.saveJournals(updated);
+      const updated = [entryWithMeta, ...journals];
+      setJournals(updated);
+      RoomDatabase.saveJournals(updated);
 
-    // Add to timeline
-    const newTimelineEvent: TimelineEvent = {
-      id: "t-" + Date.now(),
-      timestamp: Date.now(),
-      dateStr: "วันนี้ " + new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
-      type: entry.photoUrl ? "photo" : "journal",
-      title: entry.title,
-      description: entry.content.slice(0, 100),
-      imageUrl: entry.photoUrl,
-      badge: "บันทึก",
-    };
-    const updatedTimeline = [newTimelineEvent, ...timeline];
-    setTimeline(updatedTimeline);
-    RoomDatabase.saveTimeline(updatedTimeline);
+      // Add to timeline
+      const newTimelineEvent: TimelineEvent = {
+        id: "t-" + Date.now(),
+        timestamp: Date.now(),
+        dateStr: "วันนี้ " + new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
+        type: entry.photoUrl ? "photo" : "journal",
+        title: entry.title,
+        description: entry.content.slice(0, 100),
+        imageUrl: entry.photoUrl,
+        badge: "บันทึก",
+      };
+      const updatedTimeline = [newTimelineEvent, ...timeline];
+      setTimeline(updatedTimeline);
+      RoomDatabase.saveTimeline(updatedTimeline);
 
-    // Increment RPG Wisdom stat
-    const newWisdom = Math.min(100, (character.wisdom || 0) + 2);
-    const updatedChar = { ...character, wisdom: newWisdom };
-    setCharacter(updatedChar);
-    RoomDatabase.saveCharacter(updatedChar);
+      // Increment RPG Wisdom stat
+      const newWisdom = Math.min(100, (character.wisdom || 0) + 2);
+      const updatedChar = { ...character, wisdom: newWisdom };
+      setCharacter(updatedChar);
+      RoomDatabase.saveCharacter(updatedChar);
 
-    // Semi-auto Memory Extraction: Trigger if content > 100 words
-    if (wordCount > 100 && settings.aiApiKey) {
-      try {
-        const extracted = await extractMemoryFromJournal(entryWithMeta, settings);
-        if (extracted.length > 0) {
-          setMemories((prev) => {
-            const newMemList = [...extracted, ...prev];
-            RoomDatabase.saveMemories(newMemList);
-            return newMemList;
-          });
+      // Trigger AI Learning Engine for any entry if API Key exists
+      if (settings.aiApiKey) {
+        try {
+          const result = await learnFromText(
+            entry.content,
+            `Journal Entry (${entry.mode})`,
+            memories,
+            profileVector,
+            settings
+          );
+          if (result.memories.length > 0) {
+            setMemories((prev) => {
+              const newMemList = [...result.memories, ...prev];
+              RoomDatabase.saveMemories(newMemList);
+              return newMemList;
+            });
 
-          // Trigger User Profile Vector update periodically
-          const updatedVector = await updateProfileVector(profileVector, extracted, checkins, settings);
-          if (updatedVector) {
-            setProfileVector(updatedVector);
-            RoomDatabase.saveProfileVector(updatedVector);
+            const updatedVector = await updateUserKnowledge(profileVector, result.memories, checkins, settings);
+            if (updatedVector) {
+              setProfileVector(updatedVector);
+              RoomDatabase.saveProfileVector(updatedVector);
+            }
           }
+        } catch (err) {
+          console.error("AI Learning error:", err);
         }
-      } catch (err) {
-        console.error("Memory extraction error:", err);
       }
-    }
-  };
-
-  const handleEditJournal = (updatedEntry: JournalEntry) => {
-    const updated = journals.map((j) => (j.id === updatedEntry.id ? updatedEntry : j));
-    setJournals(updated);
-    RoomDatabase.saveJournals(updated);
-  };
-
-  const handleDeleteJournal = (id: string) => {
-    const updated = journals.filter((j) => j.id !== id);
-    setJournals(updated);
-    RoomDatabase.saveJournals(updated);
-  };
-
-  // Handlers — Daily Checkin
-  const handleSaveCheckin = (checkin: DailyCheckin) => {
-    const updatedCheckins = [checkin, ...checkins];
-    setCheckins(updatedCheckins);
-    RoomDatabase.saveCheckins(updatedCheckins);
-
-    // Timeline event
-    const timelineEvt: TimelineEvent = {
-      id: "t-chk-" + Date.now(),
-      timestamp: Date.now(),
-      dateStr: "วันนี้ " + new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
-      type: "checkin",
-      title: "Daily Check-in สำเร็จ",
-      description: checkin.aiSummary || `Mood: ${checkin.mood}`,
-      badge: "Check-in",
     };
-    const updatedTimeline = [timelineEvt, ...timeline];
-    setTimeline(updatedTimeline);
-    RoomDatabase.saveTimeline(updatedTimeline);
 
-    // Update Self Awareness stat (+3)
-    const newSelfAwareness = Math.min(100, (character.selfAwareness || 0) + 3);
-    const updatedChar = { ...character, selfAwareness: newSelfAwareness };
-    setCharacter(updatedChar);
-    RoomDatabase.saveCharacter(updatedChar);
-  };
+    const handleEditJournal = (updatedEntry: JournalEntry) => {
+      const updated = journals.map((j) => (j.id === updatedEntry.id ? updatedEntry : j));
+      setJournals(updated);
+      RoomDatabase.saveJournals(updated);
+    };
+
+    const handleDeleteJournal = (id: string) => {
+      const updated = journals.filter((j) => j.id !== id);
+      setJournals(updated);
+      RoomDatabase.saveJournals(updated);
+    };
+
+    // Handlers — Daily Checkin
+    const handleSaveCheckin = async (checkin: DailyCheckin) => {
+      const updatedCheckins = [checkin, ...checkins];
+      setCheckins(updatedCheckins);
+      RoomDatabase.saveCheckins(updatedCheckins);
+
+      // Timeline event
+      const timelineEvt: TimelineEvent = {
+        id: "t-chk-" + Date.now(),
+        timestamp: Date.now(),
+        dateStr: "วันนี้ " + new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
+        type: "checkin",
+        title: "Daily Check-in สำเร็จ",
+        description: checkin.aiSummary || `Mood: ${checkin.mood}`,
+        badge: "Check-in",
+      };
+      const updatedTimeline = [timelineEvt, ...timeline];
+      setTimeline(updatedTimeline);
+      RoomDatabase.saveTimeline(updatedTimeline);
+
+      // Update Self Awareness stat (+3)
+      const newSelfAwareness = Math.min(100, (character.selfAwareness || 0) + 3);
+      const updatedChar = { ...character, selfAwareness: newSelfAwareness };
+      setCharacter(updatedChar);
+      RoomDatabase.saveCharacter(updatedChar);
+
+      // Trigger AI Learning Engine for Daily Check-in responses
+      if (settings.aiApiKey) {
+        try {
+          const combinedCheckinText = `Wins: ${checkin.answers.wentWell}\nChallenge: ${checkin.answers.challenge}\nLearned: ${checkin.answers.learned}\nGrateful: ${checkin.answers.grateful}\nTomorrow: ${checkin.answers.tomorrow}`;
+          const result = await learnFromText(
+            combinedCheckinText,
+            "Daily Check-in",
+            memories,
+            profileVector,
+            settings
+          );
+          if (result.memories.length > 0) {
+            setMemories((prev) => {
+              const newMemList = [...result.memories, ...prev];
+              RoomDatabase.saveMemories(newMemList);
+              return newMemList;
+            });
+
+            const updatedVector = await updateUserKnowledge(profileVector, result.memories, updatedCheckins, settings);
+            if (updatedVector) {
+              setProfileVector(updatedVector);
+              RoomDatabase.saveProfileVector(updatedVector);
+            }
+          }
+        } catch (err) {
+          console.error("Check-in learning error:", err);
+        }
+      }
+    };
+
+    // Handler — Brain Interview (สมองฉัน) Learning
+    const handleSaveBrainInterview = (newMemories: MemoryItem[], updatedVector?: UserProfileVector | null) => {
+      if (newMemories.length > 0) {
+        setMemories((prev) => {
+          const updated = [...newMemories, ...prev];
+          RoomDatabase.saveMemories(updated);
+          return updated;
+        });
+      }
+      if (updatedVector) {
+        setProfileVector(updatedVector);
+        RoomDatabase.saveProfileVector(updatedVector);
+      }
+    };
+
 
   // Handlers — Memory Actions
   const handleDeleteMemory = (id: string) => {
@@ -457,7 +511,18 @@ export default function App() {
         profileVector={profileVector}
         onDeleteMemory={handleDeleteMemory}
         onTogglePin={handleTogglePinMemory}
+        onTriggerManualExtraction={() => setIsBrainInterviewOpen(true)}
+      />
+
+      <BrainInterviewModal
+        isOpen={isBrainInterviewOpen}
+        onClose={() => setIsBrainInterviewOpen(false)}
+        memories={memories}
+        profileVector={profileVector}
+        settings={settings}
+        onSaveLearning={handleSaveBrainInterview}
       />
     </div>
+
   );
 }
