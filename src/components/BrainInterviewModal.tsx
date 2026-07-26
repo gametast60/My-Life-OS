@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MemoryItem, UserProfileVector, UserSettings, AILearningFeedback } from "../types";
 import { X, Brain, RefreshCw, Sparkles, Send, CheckCircle2, ArrowRight, Lightbulb, TrendingUp, HelpCircle } from "lucide-react";
 import { learnFromText, generateSmartQuestion, updateUserKnowledge } from "../lib/aiService";
+import { countWords } from "../lib/textUtils";
 
 interface BrainInterviewModalProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export const BrainInterviewModal: React.FC<BrainInterviewModalProps> = ({
     handleFetchQuestion(mode);
   };
 
-  const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const wordCount = countWords(answer);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,7 +204,7 @@ export const BrainInterviewModal: React.FC<BrainInterviewModalProps> = ({
                         : "bg-[#182018] border-[#223022] text-[#869883]"
                     }`}
                   >
-                    {wordCount}/100 คำ
+                    {wordCount} คำ ({answer.trim().length} ตัวอักษร)
                   </span>
                 </div>
 

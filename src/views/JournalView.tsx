@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, X, Tag, Settings2, Smile, BookOpen, ChevronRight, 
 import { ManageTagsModal } from "../components/ManageTagsModal";
 import { ManageMoodsModal } from "../components/ManageMoodsModal";
 import { PresetMood } from "../lib/db";
+import { countWords } from "../lib/textUtils";
 
 interface JournalViewProps {
   journals: JournalEntry[];
@@ -278,12 +279,12 @@ export const JournalView: React.FC<JournalViewProps> = ({
                 <label className="text-xs text-[#869883] block">เนื้อหาบันทึก</label>
                 <span
                   className={`text-[11px] font-mono px-2 py-0.5 rounded-full border transition-colors ${
-                    content.trim() && content.trim().split(/\s+/).length >= 100
+                    countWords(content) >= 100
                       ? "bg-[#233523] border-[#4E7345] text-[#6B9361] font-bold"
                       : "bg-[#182018] border-[#223022] text-[#869883]"
                   }`}
                 >
-                  {content.trim() ? content.trim().split(/\s+/).length : 0}/100 คำ
+                  {countWords(content)} คำ ({content.length} ตัวอักษร)
                 </span>
               </div>
               <textarea

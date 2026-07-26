@@ -23,6 +23,7 @@ import { BrainInterviewModal } from "./components/BrainInterviewModal";
 
 import { RoomDatabase } from "./lib/db";
 import { learnFromText, updateUserKnowledge } from "./lib/aiService";
+import { countWords } from "./lib/textUtils";
 
 import { PresetMood } from "./lib/db";
 import {
@@ -151,7 +152,7 @@ export default function App() {
 
     // Handlers — Journal & AI Learning Engine
     const handleAddJournal = async (entry: JournalEntry) => {
-      const wordCount = entry.content.trim().split(/\s+/).length;
+      const wordCount = countWords(entry.content);
       const entryWithMeta: JournalEntry = { ...entry, wordCount };
 
       const updated = [entryWithMeta, ...journals];

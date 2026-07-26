@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { DailyCheckin, MoodType, UserSettings } from "../types";
 import { summarizeDailyCheckin } from "../lib/aiService";
+import { countWords } from "../lib/textUtils";
 import { X, Sparkles, CheckCircle2, Heart, HelpCircle, Target, Lightbulb, Brain } from "lucide-react";
 
 
@@ -218,11 +219,9 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
         {/* Word Counter & Learning Indicator Banner */}
 
         {(() => {
-          const totalWords = [wentWell, challenge, learned, grateful, tomorrow]
-            .join(" ")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean).length;
+          const combinedText = [wentWell, challenge, learned, grateful, tomorrow].join(" ");
+          const totalWords = countWords(combinedText);
+          const totalChars = combinedText.trim().length;
           return (
             <div className="flex items-center justify-between bg-[#182018] px-3.5 py-2 rounded-xl border border-[#223022]">
               <div className="flex items-center gap-1.5 text-xs text-[#869883]">
@@ -237,7 +236,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                       : "bg-[#131913] border-[#1F2B1F] text-[#869883]"
                   }`}
                 >
-                  {totalWords}/100 คำ
+                  {totalWords} คำ ({totalChars} ตัวอักษร)
                 </span>
                 <span className="text-[10px] text-[#697A66] hidden sm:inline">
                   (ยิ่งตอบมาก AI ยิ่งเรียนรู้ได้ลึกซึ้ง)
