@@ -14,6 +14,7 @@ import { LifeBrainView } from "./views/LifeBrainView";
 import { SettingsModal } from "./views/SettingsModal";
 import { ManageAPIModal } from "./components/ManageAPIModal";
 import { AISuggestPopup } from "./components/AISuggestPopup";
+import { ReminderJournalModal } from "./components/ReminderJournalModal";
 import { GoalsModal } from "./views/GoalsModal";
 import { HabitsModal } from "./views/HabitsModal";
 import { ChecklistModal } from "./views/ChecklistModal";
@@ -71,6 +72,7 @@ export default function App() {
   const [brainCards, setBrainCards] = useState<BrainCard[]>(() => RoomDatabase.getBrainCards());
   const [reminders, setReminders] = useState<ReminderItem[]>(() => RoomDatabase.getReminders());
   const [suggestedCard, setSuggestedCard] = useState<Partial<BrainCard> | null>(null);
+  const [popupReminder, setPopupReminder] = useState<ReminderItem | null>(null);
 
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -216,10 +218,44 @@ export default function App() {
   };
 
   // Reminder Handlers
-  const handleMarkReminderAsRead = (id: string) => {
-    const updated = reminders.map((r) => (r.id === id ? { ...r, isRead: true } : r));
+  const handleAddReminder = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const newItem: ReminderItem = {
+      id: "r-" + Date.now(),
+      text: trimmed,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+    const updated = [newItem, ...reminders];
     setReminders(updated);
     RoomDatabase.saveReminders(updated);
+  };
+
+  const handleEditReminder = (id: string, newText: string) => {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+    const updated = reminders.map((r) => (r.id === id ? { ...r, text: trimmed } : r));
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
+  };
+
+  const handleDeleteReminder = (id: string) => {
+    const updated = reminders.filter((r) => r.id !== id);
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
+  };
+
+  const handleCompleteReminder = (item: ReminderItem) => {
+    setPopupReminder(item);
+  };
+
+  const handleConfirmReminderJournal = (entry: JournalEntry) => {
+    handleAddJournal(entry);
+    if (popupReminder) {
+      handleDeleteReminder(popupReminder.id);
+    }
+    setPopupReminder(null);
   };
 
   const handleClearAllReminders = () => {
@@ -274,12 +310,15 @@ export default function App() {
       <Header
         settings={settings}
         reminders={reminders}
+        onAddReminder={handleAddReminder}
+        onEditReminder={handleEditReminder}
+        onDeleteReminder={handleDeleteReminder}
+        onCompleteReminder={handleCompleteReminder}
+        onClearAllReminders={handleClearAllReminders}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenAIQuick={() => setCurrentTab("coach")}
         onOpenManageAPI={() => setIsManageAPIOpen(true)}
-        onMarkReminderAsRead={handleMarkReminderAsRead}
-        onClearAllReminders={handleClearAllReminders}
       />
 
       {/* Main Content */}
@@ -303,6 +342,11 @@ export default function App() {
                 recentJournals={journals}
                 todayCheckin={todayCheckin}
                 presetTags={presetTags}
+                reminders={reminders}
+                onAddReminder={handleAddReminder}
+                onEditReminder={handleEditReminder}
+                onDeleteReminder={handleDeleteReminder}
+                onCompleteReminder={handleCompleteReminder}
                 onToggleMission={handleToggleMission}
                 onNavigateTab={(tab) => setCurrentTab(tab)}
                 onOpenQuickAction={handleQuickAction}
@@ -416,6 +460,16 @@ export default function App() {
         onConfirm={handleConfirmSuggestedCard}
         onDismiss={() => setSuggestedCard(null)}
       />
+
+      {popupReminder && (
+        <ReminderJournalModal
+          item={popupReminder}
+          presetTags={presetTags}
+          presetMoods={presetMoods}
+          onConfirm={handleConfirmReminderJournal}
+          onClose={() => setPopupReminder(null)}
+        />
+      )}
 
       <GoalsModal
         isOpen={isGoalsOpen}

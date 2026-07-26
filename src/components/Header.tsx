@@ -6,23 +6,29 @@ import { NotificationBell } from "./NotificationBell";
 interface HeaderProps {
   settings: UserSettings;
   reminders?: ReminderItem[];
+  onAddReminder?: (text: string) => void;
+  onEditReminder?: (id: string, newText: string) => void;
+  onDeleteReminder?: (id: string) => void;
+  onCompleteReminder?: (item: ReminderItem) => void;
+  onClearAllReminders?: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   onOpenAIQuick: () => void;
   onOpenManageAPI?: () => void;
-  onMarkReminderAsRead?: (id: string) => void;
-  onClearAllReminders?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   settings,
   reminders = [],
+  onAddReminder = () => {},
+  onEditReminder = () => {},
+  onDeleteReminder = () => {},
+  onCompleteReminder = () => {},
+  onClearAllReminders = () => {},
   onOpenSettings,
   onOpenSearch,
   onOpenAIQuick,
   onOpenManageAPI,
-  onMarkReminderAsRead = () => {},
-  onClearAllReminders = () => {},
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-30 bg-[#0A0E0A]/90 backdrop-blur-md border-b border-[#6B9361]/15 px-4 md:px-8 py-3">
@@ -61,8 +67,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           <NotificationBell
             reminders={reminders}
-            onMarkAsRead={onMarkReminderAsRead}
-            onClearAll={onClearAllReminders}
+            onAddReminder={onAddReminder}
+            onEditReminder={onEditReminder}
+            onDeleteReminder={onDeleteReminder}
+            onCompleteReminder={onCompleteReminder}
+            onClearAllReminders={onClearAllReminders}
           />
 
           <button

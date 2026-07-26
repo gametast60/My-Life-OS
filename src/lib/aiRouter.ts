@@ -2,8 +2,9 @@ import { APIProvider, BrainCard, LifeDimension, BrainType, LIFE_DIMENSIONS } fro
 
 // ── Free models for OpenRouter fallback ──────────────────────────
 const OPENROUTER_FREE_MODELS = [
-  "meta-llama/llama-3.1-8b-instruct:free",
-  "mistralai/mistral-7b-instruct:free",
+  "openrouter/free",
+  "google/gemma-4-31b-it:free",
+  "openai/gpt-oss-20b:free",
   "google/gemma-2-9b-it:free",
 ];
 
@@ -100,17 +101,17 @@ async function callOpenRouter(
   userPrompt: string,
   freeModelIndex = 0
 ): Promise<string> {
-  const activeModel = model?.trim() && !model.includes("auto-free")
-    ? model.trim()
-    : OPENROUTER_FREE_MODELS[freeModelIndex % OPENROUTER_FREE_MODELS.length];
+  const modelClean = model?.trim() || "";
+  const activeModel =
+    freeModelIndex > 0
+      ? OPENROUTER_FREE_MODELS[freeModelIndex % OPENROUTER_FREE_MODELS.length]
+      : (!modelClean || modelClean === "auto-free" ? "openrouter/free" : modelClean);
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey.trim()}`,
-      "HTTP-Referer": "https://mylifeos.app",
-      "X-Title": "My Life OS",
     },
     body: JSON.stringify({
       model: activeModel,
@@ -125,9 +126,10 @@ async function callOpenRouter(
   if (!response.ok) {
     const msg = body?.error?.message || `HTTP ${response.status}`;
     if (response.status === 429) throw new Error(`QUOTA: ${msg}`);
-    // Try next free model
+    // Try next free model if first model attempt fails
     if (freeModelIndex < OPENROUTER_FREE_MODELS.length - 1) {
-      return callOpenRouter(apiKey, "auto-free", systemPrompt, userPrompt, freeModelIndex + 1);
+      console.warn(`[AIRouter] OpenRouter model ${activeModel} failed (${msg}), trying backup free model...`);
+      return callOpenRouter(apiKey, model, systemPrompt, userPrompt, freeModelIndex + 1);
     }
     throw new Error(msg);
   }
