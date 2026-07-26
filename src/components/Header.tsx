@@ -1,6 +1,6 @@
 import React from "react";
 import { UserSettings, ReminderItem } from "../types";
-import { Search, Settings, Sparkles, Key } from "lucide-react";
+import { Search, Settings, Key } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 
 interface HeaderProps {
@@ -13,7 +13,7 @@ interface HeaderProps {
   onClearAllReminders?: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
-  onOpenAIQuick: () => void;
+  onOpenAIQuick?: () => void;
   onOpenManageAPI?: () => void;
 }
 
@@ -37,10 +37,6 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4E7345] to-[#6B9361] flex items-center justify-center text-white font-bold text-sm shadow-md shadow-[#4E7345]/20">
             OS
-          </div>
-          <div>
-            <h1 className="font-bold text-sm text-[#EBF1EA] tracking-wide">MY LIFE OS</h1>
-            <p className="text-[10px] text-[#869883]">Personal Intelligence</p>
           </div>
         </div>
 
@@ -73,15 +69,6 @@ export const Header: React.FC<HeaderProps> = ({
             onCompleteReminder={onCompleteReminder}
             onClearAllReminders={onClearAllReminders}
           />
-
-          <button
-            onClick={onOpenAIQuick}
-            className="p-2 rounded-xl text-[#6B9361] hover:text-[#EBF1EA] hover:bg-[#4E7345]/20 transition-all flex items-center gap-1.5 bg-[#4E7345]/10 border border-[#6B9361]/20"
-            title="AI Coach Chat"
-          >
-            <Sparkles size={16} />
-            <span className="text-xs font-semibold hidden sm:inline">AI Chat</span>
-          </button>
 
           <button
             onClick={onOpenSettings}
