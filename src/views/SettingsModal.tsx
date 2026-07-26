@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { UserSettings } from "../types";
-import { testAIConnection } from "../lib/aiService";
 import { RoomDatabase } from "../lib/db";
 import {
   X,
@@ -14,8 +13,8 @@ import {
   ExternalLink,
   Trash2,
   Clipboard,
-  Eye,
-  EyeOff,
+  Shield,
+  Key,
 } from "lucide-react";
 
 interface SettingsModalProps {
@@ -24,6 +23,7 @@ interface SettingsModalProps {
   settings: UserSettings;
   onSaveSettings: (s: UserSettings) => void;
   onReloadApp: () => void;
+  onOpenManageAPI?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -32,35 +32,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSaveSettings,
   onReloadApp,
+  onOpenManageAPI,
 }) => {
   const [formData, setFormData] = useState<UserSettings>(settings);
-  const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string }>({});
-  const [isTesting, setIsTesting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-
-  const handlePasteClipboard = async () => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        const text = await navigator.clipboard.readText();
-        if (text) {
-          setFormData((prev) => ({ ...prev, aiApiKey: text.trim() }));
-        }
-      }
-    } catch (err) {
-      console.log("Clipboard read failed", err);
-    }
-  };
 
   if (!isOpen) return null;
-
-  const handleTestConnection = async () => {
-    setIsTesting(true);
-    setTestStatus({});
-    const result = await testAIConnection(formData.aiApiKey, formData.aiModel);
-    setTestStatus(result);
-    setIsTesting(false);
-  };
 
   const handleExportBackup = async () => {
     setIsExporting(true);
@@ -69,7 +46,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "backup.zip";
+      a.download = `mylifeos_backup_${new Date().toISOString().slice(0, 10)}.zip`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -83,14 +60,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (confirm("การนำเข้าจะทับข้อมูลปัจจุบัน ต้องการดำเนินการต่อหรือไม่?")) {
+    if (confirm("การนำเข้าข้อมูลจะเขียนทับข้อมูลปัจจุบันของคุณ คุณแน่ใจหรือไม่?")) {
       const success = await RoomDatabase.importBackupZip(file);
       if (success) {
-        alert("นำเข้าข้อมูลสำรองเรียบร้อยแล้ว!");
+        alert("นำเข้าข้อมูลสำรองสำเร็จ!");
         onReloadApp();
+        onClose();
       } else {
-        alert("ไฟล์ข้อมูลสำรองไม่ถูกต้อง หรือเสียหาย");
+        alert("ไฟล์สำรองข้อมูลไม่ถูกต้อง");
       }
+    }
+  };
+
+  const handleResetData = () => {
+    if (confirm("⚠️ คำเตือน: ข้อมูลทั้งหมดในแอพจะถูกลบทิ้งอย่างถาวร! คุณแน่ใจหรือไม่?")) {
+      RoomDatabase.clearAllData();
+      onReloadApp();
+      onClose();
     }
   };
 
@@ -100,227 +86,100 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div
+        className="w-full max-w-lg rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-emerald-900/40"
+        style={{ background: "#131a13", maxHeight: "90vh" }}
+      >
         {/* Header */}
-        <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-4">
-          <div>
-            <h3 className="text-xl font-bold text-[#EBF1EA]">ตั้งค่า (Settings)</h3>
-            <p className="text-xs text-[#869883]">ปรับแต่ง AI, ภาษา, ความปลอดภัย และสำรองข้อมูล</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full text-[#869883] hover:text-[#EBF1EA] hover:bg-[#182018]"
-          >
-            <X className="w-5 h-5" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-900/30">
+          <h2 className="font-bold text-base text-gray-200">ตั้งค่าระบบ (Settings)</h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white rounded-lg">
+            <X size={18} />
           </button>
         </div>
 
-        {/* User Profile */}
-        <div className="p-4 rounded-2xl bg-[#182018] border border-[#223022] space-y-3">
-          <h4 className="text-xs font-mono text-[#6B9361] uppercase font-bold">ข้อมูลผู้ใช้งาน</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Form Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Section: User Profile */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">โปรไฟล์ผู้ใช้งาน</h3>
             <div>
-              <label className="text-xs text-[#869883]">ชื่อผู้ใช้</label>
+              <label className="text-xs text-gray-400 block mb-1">ชื่อเรียกของคุณ</label>
               <input
                 type="text"
                 value={formData.userName}
                 onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-                className="w-full mt-1 p-2.5 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA]"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-[#869883]">อีเมล</label>
-              <input
-                type="email"
-                value={formData.userEmail}
-                onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
-                className="w-full mt-1 p-2.5 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA]"
+                className="w-full bg-black/40 border border-emerald-900/40 rounded-xl px-3.5 py-2 text-xs text-gray-200 outline-none focus:border-emerald-500/50"
               />
             </div>
           </div>
-        </div>
 
-        {/* AI Provider Settings */}
-        <div className="p-4 rounded-2xl bg-[#182218] border border-[#273727] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#6B9361] font-bold uppercase">
-              <Bot className="w-4 h-4" />
-              <span>การจัดการ AI (AI Configuration)</span>
-            </div>
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-[#6B9361] flex items-center gap-1 hover:underline font-mono bg-[#233523] px-2.5 py-1 rounded-lg border border-[#2E452E]"
-            >
-              <span>ขอรับ API Key ฟรี (Google AI Studio)</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#869883] space-y-1">
-            <div className="font-semibold text-[#6B9361]">💡 วิธีตั้งค่าใช้งาน AI Life Coach:</div>
-            <ol className="list-decimal list-inside space-y-1 text-[11px] text-[#869883]">
-              <li>คลิกปุ่ม <span className="text-[#6B9361] font-semibold">"ขอรับ API Key ฟรี"</span> ด้านบนเพื่อไปยัง Google AI Studio</li>
-              <li>กดสร้าง API Key แล้วก๊อบปี้รหัสมาวางลงในช่องด้านล่าง</li>
-              <li>ข้อมูล API Key จะถูกบันทึกในเครื่องของคุณอย่างปลอดภัย ไม่มีการส่งต่อไปยังเซิร์ฟเวอร์ภายนอก</li>
-            </ol>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-[#869883]">AI Provider</label>
-              <select
-                value={formData.aiProvider}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    aiProvider: e.target.value as any,
-                  })
-                }
-                className="w-full mt-1 p-2.5 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA]"
-              >
-                <option value="Gemini">Google AI Studio (Gemini)</option>
-                <option value="Custom">Custom Endpoint</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-[#869883]">Model</label>
-              <select
-                value={formData.aiModel || "gemini-2.5-flash"}
-                onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-                className="w-full mt-1 p-2.5 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA]"
-              >
-                <option value="gemini-2.5-flash">gemini-2.5-flash (แนะนำ)</option>
-                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-                <option value="gemini-3.6-flash">gemini-3.6-flash</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-[#869883] flex items-center justify-between mb-1">
-              <span>Google AI Studio API Key (จัดเก็บปลอดภัยในเครื่อง)</span>
-              <span className="text-[10px] text-[#6B9361] font-mono">Local Storage Only</span>
-            </label>
-            <div className="flex gap-1.5 items-center">
-              <div className="relative flex-1">
-                <input
-                  type={showApiKey ? "text" : "password"}
-                  value={formData.aiApiKey || ""}
-                  onChange={(e) => setFormData({ ...formData, aiApiKey: e.target.value })}
-                  placeholder="วาง API Key ที่นี่"
-                  className="w-full p-2.5 pr-9 rounded-xl bg-[#101610] border border-[#1F2B1F] text-xs text-[#EBF1EA] font-mono select-text"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#869883] hover:text-[#EBF1EA] p-1"
-                  title={showApiKey ? "ซ่อน Key" : "แสดง Key"}
-                >
-                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={handlePasteClipboard}
-                className="px-3 py-2.5 rounded-xl bg-[#233523] text-[#6B9361] border border-[#2E452E] text-xs font-mono flex items-center gap-1.5 hover:bg-[#2E452E] active:scale-95 transition-all shrink-0"
-                title="วางจากคลิปบอร์ด"
-              >
-                <Clipboard className="w-3.5 h-3.5" />
-                <span>วาง</span>
-              </button>
-            </div>
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[11px] text-[#6B9361] hover:underline inline-flex items-center gap-1 mt-1 font-mono"
-            >
-              <span>รับ API Key ฟรีจาก Google AI Studio</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={handleTestConnection}
-              disabled={isTesting}
-              className="px-4 py-2 rounded-xl bg-[#233523] text-[#6B9361] border border-[#2E452E] text-xs font-mono flex items-center gap-1.5 hover:bg-[#2E452E] disabled:opacity-50"
-            >
-              {isTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-              <span>ทดสอบการเชื่อมต่อ (Test Connection)</span>
-            </button>
-
-            {testStatus.message && (
-              <span
-                className={`text-xs flex items-center gap-1 font-mono ${
-                  testStatus.success ? "text-[#6B9361]" : "text-rose-400"
-                }`}
-              >
-                {testStatus.success ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                {testStatus.message}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Backup Export / Import */}
-        <div className="p-4 rounded-2xl bg-[#182018] border border-[#223022] space-y-3">
-          <h4 className="text-xs font-mono text-[#6B9361] uppercase font-bold flex items-center gap-2">
-            <Database className="w-4 h-4" />
-            <span>การจัดการข้อมูลสำรอง (Backup & Restore)</span>
-          </h4>
-          <p className="text-xs text-[#869883]">
-            ข้อมูลทั้งหมดจัดเก็บใน Room Database ท้องถิ่น คุณสามารถส่งออกและนำเข้าเป็นไฟล์ backup.zip ได้ทุกเมื่อ
-          </p>
-
-          <div className="flex flex-wrap gap-3 pt-1">
-            <button
-              onClick={handleExportBackup}
-              disabled={isExporting}
-              className="px-4 py-2 rounded-xl bg-[#3F5C3A] text-white text-xs font-mono font-bold flex items-center gap-2 hover:bg-[#4E7345]"
-            >
-              <Download className="w-4 h-4" />
-              <span>สำรองข้อมูล (Export backup.zip)</span>
-            </button>
-
-            <label className="px-4 py-2 rounded-xl bg-[#182218] hover:bg-[#233523] text-[#EBF1EA] border border-[#273727] text-xs font-mono font-bold flex items-center gap-2 cursor-pointer">
-              <Upload className="w-4 h-4 text-[#6B9361]" />
-              <span>นำเข้าข้อมูล (Import backup.zip)</span>
-              <input type="file" accept=".zip" onChange={handleImportBackup} className="hidden" />
-            </label>
-
+          {/* Section: Manage API Keys Button */}
+          <div className="space-y-2 pt-2 border-t border-emerald-900/20">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">การตั้งค่า AI Providers</h3>
+            <p className="text-xs text-gray-400">
+              จัดการ API Key ของ Gemini, Groq หรือ OpenRouter พร้อมระบบ Failover อัตโนมัติ
+            </p>
             <button
               onClick={() => {
-                if (confirm("คุณต้องการล้างข้อมูลจำลองทั้งหมดและเริ่มใช้งานจริงหรือไม่?")) {
-                  RoomDatabase.clearAllData();
-                  onReloadApp();
-                  alert("ล้างข้อมูลเรียบร้อยแล้ว แอปพร้อมสำหรับการใช้งานจริงของคุณ!");
-                }
+                onClose();
+                if (onOpenManageAPI) onOpenManageAPI();
               }}
-              className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-mono font-bold flex items-center gap-2"
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 transition-all flex items-center justify-center gap-2 shadow-md"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>ล้างข้อมูลจำลองทั้งหมด (Reset)</span>
+              <Key size={16} />
+              🔑 เปิดหน้าจัดการ AI Providers (Manage API)
+            </button>
+          </div>
+
+          {/* Section: Backup & Restore */}
+          <div className="space-y-3 pt-2 border-t border-emerald-900/20">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">สำรองข้อมูล & กู้คืน</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={handleExportBackup}
+                disabled={isExporting}
+                className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-emerald-900/30 hover:bg-emerald-800/30 border border-emerald-500/20 text-emerald-200 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Download size={14} />
+                ส่งออก Backup (ZIP)
+              </button>
+
+              <label className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-emerald-900/30 hover:bg-emerald-800/30 border border-emerald-500/20 text-emerald-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <Upload size={14} />
+                นำเข้า Backup
+                <input type="file" accept=".zip" onChange={handleImportBackup} className="hidden" />
+              </label>
+            </div>
+            <p className="text-[11px] text-gray-500 text-end">ขนาดข้อมูลปัจจุบัน: {RoomDatabase.getStorageSize()}</p>
+          </div>
+
+          {/* Section: Danger Zone */}
+          <div className="space-y-2 pt-2 border-t border-emerald-900/20">
+            <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
+            <button
+              onClick={handleResetData}
+              className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-red-950/30 hover:bg-red-900/30 border border-red-500/30 text-red-400 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Trash2 size={14} />
+              ล้างข้อมูลทั้งหมดในเครื่อง (Reset Local Storage)
             </button>
           </div>
         </div>
 
-        {/* Modal Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-[#1F2B1F]">
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-emerald-900/30 flex gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#182018] hover:bg-[#223022] text-xs font-mono text-[#EBF1EA]"
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-white/5"
           >
             ยกเลิก
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2 rounded-xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white text-xs font-mono font-bold"
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all"
+            style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)" }}
           >
             บันทึกการตั้งค่า
           </button>

@@ -1,6 +1,17 @@
 import React, { useState } from "react";
-import { Search, X, BookOpen, Target, Heart, Calendar } from "lucide-react";
-import { JournalEntry, GoalItem, HabitItem, AffirmationItem, TimelineEvent } from "../types";
+import {
+  JournalEntry,
+  GoalItem,
+  HabitItem,
+  AffirmationItem,
+  TimelineEvent,
+  BrainCard,
+  LIFE_DIMENSIONS,
+  BRAIN_TYPES,
+  LifeDimension,
+  BrainType,
+} from "../types";
+import { Search, X, BookOpen, Target, Activity, Heart, Calendar, Brain, Filter } from "lucide-react";
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -10,8 +21,10 @@ interface GlobalSearchModalProps {
   habits: HabitItem[];
   affirmations: AffirmationItem[];
   timeline: TimelineEvent[];
-  onSelectJournal: (j: JournalEntry) => void;
-  onSelectGoal: (g: GoalItem) => void;
+  brainCards?: BrainCard[];
+  onSelectJournal?: (entry: JournalEntry) => void;
+  onSelectGoal?: (goal: GoalItem) => void;
+  onSelectBrainCard?: (card: BrainCard) => void;
 }
 
 export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
@@ -22,165 +35,219 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   habits,
   affirmations,
   timeline,
+  brainCards = [],
   onSelectJournal,
   onSelectGoal,
+  onSelectBrainCard,
 }) => {
   const [query, setQuery] = useState("");
+  const [selectedDimension, setSelectedDimension] = useState<LifeDimension | "all">("all");
+  const [selectedBrainType, setSelectedBrainType] = useState<BrainType | "all">("all");
 
   if (!isOpen) return null;
 
-  const filteredJournals = journals.filter(
-    (j) =>
-      j.title?.toLowerCase().includes(query.toLowerCase()) ||
-      j.content?.toLowerCase().includes(query.toLowerCase()) ||
-      j.tags?.some((t) => t.toLowerCase().includes(query.toLowerCase()))
-  );
+  const q = query.toLowerCase().trim();
 
-  const filteredGoals = goals.filter((g) =>
-    g.title?.toLowerCase().includes(query.toLowerCase()) ||
-    g.category?.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter Journals
+  const filteredJournals = journals.filter((j) => {
+    const dimOk = selectedDimension === "all" || j.dimension === selectedDimension;
+    const match = !q || j.title.toLowerCase().includes(q) || j.content.toLowerCase().includes(q) || j.tags.some((t) => t.toLowerCase().includes(q));
+    return dimOk && match;
+  });
 
-  const filteredHabits = habits.filter((h) =>
-    h.title?.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter Brain Cards
+  const filteredBrainCards = brainCards.filter((b) => {
+    const dimOk = selectedDimension === "all" || b.dimension === selectedDimension;
+    const typeOk = selectedBrainType === "all" || b.brainType === selectedBrainType;
+    const match = !q || b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || b.tags.some((t) => t.toLowerCase().includes(q));
+    return dimOk && typeOk && match;
+  });
 
-  const filteredAffirmations = affirmations.filter((a) =>
-    a.text?.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter Goals
+  const filteredGoals = goals.filter((g) => {
+    const dimOk = selectedDimension === "all" || g.dimension === selectedDimension;
+    const match = !q || g.title.toLowerCase().includes(q) || g.category.toLowerCase().includes(q);
+    return dimOk && match;
+  });
 
-  const filteredTimeline = timeline.filter((t) =>
-    t.title?.toLowerCase().includes(query.toLowerCase()) ||
-    t.description?.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter Habits
+  const filteredHabits = habits.filter((h) => {
+    const dimOk = selectedDimension === "all" || h.dimension === selectedDimension;
+    const match = !q || h.title.toLowerCase().includes(q) || h.category.toLowerCase().includes(q);
+    return dimOk && match;
+  });
 
-  const totalResults =
-    filteredJournals.length +
-    filteredGoals.length +
-    filteredHabits.length +
-    filteredAffirmations.length +
-    filteredTimeline.length;
+  const totalResults = filteredJournals.length + filteredBrainCards.length + filteredGoals.length + filteredHabits.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-2xl space-y-4 max-h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#1F2B1F] pb-4">
-          <div className="flex items-center gap-3 flex-1">
-            <Search className="w-5 h-5 text-[#6B9361]" />
-            <input
-              type="text"
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ค้นหาทุกอย่างใน ไลฟ์ OS (บันทึก, เป้าหมาย, นิสัย, ความคิด)..."
-              className="w-full bg-transparent border-none text-[#EBF1EA] focus:outline-none focus:ring-0 placeholder-[#697A66] text-base"
-            />
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-[#869883] hover:text-[#EBF1EA] hover:bg-[#182018]"
-          >
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/80 backdrop-blur-md">
+      <div
+        className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-emerald-900/40"
+        style={{ background: "#131a13", maxHeight: "80vh" }}
+      >
+        {/* Search Header */}
+        <div className="p-4 border-b border-emerald-900/30 flex items-center gap-3">
+          <Search size={20} className="text-emerald-400" />
+          <input
+            type="text"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ค้นหาใน Journal, Life Brain, Goals, Habits..."
+            className="flex-1 bg-transparent text-sm text-gray-200 outline-none placeholder-gray-500"
+          />
+          {query && (
+            <button onClick={() => setQuery("")} className="text-gray-500 hover:text-gray-300">
+              <X size={16} />
+            </button>
+          )}
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white rounded-lg">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Search Results */}
-        <div className="overflow-y-auto flex-1 space-y-6 pr-2 hide-scrollbar">
-          {query.trim() === "" ? (
-            <div className="text-center py-8 text-[#869883] text-sm">
-              พิมพ์คำค้นหาเพื่อสำรวจบันทึก, เป้าหมาย, นิสัย และประวัติใน ไลฟ์ OS ของคุณ
+        {/* Filters */}
+        <div className="px-4 py-2 border-b border-emerald-900/20 flex flex-wrap items-center gap-2 bg-emerald-950/20 text-xs">
+          <div className="flex items-center gap-1 text-gray-400 mr-1">
+            <Filter size={12} />
+            <span>กรอง:</span>
+          </div>
+
+          <select
+            value={selectedDimension}
+            onChange={(e) => setSelectedDimension(e.target.value as any)}
+            className="bg-black/40 border border-emerald-900/40 text-gray-300 rounded-lg px-2 py-1 outline-none text-xs"
+          >
+            <option value="all">ทุก Dimension</option>
+            {LIFE_DIMENSIONS.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.emoji} {d.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedBrainType}
+            onChange={(e) => setSelectedBrainType(e.target.value as any)}
+            className="bg-black/40 border border-emerald-900/40 text-gray-300 rounded-lg px-2 py-1 outline-none text-xs"
+          >
+            <option value="all">ทุก Brain Type</option>
+            {BRAIN_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {!q && selectedDimension === "all" && selectedBrainType === "all" ? (
+            <div className="py-12 text-center text-gray-500 text-xs">
+              พิมพ์คำค้นหา หรือเลือกตัวกรองด้านบนเพื่อเริ่มค้นหา
             </div>
           ) : totalResults === 0 ? (
-            <div className="text-center py-8 text-[#869883] text-sm">
-              ไม่พบผลลัพธ์ที่ตรงกับ "{query}"
+            <div className="py-12 text-center text-gray-500 text-xs">
+              ไม่พบผลลัพธ์ที่ตรงกับคำค้นหา
             </div>
           ) : (
             <>
-              {/* Journals */}
+              {/* Brain Cards Section */}
+              {filteredBrainCards.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <Brain size={14} /> Life Brain ({filteredBrainCards.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {filteredBrainCards.map((b) => (
+                      <div
+                        key={b.id}
+                        onClick={() => {
+                          if (onSelectBrainCard) onSelectBrainCard(b);
+                          onClose();
+                        }}
+                        className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/30 hover:border-emerald-700/50 cursor-pointer transition-all space-y-1"
+                      >
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-200">
+                          <span>{b.title}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-800/40 text-emerald-300">
+                            {b.brainType}
+                          </span>
+                        </div>
+                        {b.description && (
+                          <p className="text-xs text-gray-400 line-clamp-2">{b.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Journal Section */}
               {filteredJournals.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono text-[#6B9361] uppercase tracking-widest flex items-center gap-1.5 font-bold">
-                    <BookOpen className="w-3.5 h-3.5" /> บันทึกไดอารี่ ({filteredJournals.length})
-                  </h4>
+                  <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <BookOpen size={14} /> Journal ({filteredJournals.length})
+                  </h3>
                   <div className="space-y-2">
                     {filteredJournals.map((j) => (
                       <div
                         key={j.id}
                         onClick={() => {
-                          onSelectJournal(j);
+                          if (onSelectJournal) onSelectJournal(j);
                           onClose();
                         }}
-                        className="p-3 rounded-2xl bg-[#182018] hover:bg-[#1F2B1F] cursor-pointer transition-colors border border-[#223022]"
+                        className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/30 hover:border-emerald-700/50 cursor-pointer transition-all space-y-1"
                       >
-                        <div className="flex justify-between items-center text-xs text-[#869883] mb-1">
-                          <span>{j.date}</span>
-                          <span>{j.mood}</span>
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-200">
+                          <span>{j.title}</span>
+                          <span className="text-[10px] text-gray-400">{j.date}</span>
                         </div>
-                        <h5 className="font-semibold text-[#EBF1EA] text-sm">{j.title || "บันทึกรายวัน"}</h5>
-                        <p className="text-xs text-[#869883] line-clamp-1">{j.content}</p>
+                        <p className="text-xs text-gray-400 line-clamp-2">{j.content}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Goals */}
+              {/* Goals Section */}
               {filteredGoals.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono text-[#6B9361] uppercase tracking-widest flex items-center gap-1.5 font-bold">
-                    <Target className="w-3.5 h-3.5" /> เป้าหมาย ({filteredGoals.length})
-                  </h4>
+                  <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <Target size={14} /> Goals ({filteredGoals.length})
+                  </h3>
                   <div className="space-y-2">
                     {filteredGoals.map((g) => (
                       <div
                         key={g.id}
                         onClick={() => {
-                          onSelectGoal(g);
+                          if (onSelectGoal) onSelectGoal(g);
                           onClose();
                         }}
-                        className="p-3 rounded-2xl bg-[#182018] hover:bg-[#1F2B1F] cursor-pointer transition-colors flex justify-between items-center border border-[#223022]"
+                        className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/30 hover:border-emerald-700/50 cursor-pointer transition-all flex items-center justify-between text-xs"
                       >
-                        <div>
-                          <h5 className="font-semibold text-[#EBF1EA] text-sm">{g.title}</h5>
-                          <span className="text-xs text-[#869883]">{g.category} • ความคืบหน้า {g.progressPercent}%</span>
-                        </div>
-                        <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-[#182218] text-[#6B9361] border border-[#273727]">
-                          {g.priority}
-                        </span>
+                        <span className="font-semibold text-gray-200">{g.title}</span>
+                        <span className="text-gray-400">{g.progressPercent}% Completed</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Affirmations */}
-              {filteredAffirmations.length > 0 && (
+              {/* Habits Section */}
+              {filteredHabits.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-mono text-[#6B9361] uppercase tracking-widest flex items-center gap-1.5 font-bold">
-                    <Heart className="w-3.5 h-3.5" /> พลังบวก ({filteredAffirmations.length})
-                  </h4>
+                  <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                    <Activity size={14} /> Habits ({filteredHabits.length})
+                  </h3>
                   <div className="space-y-2">
-                    {filteredAffirmations.map((a) => (
-                      <div key={a.id} className="p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA]">
-                        "{a.text}"
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Timeline */}
-              {filteredTimeline.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-mono text-[#6B9361] uppercase tracking-widest flex items-center gap-1.5 font-bold">
-                    <Calendar className="w-3.5 h-3.5" /> Timeline ({filteredTimeline.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {filteredTimeline.map((t) => (
-                      <div key={t.id} className="p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs space-y-1">
-                        <span className="text-[10px] text-[#869883]">{t.dateStr}</span>
-                        <p className="font-medium text-[#EBF1EA]">{t.title}</p>
+                    {filteredHabits.map((h) => (
+                      <div
+                        key={h.id}
+                        className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/30 flex items-center justify-between text-xs"
+                      >
+                        <span className="font-semibold text-gray-200">{h.title}</span>
+                        <span className="text-emerald-400">🔥 Streak: {h.currentStreak} วัน</span>
                       </div>
                     ))}
                   </div>

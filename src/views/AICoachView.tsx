@@ -1,6 +1,22 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { AIMode, AIChatMessage, UserSettings, CharacterStatus, MemoryItem, UserProfileVector, JournalEntry, HabitItem, GoalItem } from "../types";
-import { sendAIChatRequest, generateLifeContextGreeting } from "../lib/aiService";
+import {
+  AIMode,
+  AIChatMessage,
+  UserSettings,
+  CharacterStatus,
+  BrainCard,
+  JournalEntry,
+  HabitItem,
+  GoalItem,
+  ReflectionPeriod,
+} from "../types";
+import {
+  sendAIChatRequest,
+  analyzeTodayJournals,
+  suggestBrainCard,
+  generateSmallTalk,
+  generateReflection,
+} from "../lib/aiService";
 import {
   Bot,
   User,
@@ -10,476 +26,453 @@ import {
   Brain,
   Scale,
   HeartHandshake,
-  Key,
   Compass,
   Hourglass,
   Calendar,
   Layers,
   X,
   RefreshCw,
+  MessageSquare,
+  Globe,
+  FileText,
 } from "lucide-react";
-
-const LC_CACHE_KEY = "mylifeos_lc_greeting_cache";
-
-function getTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function loadCachedGreeting(): string {
-  try {
-    const raw = localStorage.getItem(LC_CACHE_KEY);
-    if (!raw) return "";
-    const { date, greeting } = JSON.parse(raw);
-    if (date === getTodayKey()) return greeting as string;
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function saveCachedGreeting(greeting: string) {
-  try {
-    localStorage.setItem(LC_CACHE_KEY, JSON.stringify({ date: getTodayKey(), greeting }));
-  } catch {}
-}
 
 interface AICoachViewProps {
   settings: UserSettings;
   character: CharacterStatus;
   messages: AIChatMessage[];
-  memories: MemoryItem[];
-  profileVector: UserProfileVector;
+  brainCards: BrainCard[];
   journals: JournalEntry[];
   habits: HabitItem[];
   goals: GoalItem[];
   onSaveMessage: (msg: AIChatMessage) => void;
   onClearSession?: () => void;
-  onOpenSettings?: () => void;
-  onOpenMemoryModal?: () => void;
+  onOpenManageAPI?: () => void;
+  onOpenLifeBrain?: () => void;
+  onSuggestCard?: (card: Partial<BrainCard>) => void;
 }
 
 const MODES = [
-  { mode: "Life Coach" as AIMode, label: "Life Coach", sub: "การเติบโต & ทิศทาง", icon: Brain, color: "#4E7345" },
-  { mode: "Goal Coach" as AIMode, label: "Goal Coach", sub: "ย่อเป้าหมายเป็นงาน 15 นาที", icon: Scale, color: "#6B9361" },
-  { mode: "Therapist" as AIMode, label: "AI Therapist", sub: "จิตวิทยา CBT & อารมณ์", icon: HeartHandshake, color: "#7A9B61" },
-  { mode: "Decision Helper" as AIMode, label: "Decision Helper", sub: "วิเคราะห์ทางเลือก & ผลกระทบ", icon: Compass, color: "#869883" },
-  { mode: "Future Self" as AIMode, label: "Future Self", sub: "มุมมองจากตัวตนที่สำเร็จ 5 ปี", icon: Hourglass, color: "#B07A60" },
-  { mode: "Weekly Reflection" as AIMode, label: "Weekly Reflection", sub: "ทบทวนรอบ 7 วัน", icon: Calendar, color: "#6B9361" },
-  { mode: "Monthly Reflection" as AIMode, label: "Monthly Reflection", sub: "ภาพรวมรายเดือน", icon: Layers, color: "#4E7345" },
+  { mode: "Coach" as AIMode, label: "Life Coach", sub: "วางแผนชีวิต & ทิศทาง", icon: Brain, color: "#4E7345" },
+  { mode: "Therapist" as AIMode, label: "AI Therapist", sub: "จิตวิทยา CBT & ทบทวนอารมณ์", icon: HeartHandshake, color: "#7A9B61" },
+  { mode: "Decision" as AIMode, label: "Decision Helper", sub: "วิเคราะห์ทางเลือก & ผลกระทบ", icon: Compass, color: "#869883" },
+  { mode: "Future Self" as AIMode, label: "Future Self", sub: "มุมมองตัวตนในอนาคต 5 ปี", icon: Hourglass, color: "#B07A60" },
+  { mode: "Secretary" as AIMode, label: "Secretary", sub: "จัดการ Task, Planning & Priority", icon: Calendar, color: "#6B9361" },
+  { mode: "Reflection" as AIMode, label: "Reflection", sub: "ทบทวนบทเรียนสรุป Insight", icon: Layers, color: "#4E7345" },
 ];
 
-const SUGGESTION_BY_MODE: Record<string, string[]> = {
-  "Life Coach": ["ช่วยวางแผนวันนี้", "ฉันกำลังติดอยู่กับอะไร?", "ช่วยจัดลำดับความสำคัญ"],
-  "Goal Coach": ["ย่อเป้าหมายใหญ่เป็น 15 นาที", "ติดตามความคืบหน้า", "ขั้นตอนถัดไปคืออะไร?"],
-  "Therapist": ["ฉันรู้สึกหนักใจ", "วิเคราะห์ Pattern อารมณ์", "ช่วยให้ฉันรู้สึกดีขึ้น"],
-  "Decision Helper": ["ช่วยตัดสินใจเรื่องสำคัญ", "วิเคราะห์ข้อดีข้อเสีย", "ฉันควรเลือกทางไหน?"],
-  "Future Self": ["ฉันในอีก 5 ปีเป็นอย่างไร?", "คุณสำเร็จได้อย่างไร?", "บทเรียนสำคัญจากอนาคต"],
-  "Weekly Reflection": ["สรุปสัปดาห์ที่ผ่านมา", "Pattern ที่สังเกตได้", "บทเรียนสำคัญสัปดาห์นี้"],
-  "Monthly Reflection": ["ภาพรวมเดือนนี้", "สิ่งที่เติบโตขึ้น", "เป้าหมายเดือนหน้า"],
-};
-
-// ─── Chat Popup Modal ──────────────────────────────────────────────────────────
-interface ChatPopupProps {
-  mode: AIMode;
-  settings: UserSettings;
-  character: CharacterStatus;
-  memories: MemoryItem[];
-  profileVector: UserProfileVector;
-  journals: JournalEntry[];
-  onClose: () => void;
-  onOpenSettings?: () => void;
-}
-
-const ChatPopup: React.FC<ChatPopupProps> = ({
-  mode,
+export const AICoachView: React.FC<AICoachViewProps> = ({
   settings,
   character,
-  memories,
-  profileVector,
+  messages,
+  brainCards,
   journals,
-  onClose,
-  onOpenSettings,
+  habits,
+  goals,
+  onSaveMessage,
+  onClearSession,
+  onOpenManageAPI,
+  onOpenLifeBrain,
+  onSuggestCard,
 }) => {
-  const modeInfo = MODES.find((m) => m.mode === mode)!;
-  const ModeIcon = modeInfo.icon;
-  const suggestions = SUGGESTION_BY_MODE[mode] || [];
+  const [selectedMode, setSelectedMode] = useState<AIMode>("Coach");
+  const [activePopupMode, setActivePopupMode] = useState<AIMode | null>(null);
+  const [reflectionPeriod, setReflectionPeriod] = useState<ReflectionPeriod>("today");
+  
+  // Today's analysis & smalltalk state
+  const [todayAnalysis, setTodayAnalysis] = useState<string>("");
+  const [isAnalyzingToday, setIsAnalyzingToday] = useState(false);
+  const [smallTalk, setSmallTalk] = useState<string>("");
+  const [smallTalkLang, setSmallTalkLang] = useState<"th" | "en" | "ko">(settings.smallTalkLanguage || "th");
+  const [isLoadingSmallTalk, setIsLoadingSmallTalk] = useState(false);
 
-  // Only keep CURRENT exchange: [userMsg, aiMsg]
-  const [chatPair, setChatPair] = useState<AIChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
+  // Load smalltalk on mount or lang change
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatPair, isLoading]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const handleSend = async (textOverride?: string) => {
-    const text = (textOverride ?? inputText).trim();
-    if (!text || isLoading) return;
-
-    if (!textOverride) setInputText("");
-
-    const userMsg: AIChatMessage = {
-      id: "u-" + Date.now(),
-      sender: "user",
-      text,
-      timestamp: Date.now(),
-      mode,
+    let isMounted = true;
+    const fetchSmallTalk = async () => {
+      setIsLoadingSmallTalk(true);
+      const res = await generateSmallTalk(smallTalkLang, settings);
+      if (isMounted) {
+        setSmallTalk(res);
+        setIsLoadingSmallTalk(false);
+      }
     };
+    fetchSmallTalk();
+    return () => { isMounted = false; };
+  }, [smallTalkLang, settings]);
 
-    // Replace entire history with just this new question (no accumulation)
-    setChatPair([userMsg]);
-    setIsLoading(true);
+  const handleAnalyzeToday = async () => {
+    setIsAnalyzingToday(true);
+    // filter today's journals using timezone-aware comparison
+    const todayKey = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }).format(new Date());
 
-    try {
-      const responseText = await sendAIChatRequest({
-        prompt: text,
-        mode,
-        userContext: {
-          userName: settings.userName,
-          characterStats: character,
-          memories: memories.slice(0, 10),
-          profileVector,
-          recentJournals: journals.slice(0, 3).map((j) => ({
-            title: j.title,
-            mood: j.mood,
-            content: j.content.slice(0, 150),
-          })),
-          activeMode: mode,
-        },
-        settings,
-      });
+    const todayJournals = journals.filter((j) => {
+      const d = new Date(j.timestamp);
+      const key = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }).format(d);
+      return key === todayKey;
+    });
 
-      const aiMsg: AIChatMessage = {
-        id: "ai-" + Date.now(),
-        sender: "ai",
-        text: responseText,
-        timestamp: Date.now(),
-        mode,
-      };
-      setChatPair([userMsg, aiMsg]);
-    } catch (err: any) {
-      const errMsg: AIChatMessage = {
-        id: "ai-err-" + Date.now(),
-        sender: "ai",
-        text: `เกิดข้อผิดพลาด: ${err?.message || "ไม่สามารถเชื่อมต่อได้"}`,
-        timestamp: Date.now(),
-        mode,
-      };
-      setChatPair([userMsg, errMsg]);
-    } finally {
-      setIsLoading(false);
-    }
+    const result = await analyzeTodayJournals(todayJournals, brainCards, settings);
+    setTodayAnalysis(result);
+    setIsAnalyzingToday(false);
+  };
+
+  const handleGenerateReflection = async () => {
+    setIsAnalyzingToday(true);
+    const result = await generateReflection(reflectionPeriod, journals, brainCards, settings);
+    setTodayAnalysis(result);
+    setIsAnalyzingToday(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full sm:max-w-lg bg-[#131913] rounded-t-3xl sm:rounded-3xl flex flex-col border border-[#1F2B1F] shadow-2xl overflow-hidden" style={{ height: "82vh", maxHeight: "680px" }}>
-
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-[#1F2B1F] flex items-center justify-between bg-[#171E17] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: modeInfo.color + "33" }}>
-              <ModeIcon className="w-4.5 h-4.5" style={{ color: modeInfo.color }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[#EBF1EA]">{modeInfo.label}</p>
-              <p className="text-[10px] text-[#869883]">{modeInfo.sub}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#182218] border border-[#273727] flex items-center justify-center text-[#869883] hover:text-[#EBF1EA] transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 hide-scrollbar">
-          {/* No API Key */}
-          {!settings.aiApiKey && (
-            <div className="p-4 rounded-2xl bg-[#182218] border border-[#273727] text-xs flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <Key className="w-5 h-5 text-[#6B9361] flex-shrink-0" />
-                <div>
-                  <span className="font-bold text-[#EBF1EA]">ยังไม่ได้ตั้งค่า API Key</span>
-                  <p className="text-[11px] text-[#869883]">ใส่ API Key เพื่อเปิดใช้งาน AI Coach</p>
-                </div>
-              </div>
-              {onOpenSettings && (
-                <button onClick={() => { onClose(); onOpenSettings(); }} className="px-3 py-1.5 rounded-xl bg-[#3F5C3A] text-white font-semibold text-xs hover:bg-[#4E7345] whitespace-nowrap">
-                  ตั้งค่า
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Empty state — show suggestions */}
-          {chatPair.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-6 gap-4 text-center">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ backgroundColor: modeInfo.color + "22" }}>
-                <ModeIcon className="w-8 h-8" style={{ color: modeInfo.color }} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-[#EBF1EA]">{modeInfo.label}</p>
-                <p className="text-xs text-[#869883] mt-0.5">{modeInfo.sub}</p>
-              </div>
-              <div className="w-full space-y-2 pt-2">
-                <p className="text-[11px] text-[#697A66] uppercase tracking-widest font-bold">ลองถามเลย</p>
-                {suggestions.map((s, i) => (
+    <div className="space-y-6 pb-20 max-w-5xl mx-auto px-4">
+      {/* Top Banner / Small Talk Card */}
+      <div
+        className="rounded-2xl p-5 relative overflow-hidden shadow-xl border"
+        style={{
+          background: "linear-gradient(135deg, rgba(20,28,20,0.9), rgba(10,14,10,0.95))",
+          borderColor: "rgba(107,147,97,0.25)",
+        }}
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                💬 Today's Small Talk
+              </span>
+              <div className="flex items-center gap-1 bg-black/40 rounded-lg p-0.5 border border-emerald-900/40 text-[11px]">
+                {(["th", "en", "ko"] as const).map((lang) => (
                   <button
-                    key={i}
-                    onClick={() => handleSend(s)}
-                    className="w-full text-left px-4 py-2.5 rounded-2xl bg-[#182218] border border-[#273727] text-xs text-[#EBF1EA] hover:border-[#4E7345] transition-all"
+                    key={lang}
+                    onClick={() => setSmallTalkLang(lang)}
+                    className={`px-2 py-0.5 rounded ${
+                      smallTalkLang === lang ? "bg-emerald-700/50 text-white font-medium" : "text-gray-400 hover:text-gray-200"
+                    }`}
                   >
-                    {s}
+                    {lang.toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
-          )}
+            <p className="text-sm md:text-base font-medium text-emerald-100 italic">
+              {isLoadingSmallTalk ? "กำลังโหลดคำทักทาย..." : `"${smallTalk}"`}
+            </p>
+          </div>
 
-          {/* Current Q&A pair */}
-          {chatPair.map((m) => (
-            <div
-              key={m.id}
-              className={`flex gap-3 ${m.sender === "user" ? "flex-row-reverse" : ""}`}
-            >
-              <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${m.sender === "ai" ? "bg-[#3F5C3A] text-white" : "bg-[#1F2B1F] text-[#EBF1EA]"}`}>
-                {m.sender === "ai" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
-              </div>
-              <div className={`p-4 rounded-2xl text-sm leading-relaxed max-w-[85%] ${m.sender === "ai" ? "bg-[#182218] border border-[#273727] text-[#EBF1EA] rounded-tl-none" : "bg-[#3F5C3A] text-white rounded-tr-none"}`}>
-                <p className="whitespace-pre-wrap">{m.text}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Loading */}
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#3F5C3A] text-white flex items-center justify-center">
-                <Bot className="w-4 h-4 animate-spin" />
-              </div>
-              <div className="p-4 rounded-2xl bg-[#182218] border border-[#273727] text-[#869883] text-sm rounded-tl-none">
-                <span className="inline-flex gap-1">
-                  <span className="animate-bounce" style={{ animationDelay: "0ms" }}>•</span>
-                  <span className="animate-bounce" style={{ animationDelay: "150ms" }}>•</span>
-                  <span className="animate-bounce" style={{ animationDelay: "300ms" }}>•</span>
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* After AI replies — show "ถามอีกครั้ง" hint */}
-          {chatPair.length === 2 && !isLoading && (
-            <div className="flex items-center gap-2 pt-1">
-              <div className="flex-1 h-px bg-[#1F2B1F]" />
-              <span className="text-[10px] text-[#697A66] font-mono">พิมพ์คำถามถัดไปเพื่อเริ่มใหม่</span>
-              <div className="flex-1 h-px bg-[#1F2B1F]" />
-            </div>
-          )}
-
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input */}
-        <div className="p-4 border-t border-[#1F2B1F] bg-[#131913] flex-shrink-0">
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={`พิมพ์คุยกับ ${modeInfo.label}...`}
-              className="flex-1 px-4 py-2.5 rounded-2xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] transition-colors"
-            />
+          <div className="flex items-center gap-2">
             <button
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className="p-2.5 rounded-2xl bg-[#3F5C3A] text-white hover:bg-[#4E7345] disabled:opacity-40 transition-colors"
+              onClick={onOpenLifeBrain}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 text-emerald-300 transition-all"
             >
-              <Send className="w-4 h-4" />
+              <Brain size={14} />
+              Life Brain ({brainCards.length})
             </button>
-          </form>
+            <button
+              onClick={onOpenManageAPI}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 text-emerald-300 transition-all"
+            >
+              🔑 Manage AI
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mode Grid Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-100">เลือกโหมด AI Assistant</h2>
+          <p className="text-xs text-gray-400">AI จะอ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัวคุณ</p>
+        </div>
+      </div>
+
+      {/* Modes Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {MODES.map((m) => {
+          const Icon = m.icon;
+          return (
+            <div
+              key={m.mode}
+              onClick={() => setActivePopupMode(m.mode)}
+              className="rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] border bg-emerald-950/10 hover:bg-emerald-950/20 group"
+              style={{ borderColor: "rgba(107,147,97,0.2)" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                  style={{ background: `${m.color}25`, color: m.color }}
+                >
+                  <Icon size={20} />
+                </div>
+                <ChevronRight size={16} className="text-gray-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-bold text-sm text-gray-200 mb-1">{m.label}</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">{m.sub}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Special Feature: Analyze Today & Reflection Box */}
+      <div
+        className="rounded-2xl p-5 border space-y-4 shadow-xl"
+        style={{
+          background: "rgba(255,255,255,0.02)",
+          borderColor: "rgba(107,147,97,0.2)",
+        }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-amber-400" />
+            <h3 className="font-bold text-sm text-gray-200">เครื่องมือวิเคราะห์และทบทวน (Reflection)</h3>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleAnalyzeToday}
+              disabled={isAnalyzingToday}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700/40 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-200 transition-all flex items-center gap-1.5"
+            >
+              {isAnalyzingToday ? <RefreshCw size={14} className="animate-spin" /> : <FileText size={14} />}
+              วิเคราะห์วันนี้
+            </button>
+
+            <div className="flex items-center bg-black/40 rounded-xl p-1 border border-emerald-900/30 text-xs">
+              {(["today", "week", "month", "year"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setReflectionPeriod(p)}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    reflectionPeriod === p ? "bg-emerald-600 text-white font-medium" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {p === "today" ? "วันนี้" : p === "week" ? "7 วัน" : p === "month" ? "30 วัน" : "1 ปี"}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleGenerateReflection}
+              disabled={isAnalyzingToday}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-900/30 hover:bg-emerald-800/30 border border-emerald-500/20 text-emerald-300 transition-all"
+            >
+              สรุป Reflection
+            </button>
+          </div>
+        </div>
+
+        {todayAnalysis && (
+          <div
+            className="p-4 rounded-xl text-xs text-gray-200 leading-relaxed whitespace-pre-wrap animate-in fade-in duration-300"
+            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(107,147,97,0.2)" }}
+          >
+            {todayAnalysis}
+          </div>
+        )}
+      </div>
+
+      {/* Interactive Chat Popup Modal */}
+      {activePopupMode && (
+        <ChatPopupModal
+          mode={activePopupMode}
+          settings={settings}
+          brainCards={brainCards}
+          journals={journals}
+          messages={messages}
+          onSaveMessage={onSaveMessage}
+          onClose={() => setActivePopupMode(null)}
+          onSuggestCard={onSuggestCard}
+        />
+      )}
     </div>
   );
 };
 
-// ─── Main AICoachView ─────────────────────────────────────────────────────────
-export const AICoachView: React.FC<AICoachViewProps> = ({
-  settings,
-  character,
-  memories,
-  profileVector,
-  journals,
-  habits,
-  goals,
-  onOpenSettings,
-  onOpenMemoryModal,
-}) => {
-  const [lifeGreeting, setLifeGreeting] = useState<string>(() => loadCachedGreeting());
-  const [isGeneratingGreeting, setIsGeneratingGreeting] = useState(false);
-  const [activePopupMode, setActivePopupMode] = useState<AIMode | null>(null);
+// ── Chat Popup Modal ──────────────────────────────────────────────────
+interface ChatPopupModalProps {
+  mode: AIMode;
+  settings: UserSettings;
+  brainCards: BrainCard[];
+  journals: JournalEntry[];
+  messages: AIChatMessage[];
+  onSaveMessage: (msg: AIChatMessage) => void;
+  onClose: () => void;
+  onSuggestCard?: (card: Partial<BrainCard>) => void;
+}
 
-  const handleGenerateGreeting = useCallback(() => {
-    if (!settings.aiApiKey || isGeneratingGreeting) return;
-    setIsGeneratingGreeting(true);
-    setLifeGreeting("");
-    generateLifeContextGreeting(
-      {
-        userName: settings.userName || "ผู้ใช้งาน",
+const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
+  mode,
+  settings,
+  brainCards,
+  journals,
+  messages,
+  onSaveMessage,
+  onClose,
+  onSuggestCard,
+}) => {
+  const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const modeMessages = messages.filter((m) => m.mode === mode || (!m.mode && mode === "Coach"));
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [modeMessages, isSending]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isSending) return;
+
+    const userMsgText = input.trim();
+    setInput("");
+
+    // blur keyboard for mobile
+    if (textareaRef.current) {
+      textareaRef.current.blur();
+    }
+
+    const userMsg: AIChatMessage = {
+      id: `msg-${Date.now()}`,
+      sender: "user",
+      text: userMsgText,
+      timestamp: Date.now(),
+      mode,
+    };
+    onSaveMessage(userMsg);
+
+    setIsSending(true);
+
+    try {
+      const response = await sendAIChatRequest({
+        prompt: userMsgText,
+        mode,
+        brainCards,
         recentJournals: journals.slice(0, 5),
-        goals: goals.map((g) => ({ title: g.title, progressPercent: g.progressPercent, priority: g.priority })),
-        habits: habits.map((h) => ({ title: h.title, currentStreak: h.currentStreak })),
-        memories: memories.slice(0, 8),
-        profileVector,
-        character,
-      },
-      settings
-    )
-      .then((greeting) => {
-        setLifeGreeting(greeting);
-        saveCachedGreeting(greeting);
-      })
-      .catch(() => {
-        const fallback = `สวัสดี ${settings.userName || "ผู้ใช้งาน"} 👋 AI Coach พร้อมให้คำปรึกษาแล้วครับ`;
-        setLifeGreeting(fallback);
-        saveCachedGreeting(fallback);
-      })
-      .finally(() => setIsGeneratingGreeting(false));
-  }, [settings, journals, goals, habits, memories, profileVector, character, isGeneratingGreeting]);
+        settings,
+      });
+
+      const aiMsg: AIChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        sender: "ai",
+        text: response,
+        timestamp: Date.now(),
+        mode,
+      };
+      onSaveMessage(aiMsg);
+
+      // Trigger background suggestion check
+      if (onSuggestCard) {
+        suggestBrainCard(userMsgText, brainCards, settings).then((suggested) => {
+          if (suggested) onSuggestCard(suggested);
+        });
+      }
+    } catch (err: any) {
+      const errorMsg: AIChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        sender: "ai",
+        text: `เกิดข้อผิดพลาด: ${err.message}`,
+        timestamp: Date.now(),
+        mode,
+      };
+      onSaveMessage(errorMsg);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
-    <>
-      <div className="space-y-6 pb-28 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
+      <div
+        className="w-full max-w-2xl h-[85vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-emerald-900/40"
+        style={{ background: "#0d130d" }}
+      >
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">โค้ช AI & Therapist</h2>
-            <p className="text-xs text-[#869883]">ผู้ช่วยคิด วางแผน และดูแลสภาวะจิตใจ</p>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-emerald-900/30 bg-emerald-950/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-700/30 flex items-center justify-center text-emerald-400">
+              <Bot size={18} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-gray-200">{mode} Mode</h3>
+              <p className="text-[11px] text-gray-400">Read-Only Life Brain Context Enabled</p>
+            </div>
           </div>
-          {onOpenMemoryModal && (
-            <button
-              onClick={onOpenMemoryModal}
-              className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#182218] text-[#6B9361] border border-[#273727] hover:border-[#4E7345] transition-colors flex items-center gap-1.5"
-            >
-              <Brain className="w-3.5 h-3.5" />
-              <span>สมอง AI ({memories.length})</span>
-            </button>
-          )}
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/5">
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Life Context Card */}
-        <div className="bg-[#182218] rounded-3xl p-5 border border-[#273727] shadow-lg space-y-3">
-          <div className="flex items-center justify-between text-xs text-[#6B9361] uppercase font-bold tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Life Context Intelligence
-            </span>
-            {lifeGreeting && (
-              <span className="text-[10px] text-[#697A66] normal-case font-normal font-mono">แคชวันนี้</span>
-            )}
-          </div>
-
-          {!settings.aiApiKey ? (
-            <p className="text-xs text-[#869883] leading-relaxed">
-              ยังไม่ได้เชื่อมต่อ AI — กรุณาตั้งค่า API Key เพื่อเปิดใช้งาน AI Coach
-            </p>
-          ) : isGeneratingGreeting ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-3 bg-[#273727] rounded-full w-full" />
-              <div className="h-3 bg-[#273727] rounded-full w-4/5" />
-              <div className="h-3 bg-[#273727] rounded-full w-3/5" />
-              <p className="text-[11px] text-[#697A66] font-mono pt-1">กำลังวิเคราะห์บริบทชีวิต...</p>
+        {/* Message Container */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {modeMessages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 text-xs p-6">
+              <Bot size={36} className="mb-2 opacity-30 text-emerald-500" />
+              <p className="text-gray-300 font-medium mb-1">เริ่มการสนทนาในโหมด {mode}</p>
+              <p>ถามคำถาม ขอคำแนะนำ หรือให้ช่วยวางแผนชีวิตได้เลยครับ</p>
             </div>
-          ) : lifeGreeting ? (
-            <p className="text-xs sm:text-sm text-[#EBF1EA] leading-relaxed">{lifeGreeting}</p>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-[#869883] leading-relaxed">กดปุ่มด้านล่างเพื่อให้ AI วิเคราะห์บริบทชีวิตของคุณ (1 ครั้ง/วัน)</p>
-              <button
-                onClick={handleGenerateGreeting}
-                className="w-full py-2 rounded-xl bg-[#233523] border border-[#2E452E] text-[#6B9361] text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#2E452E] active:scale-95 transition-all"
+            modeMessages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex gap-3 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                ดูบทวิเคราะห์ชีวิตวันนี้
-              </button>
+                {m.sender === "ai" && (
+                  <div className="w-7 h-7 rounded-lg bg-emerald-800/40 flex items-center justify-center text-emerald-300 flex-shrink-0 mt-1">
+                    <Bot size={14} />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
+                    m.sender === "user"
+                      ? "bg-emerald-700 text-white rounded-br-none"
+                      : "bg-emerald-950/40 text-gray-200 border border-emerald-900/30 rounded-bl-none"
+                  }`}
+                >
+                  {m.text}
+                </div>
+              </div>
+            ))
+          )}
+          {isSending && (
+            <div className="flex items-center gap-2 text-xs text-emerald-400 animate-pulse">
+              <Bot size={14} />
+              <span>AI กำลังคิดคำตอบ...</span>
             </div>
           )}
-
-          <div className="flex items-center justify-between text-[11px] text-[#869883] pt-2 border-t border-[#273727]">
-            <span className="flex items-center gap-1">
-              <Brain className="w-3.5 h-3.5 text-[#6B9361]" />
-              {memories.length} ความทรงจำ
-            </span>
-            <div className="flex items-center gap-2">
-              {lifeGreeting && !isGeneratingGreeting && (
-                <button
-                  onClick={handleGenerateGreeting}
-                  className="text-[#697A66] hover:text-[#6B9361] text-[10px] font-mono flex items-center gap-0.5 transition-colors"
-                  title="รีเฟรชบทวิเคราะห์ (ใช้โทเค็นเพิ่ม)"
-                >
-                  <RefreshCw className="w-2.5 h-2.5" /> รีเฟรช
-                </button>
-              )}
-              {onOpenMemoryModal && (
-                <button
-                  onClick={onOpenMemoryModal}
-                  className="text-[#6B9361] hover:underline font-medium flex items-center gap-0.5"
-                >
-                  เปิดดูสมอง <ChevronRight className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Mode Selection Grid */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold text-[#869883] uppercase tracking-widest px-1">เลือกโหมดเพื่อเริ่มสนทนา</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {MODES.map(({ mode, label, sub, icon: Icon, color }) => (
-              <button
-                key={mode}
-                onClick={() => setActivePopupMode(mode)}
-                className="flex items-center gap-3 p-4 rounded-2xl border border-[#1F2B1F] bg-[#131913] hover:border-[#273727] hover:bg-[#182218] active:scale-95 transition-all text-left group"
-              >
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-                  style={{ backgroundColor: color + "22" }}
-                >
-                  <Icon className="w-5 h-5" style={{ color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#EBF1EA] truncate">{label}</p>
-                  <p className="text-[11px] text-[#869883] truncate">{sub}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-[#697A66] group-hover:text-[#6B9361] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-              </button>
-            ))}
+        {/* Input Bar */}
+        <div className="p-3 border-t border-emerald-900/30 bg-black/40">
+          <div className="flex items-center gap-2 bg-emerald-950/30 rounded-xl p-1.5 border border-emerald-900/40">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="พิมพ์ข้อความ... (Shift+Enter เพื่อเว้นวรรค)"
+              className="flex-1 bg-transparent px-2 text-xs text-gray-200 outline-none resize-none max-h-24"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isSending}
+              className="p-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg transition-all flex-shrink-0"
+            >
+              <Send size={14} />
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Chat Popup Modal */}
-      {activePopupMode && (
-        <ChatPopup
-          mode={activePopupMode}
-          settings={settings}
-          character={character}
-          memories={memories}
-          profileVector={profileVector}
-          journals={journals}
-          onClose={() => setActivePopupMode(null)}
-          onOpenSettings={onOpenSettings}
-        />
-      )}
-    </>
+    </div>
   );
 };

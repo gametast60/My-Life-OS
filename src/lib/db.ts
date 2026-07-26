@@ -12,13 +12,15 @@ import {
   AffirmationItem,
   AIChatMessage,
   TimelineEvent,
-  MemoryItem,
   DailyCheckin,
-  UserProfileVector,
+  BrainCard,
+  ReminderItem,
+  PendingAITask,
 } from "../types";
 
-// Local Storage Keys
+// ── Storage Keys ─────────────────────────────────────────────────
 const KEYS = {
+  // Core (v2 — unchanged)
   SETTINGS: "mylifeos_settings_v2",
   CHARACTER: "mylifeos_character_v2",
   JOURNEY: "mylifeos_journey_v2",
@@ -31,15 +33,17 @@ const KEYS = {
   AFFIRMATIONS: "mylifeos_affirmations_v2",
   MESSAGES: "mylifeos_messages_v2",
   TIMELINE: "mylifeos_timeline_v2",
-  // Intelligence Layer
-  MEMORIES: "mylifeos_memories_v2",
   CHECKINS: "mylifeos_checkins_v2",
-  PROFILE_VECTOR: "mylifeos_profile_vector_v2",
   PRESET_TAGS: "mylifeos_preset_tags_v2",
   PRESET_MOODS: "mylifeos_preset_moods_v2",
+  // v2.0 NEW
+  BRAIN_CARDS: "mylifeos_brain_cards_v1",
+  REMINDERS: "mylifeos_reminders_v1",
+  PENDING_TASKS: "mylifeos_pending_tasks_v1",
 };
 
-// Seed Defaults (Clean Slate for Real User Usage)
+// ── Defaults ─────────────────────────────────────────────────────
+
 export const DEFAULT_SETTINGS: UserSettings = {
   userName: "ผู้ใช้งาน",
   userEmail: "",
@@ -48,15 +52,17 @@ export const DEFAULT_SETTINGS: UserSettings = {
   language: "th",
   notificationsEnabled: true,
   securityPinEnabled: false,
-  aiProvider: "Gemini",
+  smallTalkLanguage: "th",
+  // Legacy (kept for migration)
   aiApiKey: "",
   aiModel: "gemini-2.5-flash",
   aiTemperature: 0.7,
   aiMaxTokens: 2048,
+  // Multi-provider
+  apiProviders: [],
 };
 
 export const DEFAULT_CHARACTER: CharacterStatus = {
-  // Original 10
   discipline: 0,
   health: 0,
   mindset: 0,
@@ -67,7 +73,6 @@ export const DEFAULT_CHARACTER: CharacterStatus = {
   energy: 0,
   focus: 0,
   stress: 0,
-  // Intelligence Layer — new 5
   wisdom: 0,
   creativity: 0,
   courage: 0,
@@ -76,22 +81,7 @@ export const DEFAULT_CHARACTER: CharacterStatus = {
   lastActiveAt: {},
 };
 
-export const DEFAULT_MEMORIES: MemoryItem[] = [];
 export const DEFAULT_CHECKINS: DailyCheckin[] = [];
-export const DEFAULT_PROFILE_VECTOR: UserProfileVector = {
-  personality: {
-    riskTaking: "medium",
-    thinkingStyle: "balanced",
-    motivation: "growth",
-    workStyle: "systems",
-  },
-  values: [],
-  patterns: [],
-  coreStrengths: [],
-  growthAreas: [],
-  lastUpdated: 0,
-  updateCount: 0,
-};
 
 export const DEFAULT_PRESET_TAGS: string[] = [
   "การทำงาน",
@@ -142,7 +132,6 @@ export const DEFAULT_JOURNEY: LifeJourneyPhase[] = [
     titleTh: "นิสัย",
     subtitle: "การสร้างและรักษารูปแบบพฤติกรรมเชิงบวกอย่างต่อเนื่อง",
     status: "locked",
-
     progressPercent: 0,
     nextMilestone: "ทำ Habit Streak ครบ 21 วัน",
     estimatedCompletion: "เฟสถัดไป",
@@ -195,8 +184,11 @@ export const DEFAULT_VISION: VisionCategoryItem[] = [];
 export const DEFAULT_AFFIRMATIONS: AffirmationItem[] = [];
 export const DEFAULT_MESSAGES: AIChatMessage[] = [];
 export const DEFAULT_TIMELINE: TimelineEvent[] = [];
+export const DEFAULT_BRAIN_CARDS: BrainCard[] = [];
+export const DEFAULT_REMINDERS: ReminderItem[] = [];
+export const DEFAULT_PENDING_TASKS: PendingAITask[] = [];
 
-// Local Storage Manager class
+// ── RoomDatabase ──────────────────────────────────────────────────
 export class RoomDatabase {
   private static get<T>(key: string, defaultValue: T): T {
     try {
@@ -216,25 +208,76 @@ export class RoomDatabase {
     }
   }
 
-  // Clear All Mock Data
+  // ── Migration ───────────────────────────────────────────────────
+
+  static runMigrations(): void {
+    // v2 migration (wipe old v1 mock data)
+    if (!localStorage.getItem("mylifeos_migrated_v2")) {
+      const oldKeys = [
+        "mylifeos_settings", "mylifeos_character", "mylifeos_journey",
+        "mylifeos_missions", "mylifeos_journals", "mylifeos_goals",
+        "mylifeos_habits", "mylifeos_checklist", "mylifeos_vision",
+        "mylifeos_affirmations", "mylifeos_messages", "mylifeos_timeline",
+      ];
+      oldKeys.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem("mylifeos_migrated_v2", "true");
+    }
+
+    // v3 migration — migrate legacy aiApiKey into apiProviders if not done
+    if (!localStorage.getItem("mylifeos_migrated_v3")) {
+      const settings = this.getSettings();
+      if (settings.aiApiKey && settings.apiProviders.length === 0) {
+        settings.apiProviders = [
+          {
+            id: "gemini-default",
+            name: "Gemini",
+            apiKey: settings.aiApiKey,
+            model: settings.aiModel || "gemini-2.5-flash",
+            enabled: true,
+            priority: 1,
+          },
+        ];
+        this.saveSettings(settings);
+      }
+      // Migrate reminders from HomeView localStorage key
+      const oldReminders = localStorage.getItem("mylifeos_reminders");
+      if (oldReminders) {
+        try {
+          const parsed = JSON.parse(oldReminders) as string[];
+          const migrated: ReminderItem[] = parsed.map((text, i) => ({
+            id: `rem-migrated-${i}`,
+            text,
+            isRead: false,
+            createdAt: Date.now() - i * 1000,
+          }));
+          this.saveReminders(migrated);
+          localStorage.removeItem("mylifeos_reminders");
+        } catch { /* ignore */ }
+      }
+      localStorage.setItem("mylifeos_migrated_v3", "true");
+    }
+  }
+
+  // ── Clear All ───────────────────────────────────────────────────
   static clearAllData(): void {
     try {
       Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
-      // Also clear old v1 keys
       localStorage.clear();
     } catch (e) {
       console.error("Clear storage error:", e);
     }
   }
 
-  // Getters & Savers
+  // ── Settings ────────────────────────────────────────────────────
   static getSettings(): UserSettings {
-    return this.get<UserSettings>(KEYS.SETTINGS, DEFAULT_SETTINGS);
+    const saved = this.get<Partial<UserSettings>>(KEYS.SETTINGS, {});
+    return { ...DEFAULT_SETTINGS, ...saved };
   }
   static saveSettings(settings: UserSettings) {
     this.set(KEYS.SETTINGS, settings);
   }
 
+  // ── Character ───────────────────────────────────────────────────
   static getCharacter(): CharacterStatus {
     return this.get<CharacterStatus>(KEYS.CHARACTER, DEFAULT_CHARACTER);
   }
@@ -242,6 +285,7 @@ export class RoomDatabase {
     this.set(KEYS.CHARACTER, character);
   }
 
+  // ── Journey ─────────────────────────────────────────────────────
   static getJourney(): LifeJourneyPhase[] {
     return this.get<LifeJourneyPhase[]>(KEYS.JOURNEY, DEFAULT_JOURNEY);
   }
@@ -249,6 +293,7 @@ export class RoomDatabase {
     this.set(KEYS.JOURNEY, journey);
   }
 
+  // ── Missions ─────────────────────────────────────────────────────
   static getMissions(): TodayMission[] {
     return this.get<TodayMission[]>(KEYS.MISSIONS, DEFAULT_MISSIONS);
   }
@@ -256,6 +301,7 @@ export class RoomDatabase {
     this.set(KEYS.MISSIONS, missions);
   }
 
+  // ── Journals ─────────────────────────────────────────────────────
   static getJournals(): JournalEntry[] {
     return this.get<JournalEntry[]>(KEYS.JOURNALS, DEFAULT_JOURNALS);
   }
@@ -263,6 +309,7 @@ export class RoomDatabase {
     this.set(KEYS.JOURNALS, journals);
   }
 
+  // ── Goals ────────────────────────────────────────────────────────
   static getGoals(): GoalItem[] {
     return this.get<GoalItem[]>(KEYS.GOALS, DEFAULT_GOALS);
   }
@@ -270,6 +317,7 @@ export class RoomDatabase {
     this.set(KEYS.GOALS, goals);
   }
 
+  // ── Habits ───────────────────────────────────────────────────────
   static getHabits(): HabitItem[] {
     return this.get<HabitItem[]>(KEYS.HABITS, DEFAULT_HABITS);
   }
@@ -277,6 +325,7 @@ export class RoomDatabase {
     this.set(KEYS.HABITS, habits);
   }
 
+  // ── Checklist ────────────────────────────────────────────────────
   static getChecklist(): ChecklistItem[] {
     return this.get<ChecklistItem[]>(KEYS.CHECKLIST, DEFAULT_CHECKLIST);
   }
@@ -284,6 +333,7 @@ export class RoomDatabase {
     this.set(KEYS.CHECKLIST, checklist);
   }
 
+  // ── Vision ───────────────────────────────────────────────────────
   static getVision(): VisionCategoryItem[] {
     return this.get<VisionCategoryItem[]>(KEYS.VISION, DEFAULT_VISION);
   }
@@ -291,6 +341,7 @@ export class RoomDatabase {
     this.set(KEYS.VISION, vision);
   }
 
+  // ── Affirmations ──────────────────────────────────────────────────
   static getAffirmations(): AffirmationItem[] {
     return this.get<AffirmationItem[]>(KEYS.AFFIRMATIONS, DEFAULT_AFFIRMATIONS);
   }
@@ -298,6 +349,7 @@ export class RoomDatabase {
     this.set(KEYS.AFFIRMATIONS, affirmations);
   }
 
+  // ── Messages ─────────────────────────────────────────────────────
   static getMessages(): AIChatMessage[] {
     return this.get<AIChatMessage[]>(KEYS.MESSAGES, DEFAULT_MESSAGES);
   }
@@ -305,6 +357,7 @@ export class RoomDatabase {
     this.set(KEYS.MESSAGES, messages);
   }
 
+  // ── Timeline ─────────────────────────────────────────────────────
   static getTimeline(): TimelineEvent[] {
     return this.get<TimelineEvent[]>(KEYS.TIMELINE, DEFAULT_TIMELINE);
   }
@@ -312,15 +365,7 @@ export class RoomDatabase {
     this.set(KEYS.TIMELINE, timeline);
   }
 
-  // ── Intelligence Layer ────────────────────────────────────
-
-  static getMemories(): MemoryItem[] {
-    return this.get<MemoryItem[]>(KEYS.MEMORIES, DEFAULT_MEMORIES);
-  }
-  static saveMemories(memories: MemoryItem[]) {
-    this.set(KEYS.MEMORIES, memories);
-  }
-
+  // ── Checkins ─────────────────────────────────────────────────────
   static getCheckins(): DailyCheckin[] {
     return this.get<DailyCheckin[]>(KEYS.CHECKINS, DEFAULT_CHECKINS);
   }
@@ -328,13 +373,7 @@ export class RoomDatabase {
     this.set(KEYS.CHECKINS, checkins);
   }
 
-  static getProfileVector(): UserProfileVector {
-    return this.get<UserProfileVector>(KEYS.PROFILE_VECTOR, DEFAULT_PROFILE_VECTOR);
-  }
-  static saveProfileVector(vector: UserProfileVector) {
-    this.set(KEYS.PROFILE_VECTOR, vector);
-  }
-
+  // ── Preset Tags ──────────────────────────────────────────────────
   static getPresetTags(): string[] {
     return this.get<string[]>(KEYS.PRESET_TAGS, DEFAULT_PRESET_TAGS);
   }
@@ -342,6 +381,7 @@ export class RoomDatabase {
     this.set(KEYS.PRESET_TAGS, tags);
   }
 
+  // ── Preset Moods ─────────────────────────────────────────────────
   static getPresetMoods(): PresetMood[] {
     return this.get<PresetMood[]>(KEYS.PRESET_MOODS, DEFAULT_PRESET_MOODS);
   }
@@ -349,10 +389,36 @@ export class RoomDatabase {
     this.set(KEYS.PRESET_MOODS, moods);
   }
 
-  // Utility to export backup ZIP
+  // ── Brain Cards (v2.0 NEW) ───────────────────────────────────────
+  static getBrainCards(): BrainCard[] {
+    return this.get<BrainCard[]>(KEYS.BRAIN_CARDS, DEFAULT_BRAIN_CARDS);
+  }
+  static saveBrainCards(cards: BrainCard[]) {
+    this.set(KEYS.BRAIN_CARDS, cards);
+  }
+
+  // ── Reminders (v2.0 NEW) ─────────────────────────────────────────
+  static getReminders(): ReminderItem[] {
+    return this.get<ReminderItem[]>(KEYS.REMINDERS, DEFAULT_REMINDERS);
+  }
+  static saveReminders(reminders: ReminderItem[]) {
+    this.set(KEYS.REMINDERS, reminders);
+  }
+
+  // ── Pending AI Tasks (v2.0 NEW) ──────────────────────────────────
+  static getPendingTasks(): PendingAITask[] {
+    return this.get<PendingAITask[]>(KEYS.PENDING_TASKS, DEFAULT_PENDING_TASKS);
+  }
+  static savePendingTasks(tasks: PendingAITask[]) {
+    this.set(KEYS.PENDING_TASKS, tasks);
+  }
+
+  // ── Backup & Restore ─────────────────────────────────────────────
   static async exportBackupZip(): Promise<Blob> {
     const zip = new JSZip();
     const backupData = {
+      version: "2.0",
+      exportedAt: new Date().toISOString(),
       settings: this.getSettings(),
       character: this.getCharacter(),
       journey: this.getJourney(),
@@ -365,18 +431,14 @@ export class RoomDatabase {
       affirmations: this.getAffirmations(),
       messages: this.getMessages(),
       timeline: this.getTimeline(),
-      // Intelligence Layer
-      memories: this.getMemories(),
       checkins: this.getCheckins(),
-      profileVector: this.getProfileVector(),
-      exportedAt: new Date().toISOString(),
+      brainCards: this.getBrainCards(),
+      reminders: this.getReminders(),
     };
-
     zip.file("backup.json", JSON.stringify(backupData, null, 2));
     return await zip.generateAsync({ type: "blob" });
   }
 
-  // Utility to import backup ZIP
   static async importBackupZip(file: File): Promise<boolean> {
     try {
       const zip = await JSZip.loadAsync(file);
@@ -398,10 +460,9 @@ export class RoomDatabase {
       if (data.affirmations) this.saveAffirmations(data.affirmations);
       if (data.messages) this.saveMessages(data.messages);
       if (data.timeline) this.saveTimeline(data.timeline);
-      // Intelligence Layer
-      if (data.memories) this.saveMemories(data.memories);
       if (data.checkins) this.saveCheckins(data.checkins);
-      if (data.profileVector) this.saveProfileVector(data.profileVector);
+      if (data.brainCards) this.saveBrainCards(data.brainCards);
+      if (data.reminders) this.saveReminders(data.reminders);
 
       return true;
     } catch (e) {
@@ -410,10 +471,10 @@ export class RoomDatabase {
     }
   }
 
-  // Utility for storage stats
+  // ── Storage Stats ─────────────────────────────────────────────────
   static getStorageSize(): string {
     let total = 0;
-    for (let x in localStorage) {
+    for (const x in localStorage) {
       if (localStorage.hasOwnProperty(x)) {
         total += (localStorage[x].length + x.length) * 2;
       }

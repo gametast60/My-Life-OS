@@ -1,13 +1,85 @@
-export type AIMode =
-  | "Therapist"
-  | "Life Coach"
-  | "Goal Coach"
-  | "Decision Helper"
-  | "Weekly Reflection"
-  | "Monthly Reflection"
-  | "Future Self"
-  | "General Chat";
+// ── Life Dimensions (12 มิติ — ใช้ทั้งระบบ) ─────────────────────
+export const LIFE_DIMENSIONS = [
+  { id: "work",         emoji: "💼", label: "การงาน" },
+  { id: "finance",      emoji: "💰", label: "การเงิน" },
+  { id: "relationship", emoji: "❤️", label: "ความสัมพันธ์" },
+  { id: "health",       emoji: "🏃", label: "สุขภาพ" },
+  { id: "mindset",      emoji: "🧠", label: "ความคิด" },
+  { id: "learning",     emoji: "📚", label: "การเรียนรู้" },
+  { id: "emotion",      emoji: "😊", label: "อารมณ์" },
+  { id: "goal",         emoji: "🎯", label: "เป้าหมาย" },
+  { id: "lifestyle",    emoji: "🏠", label: "การใช้ชีวิต" },
+  { id: "values",       emoji: "🙏", label: "คุณค่าและความเชื่อ" },
+  { id: "hobby",        emoji: "🎨", label: "งานอดิเรก" },
+  { id: "identity",     emoji: "👤", label: "ตัวตน" },
+] as const;
 
+export type LifeDimension = typeof LIFE_DIMENSIONS[number]["id"];
+
+// ── Brain Types (11 types) ────────────────────────────────────────
+export const BRAIN_TYPES = [
+  "Goal",
+  "Habit",
+  "Knowledge",
+  "Belief",
+  "Identity",
+  "Preference",
+  "Skill",
+  "Strength",
+  "Weakness",
+  "Decision",
+  "Relationship",
+] as const;
+
+export type BrainType = typeof BRAIN_TYPES[number];
+
+// ── Brain Card — user-managed, AI read-only ───────────────────────
+export interface BrainCard {
+  id: string;
+  title: string;
+  description: string;
+  dimension: LifeDimension;
+  brainType: BrainType;
+  tags: string[];
+  linkedJournalIds: string[]; // Journal ↔ Brain (two-way)
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ── AI Provider ───────────────────────────────────────────────────
+export interface APIProvider {
+  id: string;
+  name: "Gemini" | "Groq" | "OpenRouter";
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  priority: number; // 1 = highest (failover order)
+  lastUsedAt?: number;
+  status?: "ok" | "error" | "quota";
+}
+
+// ── Pending AI Task (Queue) ───────────────────────────────────────
+export interface PendingAITask {
+  id: string;
+  type: "analyze_today" | "suggest_brain_card" | "reflection" | "secretary";
+  payload: Record<string, unknown>;
+  createdAt: number;
+  status: "pending" | "processing" | "done" | "failed";
+}
+
+// ── AI Modes (simplified 7 modes) ────────────────────────────────
+export type AIMode =
+  | "Coach"
+  | "Therapist"
+  | "Decision"
+  | "Future Self"
+  | "Secretary"
+  | "Reflection"
+  | "Chat";
+
+export type ReflectionPeriod = "today" | "week" | "month" | "year";
+
+// ── Journal Modes ─────────────────────────────────────────────────
 export type JournalMode =
   | "Normal Diary"
   | "Gratitude"
@@ -16,100 +88,10 @@ export type JournalMode =
   | "Negative Thought Release"
   | "CBT Reflection";
 
+// ── Mood (legacy 5-level) ─────────────────────────────────────────
 export type MoodType = "😫" | "😕" | "😐" | "😊" | "🤩";
 
-// ── Intelligence Layer Types ─────────────────────────────────
-
-export type MemoryCategory =
-  | "value"
-  | "fear"
-  | "dream"
-  | "strength"
-  | "weakness"
-  | "lesson"
-  | "pattern"
-  | "belief";
-
-export type KnowledgeChangeType =
-  | "none"
-  | "merged"
-  | "conflict"
-  | "evolution"
-  | "temporary_state";
-
-export interface MemoryItem {
-  id: string;
-  category: MemoryCategory;
-  content: string;
-  extractedFrom: string; // journal id, checkin, or "Brain Interview"
-  timestamp: number;
-  
-  // Dual Metrics V1.1
-  confidence: number;      // 0.0 – 1.0 (AI มั่นใจแค่ไหนว่าข้อมูลนี้ถูกต้อง)
-  importance: number;      // 0.0 – 1.0 (สำคัญต่อเป้าหมายและชีวิตผู้ใช้แค่ไหน)
-  
-  // Evidence & Temporal Metadata
-  mentionCount: number;    // จำนวนครั้งที่ถูกพูดถึง
-  lastMentionedAt: number; // timestamp ล่าสุดที่ถูกกล่าวถึง
-  confirmedBy: string[];   // แหล่งข้อมูลที่ยืนยัน เช่น ["Journal Entry", "Daily Check-in"]
-  
-  // Status & Knowledge Evolution Tracking
-  status: "active" | "weakening" | "conflicted" | "evolved";
-  changeType?: KnowledgeChangeType;
-  changeNote?: string;
-  pinned?: boolean;
-}
-
-export interface AILearningFeedback {
-  patternObservations: string[]; // ข้อสังเกตเชิงพฤติกรรม & เทรนด์
-  evolutionShifts: string[];     // พัฒนาการและการเปลี่ยนแปลงมิติด้านเวลา
-  newDiscoveries: string[];      // ข้อมูลใหม่ที่ค้นพบ
-  followupQuestion?: string;     // AI มีคำถามสงสัยต่อ
-}
-
-export interface QuestionHistoryItem {
-  questionId: string;
-  category: string;
-  lastAskedTimestamp: number;
-  answerLength: number; // ความยาวคำตอบเพื่อประเมินความลึก
-}
-
-
-export interface DailyCheckin {
-  id: string;
-  date: string; // YYYY-MM-DD
-  timestamp: number;
-  mood: MoodType;
-  answers: {
-    wentWell: string;   // วันนี้อะไรดี?
-    challenge: string;  // วันนี้อะไรยาก?
-    learned: string;    // วันนี้เรียนรู้อะไร?
-    grateful: string;   // วันนี้ขอบคุณอะไร?
-    tomorrow: string;   // พรุ่งนี้จะปรับอะไร?
-  };
-  aiSummary?: string;
-}
-
-/**
- * Personality vector built and updated by AI over time.
- * Used as rich context for every AI conversation.
- */
-export interface UserProfileVector {
-  personality: {
-    riskTaking: "low" | "medium" | "high";
-    thinkingStyle: "analytical" | "creative" | "balanced" | "intuitive";
-    motivation: "future-self" | "achievement" | "connection" | "growth" | "freedom";
-    workStyle: "systems" | "spontaneous" | "collaborative" | "solo";
-  };
-  values: string[];        // e.g. ["freedom", "growth", "discipline"]
-  patterns: string[];      // e.g. ["works better with systems", "likes measurable progress"]
-  coreStrengths: string[];
-  growthAreas: string[];
-  lastUpdated: number;     // timestamp
-  updateCount: number;
-}
-
-// ── Core Types ───────────────────────────────────────────────
+// ── Core Types ────────────────────────────────────────────────────
 
 export interface UserSettings {
   userName: string;
@@ -120,37 +102,33 @@ export interface UserSettings {
   notificationsEnabled: boolean;
   securityPinEnabled: boolean;
   securityPin?: string;
-  aiProvider: "Gemini" | "OpenAI" | "Claude" | "OpenRouter" | "Custom";
+  smallTalkLanguage: "th" | "en" | "ko";
+  // Legacy single-key (kept for migration, no longer shown in UI)
   aiApiKey: string;
   aiModel: string;
   aiTemperature: number;
   aiMaxTokens: number;
   customEndpoint?: string;
+  // Multi-provider
+  apiProviders: APIProvider[];
 }
 
 export interface CharacterStatus {
-  // ── Original 5 ──
-  discipline: number;    // 0-100 — mission completion
-  health: number;        // exercise + habit
-  mindset: number;       // journal mood + CBT
+  discipline: number;
+  health: number;
+  mindset: number;
   knowledge: number;
-  finance: number;       // money goals
+  finance: number;
   relationships: number;
-  confidence: number;    // achievement streaks
+  confidence: number;
   energy: number;
   focus: number;
   stress: number;
-  // ── Intelligence Layer — New 5 ──
-  wisdom: number;        // Journal reflections + lessons AI extracted
-  creativity: number;   // Vision board items + new ideas
-  courage: number;      // High-priority goals completed + challenges faced
-  social: number;       // Relationship journal + social goals
-  selfAwareness: number; // Daily check-in streak + emotion tracking + CBT entries
-  /**
-   * Tracks last time each stat was "earned" — used for RPG decay.
-   * Keys match stat names. Value = Unix timestamp (ms).
-   * Stat decays -1 point per 30 days of inactivity.
-   */
+  wisdom: number;
+  creativity: number;
+  courage: number;
+  social: number;
+  selfAwareness: number;
   lastActiveAt?: Record<string, number>;
 }
 
@@ -164,11 +142,7 @@ export interface LifeJourneyPhase {
   progressPercent: number;
   nextMilestone: string;
   estimatedCompletion: string;
-  stats: {
-    name: string;
-    valuePercent: number;
-    color: string;
-  }[];
+  stats: { name: string; valuePercent: number; color: string }[];
 }
 
 export interface TodayMission {
@@ -197,8 +171,8 @@ export interface JournalEntry {
   pinned: boolean;
   location?: string;
   aiReflection?: string;
-  wordCount?: number;        // cached word count — used to trigger memory extraction (>100)
-  memoryExtracted?: boolean; // true once AI has extracted memories from this entry
+  dimension: LifeDimension;       // required — chosen before save
+  linkedBrainCardIds: string[];   // Journal ↔ Brain (two-way)
 }
 
 export interface GoalItem {
@@ -214,6 +188,7 @@ export interface GoalItem {
   completed: boolean;
   archived: boolean;
   createdAt: string;
+  dimension?: LifeDimension;
 }
 
 export interface HabitItem {
@@ -227,6 +202,7 @@ export interface HabitItem {
   completedDates: string[]; // ['2026-07-24', ...]
   completionRate: number;
   aiAnalysis?: string;
+  dimension?: LifeDimension;
 }
 
 export interface ChecklistItem {
@@ -269,7 +245,7 @@ export interface TimelineEvent {
   id: string;
   timestamp: number;
   dateStr: string;
-  type: "journal" | "photo" | "voice" | "goal" | "achievement" | "checkin" | "memory";
+  type: "journal" | "photo" | "voice" | "goal" | "achievement" | "checkin";
   title: string;
   description: string;
   imageUrl?: string;
@@ -280,5 +256,33 @@ export interface TimelineEvent {
 export interface ReminderItem {
   id: string;
   text: string;
+  dimension?: LifeDimension;
+  scheduledAt?: number;
+  isRead: boolean;
   createdAt: number;
+}
+
+export interface DailyCheckin {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: number;
+  mood: MoodType;
+  answers: {
+    wentWell: string;
+    challenge: string;
+    learned: string;
+    grateful: string;
+    tomorrow: string;
+  };
+  aiSummary?: string;
+}
+
+// ── Guide System ──────────────────────────────────────────────────
+export interface GuideResult {
+  currentState: string;
+  mainGoal: string;
+  gap: string;
+  nextMission: string;
+  recommendedHabits: string[];
+  checklist: string[];
 }
