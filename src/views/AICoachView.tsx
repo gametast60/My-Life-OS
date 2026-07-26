@@ -14,7 +14,7 @@ import {
   sendAIChatRequest,
   analyzeTodayJournals,
   suggestBrainCard,
-  generateSmallTalk,
+  getSmallTalk,
   generateReflection,
 } from "../lib/aiService";
 import {
@@ -88,18 +88,8 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
 
   // Load smalltalk on mount or lang change
   useEffect(() => {
-    let isMounted = true;
-    const fetchSmallTalk = async () => {
-      setIsLoadingSmallTalk(true);
-      const res = await generateSmallTalk(smallTalkLang, settings);
-      if (isMounted) {
-        setSmallTalk(res);
-        setIsLoadingSmallTalk(false);
-      }
-    };
-    fetchSmallTalk();
-    return () => { isMounted = false; };
-  }, [smallTalkLang, settings]);
+    setSmallTalk(getSmallTalk(smallTalkLang));
+  }, [smallTalkLang]);
 
   const handleAnalyzeToday = async () => {
     setIsAnalyzingToday(true);
@@ -159,7 +149,7 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
               </div>
             </div>
             <p className="text-sm md:text-base font-medium text-emerald-100 italic">
-              {isLoadingSmallTalk ? "กำลังโหลดคำทักทาย..." : `"${smallTalk}"`}
+              "{smallTalk}"
             </p>
           </div>
 

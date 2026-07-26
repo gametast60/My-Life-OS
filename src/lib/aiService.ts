@@ -269,31 +269,49 @@ export async function suggestBrainCard(
   }
 }
 
-// ── generateSmallTalk ─────────────────────────────────────────────
+const SMALL_TALK_PRESETS: Record<"th" | "en" | "ko", string[]> = {
+  th: [
+    "วันนี้คุณได้ทำอะไรที่ทำให้ตัวเองภูมิใจบ้างครับ? 🌟",
+    "อะไรคือสิ่งเล็กๆ ที่ทำให้คุณรู้สึกขอบคุณในวันนี้? 😊",
+    "ถ้าเลือกผ่อนคลายได้ 1 อย่างตอนนี้ คุณอยากทำอะไรที่สุด? ☕",
+    "เป้าหมายเล็กๆ ที่ตั้งใจจะทำก่อนหมดวันคืออะไร? 🎯",
+    "บทเรียนสำคัญที่คุณได้เรียนรู้ในสัปดาห์นี้คืออะไร? 📚",
+    "กิจกรรมอะไรที่ช่วยเติมพลังชีวิตให้คุณได้ดีที่สุด? ⚡",
+    "ใครคือคนที่คุณอยากส่งรอยยิ้มหรือคำขอบคุณให้วันนี้? 🙏",
+  ],
+  en: [
+    "What's one thing you learned today that surprised you? 🤔",
+    "What is a small victory you achieved today? 🏆",
+    "If you had 30 minutes of free time right now, how would you spend it? ☕",
+    "What's one good habit you're proud of maintaining? 🌿",
+    "Who is someone that inspired you recently? 💡",
+    "What is your favorite way to unwind after a productive day? ✨",
+    "What is one goal you're excited to work on tomorrow? 🎯",
+  ],
+  ko: [
+    "오늘 하루 가장 기억에 남는 순간은 무엇인가요? ✨",
+    "오늘 나 자신에게 해주고 싶은 칭찬 한 마디는? 😊",
+    "오늘 소소하게 행복했던 순간이 있었나요? ☕",
+    "내일 꼭 이루고 싶은 작은 목표는 무엇인가요? 🎯",
+    "요즘 나를 가장 웃게 만드는 것은 무엇인가요? 🌟",
+    "오늘 열심히 보낸 나를 위해 어떤 휴식을 주고 싶나요? 🌿",
+    "오늘 감사하고 싶은 사람이나 순간이 있었나요? 🙏",
+  ],
+};
+
+export function getSmallTalk(language: "th" | "en" | "ko" = "th"): string {
+  const list = SMALL_TALK_PRESETS[language] || SMALL_TALK_PRESETS.th;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return list[dayOfYear % list.length];
+}
+
 export async function generateSmallTalk(
-  language: "th" | "en" | "ko",
-  settings?: UserSettings
+  language: "th" | "en" | "ko"
 ): Promise<string> {
-  const providers = getProviders(settings!);
-  if (providers.length === 0) return "";
-
-  const langMap = { th: "ภาษาไทย", en: "English", ko: "한국어" };
-
-  try {
-    const systemPrompt = `คุณคือ Daily Small Talk AI
-สร้างหัวข้อสนทนาน่าสนใจ 1 ประโยค เพื่อฝึกภาษาหรือกระตุ้นความคิด
-วันที่วันนี้: ${new Date().toLocaleDateString("th-TH")}
-ตอบใน${langMap[language]} เท่านั้น ประโยคเดียว ไม่ต้องอธิบายเพิ่ม`;
-
-    return await AIRouter.call(providers, systemPrompt, "สร้าง Small Talk วันนี้");
-  } catch {
-    const defaults = {
-      th: "วันนี้คุณได้ทำอะไรที่ทำให้ตัวเองภูมิใจบ้างครับ? 🌟",
-      en: "What's one thing you learned today that surprised you? 🤔",
-      ko: "오늘 하루 가장 기억에 남는 순간은 무엇인가요? ✨",
-    };
-    return defaults[language];
-  }
+  return getSmallTalk(language);
 }
 
 // ── generateReflection ────────────────────────────────────────────
