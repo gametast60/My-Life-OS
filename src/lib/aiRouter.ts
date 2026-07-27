@@ -253,7 +253,7 @@ export class AIRouter {
     const lines = cards.map((card) => {
       const dim = LIFE_DIMENSIONS.find((d) => d.id === card.dimension);
       const tags = card.tags.map((t) => `#${t}`).join(" ");
-      const desc = card.description ? ` — ${card.description.slice(0, 100)}` : "";
+      const desc = card.description ? ` — ${card.description}` : "";
       return `${card.brainType}|${dim?.label ?? card.dimension}: ${card.title}${desc} ${tags}`.trim();
     });
 

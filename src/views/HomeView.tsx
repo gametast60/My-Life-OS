@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   UserSettings,
   CharacterStatus,
@@ -18,7 +18,13 @@ import {
   Edit2,
   Check,
   Trash2,
+  Clock,
+  Moon,
+  MessageSquareQuote,
 } from "lucide-react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { DateTimePicker } from "../components/DateTimePicker";
+import { getSmallTalk } from "../lib/aiService";
 
 interface HomeViewProps {
   settings: UserSettings;
@@ -29,8 +35,8 @@ interface HomeViewProps {
   todayCheckin?: DailyCheckin;
   presetTags: string[];
   reminders: ReminderItem[];
-  onAddReminder: (text: string) => void;
-  onEditReminder: (id: string, newText: string) => void;
+  onAddReminder: (text: string, dueDate?: string) => void;
+  onEditReminder: (id: string, newText: string, dueDate?: string) => void;
   onDeleteReminder: (id: string) => void;
   onCompleteReminder: (item: ReminderItem) => void;
   onToggleMission: (id: string) => void;
@@ -52,8 +58,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenCheckinModal,
 }) => {
   const [inputText, setInputText] = useState("");
+  const [inputDueDate, setInputDueDate] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [editingDueDate, setEditingDueDate] = useState("");
+  const [isEditDateModalOpen, setIsEditDateModalOpen] = useState(false);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [smallTalk, setSmallTalk] = useState<string>("");
+
+  useEffect(() => {
+    setSmallTalk(getSmallTalk(settings.smallTalkLanguage || "th"));
+  }, [settings.smallTalkLanguage]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -65,37 +84,51 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const handleAdd = () => {
     const trimmed = inputText.trim();
     if (!trimmed) return;
-    onAddReminder(trimmed);
+    onAddReminder(trimmed, showDatePicker && inputDueDate ? inputDueDate : undefined);
     setInputText("");
+    setInputDueDate("");
+    setShowDatePicker(false);
   };
 
   const handleStartEdit = (r: ReminderItem) => {
     setEditingId(r.id);
     setEditingText(r.text);
+    setEditingDueDate(r.dueDate || "");
   };
 
   const handleSaveEdit = (id: string) => {
     const trimmed = editingText.trim();
     if (trimmed) {
-      onEditReminder(id, trimmed);
+      onEditReminder(id, trimmed, editingDueDate || undefined);
     }
     setEditingId(null);
   };
 
   return (
     <div className="space-y-6 pb-28 animate-in fade-in duration-300">
-      {/* 1. Welcome Section */}
-      <section className="space-y-1.5 pt-2 px-1">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#EBF1EA]">
-          {greeting()}, {settings.userName || "ผู้ใช้งาน"} 👋
-        </h1>
-        <p className="text-xs sm:text-sm text-[#869883] italic leading-relaxed">
-          "หนทางเดียวที่จะทำงานที่ยิ่งใหญ่ได้ คือการรักในสิ่งที่คุณทำ"
-          <span className="text-[#697A66] not-italic ml-1">— สตีฟ จ็อบส์</span>
-        </p>
+      {/* 1. Small Talk Welcome Section */}
+      <section className="space-y-3 pt-2 px-1">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#EBF1EA]">
+              {greeting()}, {settings.userName || "ผู้ใช้งาน"} 👋
+            </h1>
+            <p className="text-xs text-[#869883] mt-1">ยินดีต้อนรับกลับสู่ My Life OS</p>
+          </div>
+        </div>
+
+        {/* Small Talk Card */}
+        {smallTalk && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#182218] to-[#131913] border border-[#273727] shadow-md flex items-start gap-3">
+            <MessageSquareQuote className="w-5 h-5 text-[#6B9361] flex-shrink-0 mt-0.5" />
+            <p className="text-xs sm:text-sm text-[#EBF1EA] italic leading-relaxed">
+              "{smallTalk}"
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* 2. Daily Check-in Card */}
+      {/* 2. Daily Check-in Card (with Bedtime Reminder Prompt) */}
       <section className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-[#6B9361] uppercase tracking-wider flex items-center gap-1.5">
@@ -121,17 +154,23 @@ export const HomeView: React.FC<HomeViewProps> = ({
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#182018] border border-[#223022]">
-            <div>
-              <p className="text-xs sm:text-sm font-semibold text-[#EBF1EA]">ทำ Daily Check-in วันนี้</p>
-              <p className="text-[11px] text-[#869883]">ทบทวน 5 คำถามง่ายๆ (ใช้เวลา ~2 นาที)</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-[#182018] border border-[#223022]">
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-[#EBF1EA] flex items-center gap-1.5">
+                  <Moon className="w-4 h-4 text-amber-400" /> ทำ Daily Check-in ก่อนนอน
+                </p>
+                <p className="text-[11px] text-[#869883]">
+                  แนะนำให้ทำ Check-in ก่อนนอนเพื่อทบทวนวันของคุณ (ใช้เวลา ~2 นาที)
+                </p>
+              </div>
+              <button
+                onClick={onOpenCheckinModal}
+                className="px-4 py-2 rounded-xl bg-[#3F5C3A] hover:bg-[#4E7345] text-xs font-bold text-white transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> เริ่ม Check-in
+              </button>
             </div>
-            <button
-              onClick={onOpenCheckinModal}
-              className="px-4 py-2 rounded-xl bg-[#3F5C3A] hover:bg-[#4E7345] text-xs font-bold text-white transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" /> เริ่ม Check-in
-            </button>
           </div>
         )}
       </section>
@@ -150,25 +189,70 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        {/* Input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAdd();
-            }}
-            placeholder="จดสิ่งที่กลัวลืม..."
-            className="flex-1 px-3.5 py-2.5 rounded-2xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors"
-          />
-          <button
-            onClick={handleAdd}
-            disabled={!inputText.trim()}
-            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white disabled:opacity-40 transition-colors flex-shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+        {/* Input Controls */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdd();
+              }}
+              placeholder="จดสิ่งที่กลัวลืม..."
+              className="flex-1 px-3.5 py-2.5 rounded-2xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className={`p-2.5 rounded-2xl border transition-colors flex items-center justify-center ${
+                showDatePicker ? "bg-[#3F5C3A] border-[#4E7345] text-white" : "bg-[#182018] border-[#223022] text-[#869883] hover:text-white"
+              }`}
+              title="กำหนด วัน/เวลา เตือน (Optional)"
+            >
+              <Clock className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={!inputText.trim()}
+              className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white disabled:opacity-40 transition-colors flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Optional Date / Time Selector */}
+          {showDatePicker && (
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#182018] border border-[#223022] animate-in fade-in duration-200">
+              <span className="text-xs text-[#869883] whitespace-nowrap">วัน/เวลาเตือน:</span>
+              <button
+                type="button"
+                onClick={() => setIsDateModalOpen(true)}
+                className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] hover:border-[#6B9361] transition-colors text-left"
+              >
+                <Clock className="w-3 h-3 text-[#6B9361] flex-shrink-0" />
+                <span className="truncate">
+                  {inputDueDate
+                    ? new Date(inputDueDate).toLocaleString("th-TH", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "กำหนดวัน/เวลา..."}
+                </span>
+              </button>
+              {inputDueDate && (
+                <button
+                  type="button"
+                  onClick={() => setInputDueDate("")}
+                  className="text-[11px] text-[#869883] hover:text-white underline ml-auto whitespace-nowrap"
+                >
+                  ลบ
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Reminder List */}
@@ -184,7 +268,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 key={r.id}
                 className="flex items-center gap-3 p-3 rounded-xl bg-[#182018] border border-[#223022] hover:border-[#273727] transition-all group"
               >
-                {/* Circle-check button — triggers complete/journal modal */}
+                {/* Circle-check button */}
                 <button
                   onClick={() => onCompleteReminder(r)}
                   className="w-5 h-5 rounded-full border-2 border-[#374E37] flex items-center justify-center flex-shrink-0 hover:border-[#6B9361] hover:bg-[#1F2B1F] transition-all"
@@ -195,43 +279,72 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {/* Inline Edit or Text */}
                 {editingId === r.id ? (
-                  <div className="flex-1 flex items-center gap-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      value={editingText}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit(r.id);
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      className="flex-1 px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-sm text-[#EBF1EA] outline-none"
-                    />
-                    <button
-                      onClick={() => handleSaveEdit(r.id)}
-                      className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-950/40"
-                      title="บันทึก"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:bg-white/5"
-                      title="ยกเลิก"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveEdit(r.id);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-sm text-[#EBF1EA] outline-none"
+                      />
+                      <button
+                        onClick={() => handleSaveEdit(r.id)}
+                        className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-950/40"
+                        title="บันทึก"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:bg-white/5"
+                        title="ยกเลิก"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditDateModalOpen(true)}
+                        className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] hover:border-[#6B9361] transition-colors text-left"
+                      >
+                        <Clock className="w-3 h-3 text-[#6B9361] flex-shrink-0" />
+                        <span className="truncate">
+                          {editingDueDate
+                            ? new Date(editingDueDate).toLocaleString("th-TH", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "กำหนดวัน/เวลา..."}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    <p
-                      onClick={() => handleStartEdit(r)}
-                      className="flex-1 text-sm text-[#EBF1EA] leading-relaxed cursor-pointer hover:text-emerald-300 transition-colors"
-                      title="คลิกเพื่อแก้ไข"
-                    >
-                      {r.text}
-                    </p>
+                    <div className="flex-1">
+                      <p
+                        onClick={() => handleStartEdit(r)}
+                        className="text-sm text-[#EBF1EA] leading-relaxed cursor-pointer hover:text-emerald-300 transition-colors"
+                        title="คลิกเพื่อแก้ไข"
+                      >
+                        {r.text}
+                      </p>
+                      {r.dueDate && (
+                        <span className="text-[10px] font-mono text-[#6B9361] flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3" /> {new Date(r.dueDate).toLocaleString("th-TH")}
+                        </span>
+                      )}
+                    </div>
 
+                    {/* Actions: Edit = White, Delete = Red */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
                         onClick={() => handleStartEdit(r)}
@@ -241,7 +354,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         <Edit2 className="w-3.5 h-3.5 text-white" />
                       </button>
                       <button
-                        onClick={() => onDeleteReminder(r.id)}
+                        onClick={() => setDeletingId(r.id)}
                         className="p-1.5 rounded-lg text-red-400 bg-[#2A1818] hover:bg-[#3D1D1D] transition-all"
                         title="ลบ"
                       >
@@ -255,6 +368,43 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         )}
       </section>
+
+      {/* Global Confirm Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={deletingId !== null}
+        title="ยืนยันการลบรายการเตือนความจำ"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?"
+        confirmText="ยืนยันลบ"
+        cancelText="ยกเลิก"
+        variant="danger"
+        onConfirm={() => {
+          if (deletingId) onDeleteReminder(deletingId);
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
+
+      {/* DateTime Picker — for adding new reminder */}
+      <DateTimePicker
+        isOpen={isDateModalOpen}
+        value={inputDueDate}
+        onConfirm={(v) => {
+          setInputDueDate(v);
+          setIsDateModalOpen(false);
+        }}
+        onClose={() => setIsDateModalOpen(false)}
+      />
+
+      {/* DateTime Picker — for editing existing reminder */}
+      <DateTimePicker
+        isOpen={isEditDateModalOpen}
+        value={editingDueDate}
+        onConfirm={(v) => {
+          setEditingDueDate(v);
+          setIsEditDateModalOpen(false);
+        }}
+        onClose={() => setIsEditDateModalOpen(false)}
+      />
     </div>
   );
 };

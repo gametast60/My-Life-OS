@@ -273,6 +273,7 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
           journals={journals}
           messages={messages}
           onSaveMessage={onSaveMessage}
+          onClearSession={onClearSession}
           onClose={() => setActivePopupMode(null)}
           onSuggestCard={onSuggestCard}
         />
@@ -289,6 +290,7 @@ interface ChatPopupModalProps {
   journals: JournalEntry[];
   messages: AIChatMessage[];
   onSaveMessage: (msg: AIChatMessage) => void;
+  onClearSession?: () => void;
   onClose: () => void;
   onSuggestCard?: (card: Partial<BrainCard>) => void;
 }
@@ -300,6 +302,7 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
   journals,
   messages,
   onSaveMessage,
+  onClearSession,
   onClose,
   onSuggestCard,
 }) => {
@@ -319,6 +322,11 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
 
     const userMsgText = input.trim();
     setInput("");
+
+    // Automatically clear previous chat session for this mode to prevent Token ballooning
+    if (onClearSession) {
+      onClearSession();
+    }
 
     // blur keyboard for mobile
     if (textareaRef.current) {

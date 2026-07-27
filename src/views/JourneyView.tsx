@@ -1,178 +1,201 @@
-import React from "react";
-import { LifeJourneyPhase, UserSettings } from "../types";
-import { Check, Lock, Flag, Bot } from "lucide-react";
+import React, { useState } from "react";
+import { BrainCard, JournalEntry, UserSettings, LIFE_DIMENSIONS } from "../types";
+import { Brain, Sparkles, Layers, ArrowUpDown, Filter, BookOpen, Target } from "lucide-react";
 
 interface JourneyViewProps {
-  journey: LifeJourneyPhase[];
+  brainCards: BrainCard[];
+  journals: JournalEntry[];
   settings: UserSettings;
+  onOpenLifeBrain?: () => void;
 }
 
-export const JourneyView: React.FC<JourneyViewProps> = ({ journey }) => {
-  const currentPhase = journey.find((p) => p.status === "current") || journey[0];
+type SortOption = "most-used" | "a-z" | "manual";
+
+export const JourneyView: React.FC<JourneyViewProps> = ({ brainCards, journals, onOpenLifeBrain }) => {
+  const [sortOption, setSortOption] = useState<SortOption>("most-used");
+  const [filterQuery, setFilterQuery] = useState("");
+
+  // Aggregate all dynamic topics across Brain Cards and Journals
+  const topicMap: Record<string, { name: string; emoji: string; count: number; cardCount: number; journalCount: number }> = {};
+
+  // 1. Initialize from LIFE_DIMENSIONS
+  LIFE_DIMENSIONS.forEach((dim) => {
+    topicMap[dim.id] = {
+      name: dim.label,
+      emoji: dim.emoji,
+      count: 0,
+      cardCount: 0,
+      journalCount: 0,
+    };
+  });
+
+  // 2. Count Brain Cards per topic/dimension
+  brainCards.forEach((card) => {
+    const dimKey = card.dimension || "mindset";
+    if (!topicMap[dimKey]) {
+      topicMap[dimKey] = { name: dimKey, emoji: "💡", count: 0, cardCount: 0, journalCount: 0 };
+    }
+    topicMap[dimKey].count += 1;
+    topicMap[dimKey].cardCount += 1;
+
+    // Custom tags as dynamic topics
+    card.tags.forEach((tag) => {
+      const cleanTag = tag.trim().replace(/^#/, "");
+      if (cleanTag) {
+        if (!topicMap[cleanTag]) {
+          topicMap[cleanTag] = { name: cleanTag, emoji: "🏷️", count: 0, cardCount: 0, journalCount: 0 };
+        }
+        topicMap[cleanTag].count += 1;
+        topicMap[cleanTag].cardCount += 1;
+      }
+    });
+  });
+
+  // Convert to array and filter out empty topics if query typed
+  let topicsList = Object.values(topicMap).filter((t) =>
+    t.name.toLowerCase().includes(filterQuery.toLowerCase())
+  );
+
+  // Maximum count for percentage progress bar calculation
+  const maxCount = Math.max(1, ...topicsList.map((t) => t.count));
+
+  // Sorting logic
+  if (sortOption === "most-used") {
+    topicsList.sort((a, b) => b.count - a.count);
+  } else if (sortOption === "a-z") {
+    topicsList.sort((a, b) => a.name.localeCompare(b.name, "th"));
+  }
+
+  const totalEntriesAccumulated = brainCards.length;
 
   return (
     <div className="space-y-6 pb-28 animate-in fade-in duration-300">
-      {/* Top Section Header */}
-      <div className="flex justify-between items-end">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3">
         <div>
-          <span className="text-xs font-bold tracking-[0.2em] text-[#869883] uppercase">
-            MY LIFE OS ROADMAP
+          <span className="text-xs font-bold tracking-[0.2em] text-[#6B9361] uppercase flex items-center gap-1.5">
+            <Brain className="w-4 h-4 text-[#6B9361]" /> Brain Topic Status
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">เส้นทางชีวิต</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">Brain Dashboard</h2>
           <p className="text-xs text-[#869883]">
-            {currentPhase
-              ? `เฟส ${currentPhase.phaseNumber}: ${currentPhase.titleTh} (${currentPhase.title} Phase)`
-              : "เริ่มต้นการเดินทางของคุณ"}
+            แสดงสถานะและจำนวนสะสมของหัวข้อในสมองของคุณ (Dynamic Topic Tracking)
           </p>
         </div>
-        <div className="text-3xl font-extrabold text-[#273727] font-mono">
-          {String(currentPhase?.phaseNumber ?? 1).padStart(2, "0")}
+
+        {/* Total Badge */}
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 rounded-2xl bg-[#131913] border border-[#1F2B1F] shadow-sm text-right">
+            <span className="text-[10px] font-mono text-[#869883] uppercase block">ข้อมูลสะสมทั้งหมด</span>
+            <span className="text-lg font-bold text-[#6B9361] font-mono">{totalEntriesAccumulated} รายการ</span>
+          </div>
+          {onOpenLifeBrain && (
+            <button
+              onClick={onOpenLifeBrain}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 text-emerald-300 transition-all"
+            >
+              <Brain size={14} />
+              Life Brain ({brainCards.length})
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Column: AI Oracle Advice & Phase Stats */}
-        <aside className="md:col-span-5 order-2 md:order-1 space-y-6">
-          {/* AI Oracle Card */}
-          <div className="bg-[#182218] text-[#EBF1EA] rounded-3xl p-6 border border-[#273727] space-y-3 shadow-lg">
-            <div className="flex items-center gap-2 text-[#6B9361] font-mono text-xs uppercase font-bold">
-              <Bot className="w-5 h-5 text-[#6B9361]" />
-              <span>ภาพรวมเฟสปัจจุบัน</span>
-            </div>
-            {currentPhase ? (
-              <>
-                <h3 className="text-lg font-bold text-[#EBF1EA] leading-tight">
-                  ขณะนี้อยู่ที่ช่วง{" "}
-                  <span className="text-[#6B9361]">{currentPhase.titleTh}</span>.
-                  {currentPhase.progressPercent > 0 && (
-                    <> สำเร็จแล้ว {currentPhase.progressPercent}%.</>
-                  )}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#869883] leading-relaxed italic">
-                  {currentPhase.subtitle}
-                </p>
-                {currentPhase.nextMilestone && (
-                  <div className="pt-1 text-xs text-[#697A66] border-t border-[#273727]">
-                    <span className="text-[#6B9361] font-bold">เป้าหมายถัดไป: </span>
-                    {currentPhase.nextMilestone}
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-[#869883]">กำหนดเฟสเส้นทางชีวิตในหน้าตั้งค่าเพื่อเริ่มต้น</p>
-            )}
-          </div>
+      {/* Control Bar: Search & Sort */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 p-3.5 rounded-2xl bg-[#131913] border border-[#1F2B1F] shadow-md">
+        {/* Search */}
+        <div className="w-full sm:w-72 relative">
+          <input
+            type="text"
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            placeholder="ค้นหาหัวข้อสมอง..."
+            className="w-full px-3.5 py-2 rounded-xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345]"
+          />
+        </div>
 
-          {/* Phase Key Stats Card */}
-          {currentPhase && currentPhase.stats && currentPhase.stats.length > 0 && (
-            <div className="bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-lg space-y-4">
-              <h3 className="text-xs font-bold text-[#869883] uppercase tracking-widest">
-                ข้อมูลสำคัญของเฟส
-              </h3>
-              <div className="space-y-4">
-                {currentPhase.stats.map((stat) => (
-                  <div key={stat.name} className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-[#EBF1EA]">{stat.name}</span>
-                      <span className="font-mono text-[#6B9361] font-semibold">
-                        {stat.valuePercent}%
-                      </span>
-                    </div>
-                    <div className="h-2 w-full bg-[#182018] rounded-full overflow-hidden border border-[#223022]">
-                      <div
-                        className="h-full bg-[#4E7345] rounded-full transition-all duration-500"
-                        style={{ width: `${stat.valuePercent}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <span className="text-xs text-[#869883] flex items-center gap-1">
+            <ArrowUpDown className="w-3.5 h-3.5 text-[#6B9361]" /> เรียงลำดับ:
+          </span>
+          <div className="flex gap-1 bg-[#182018] p-1 rounded-xl border border-[#223022]">
+            <button
+              onClick={() => setSortOption("most-used")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                sortOption === "most-used"
+                  ? "bg-[#3F5C3A] text-white shadow-sm"
+                  : "text-[#869883] hover:text-[#EBF1EA]"
+              }`}
+            >
+              สะสมสูงสุด
+            </button>
+            <button
+              onClick={() => setSortOption("a-z")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                sortOption === "a-z"
+                  ? "bg-[#3F5C3A] text-white shadow-sm"
+                  : "text-[#869883] hover:text-[#EBF1EA]"
+              }`}
+            >
+              ก-ฮ / A-Z
+            </button>
+            <button
+              onClick={() => setSortOption("manual")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                sortOption === "manual"
+                  ? "bg-[#3F5C3A] text-white shadow-sm"
+                  : "text-[#869883] hover:text-[#EBF1EA]"
+              }`}
+            >
+              ทั่วไป
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dynamic Topic Progress Bar Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {topicsList.map((topic) => {
+          const percent = Math.min(100, Math.round((topic.count / maxCount) * 100));
+
+          return (
+            <div
+              key={topic.name}
+              className="p-4 rounded-2xl bg-[#131913] border border-[#1F2B1F] hover:border-[#273727] transition-all space-y-2.5 shadow-md"
+            >
+              {/* Topic Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{topic.emoji}</span>
+                  <h3 className="font-bold text-sm text-[#EBF1EA] capitalize">{topic.name}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-extrabold text-[#6B9361] bg-[#182218] px-2.5 py-1 rounded-xl border border-[#273727]">
+                    {topic.count} รายการ
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1">
+                <div className="h-2.5 w-full bg-[#182018] rounded-full overflow-hidden border border-[#223022]">
+                  <div
+                    className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-[#4E7345] to-[#6B9361]"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-mono text-[#869883] pt-0.5">
+                  <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-0.5">
+                      <Brain className="w-3 h-3 text-[#6B9361]" /> {topic.cardCount} Cards
+                    </span>
+                  </span>
+                  <span>{percent}%</span>
+                </div>
               </div>
             </div>
-          )}
-        </aside>
-
-        {/* Right Column: Interactive Journey Timeline */}
-        <section className="md:col-span-7 order-1 md:order-2 space-y-4">
-          <div className="bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-lg space-y-6">
-            <h3 className="text-xs font-bold text-[#869883] uppercase tracking-widest">
-              เฟสการพัฒนาชีวิต 5 ระดับ
-            </h3>
-
-            <div className="relative pl-6 space-y-8 before:absolute before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#1F2B1F]">
-              {journey.map((phase) => {
-                const isCompleted = phase.status === "completed";
-                const isCurrent = phase.status === "current";
-                const isLocked = phase.status === "locked" || phase.status === "upcoming";
-
-                return (
-                  <div key={phase.id} className="relative group">
-                    {/* Node Circle */}
-                    <div
-                      className={`absolute -left-6 top-0 -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                        isCompleted
-                          ? "bg-[#3F5C3A] text-white border border-[#4E7345]"
-                          : isCurrent
-                          ? "bg-[#4E7345] text-white ring-4 ring-[#4E7345]/20 border border-[#6B9361]"
-                          : "bg-[#182018] text-[#556653] border border-[#223022]"
-                      }`}
-                    >
-                      {isCompleted && <Check className="w-3.5 h-3.5" />}
-                      {isCurrent && <Flag className="w-3.5 h-3.5" />}
-                      {isLocked && <Lock className="w-3.5 h-3.5" />}
-                    </div>
-
-                    {/* Content Box */}
-                    <div
-                      className={`p-4 rounded-2xl border transition-all ${
-                        isCurrent
-                          ? "bg-[#182218] border-[#273727] shadow-md"
-                          : "bg-[#101610] border-[#1A241A]"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-[#6B9361] uppercase">
-                            {phase.phaseNumber} • {phase.estimatedCompletion}
-                          </span>
-                          <h4 className="font-bold text-sm text-[#EBF1EA]">
-                            {phase.titleTh} ({phase.title})
-                          </h4>
-                        </div>
-                        <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                            isCompleted
-                              ? "bg-[#1F2E1E] text-[#6B9361] border-[#2E452E]"
-                              : isCurrent
-                              ? "bg-[#3F5C3A] text-white border-[#4E7345]"
-                              : "bg-[#151D15] text-[#697A66] border-[#1F2B1F]"
-                          }`}
-                        >
-                          {isCompleted ? "เสร็จสิ้น" : isCurrent ? "กำลังทำ" : "ยังไม่ปลดล็อก"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#869883] leading-relaxed">{phase.subtitle}</p>
-
-                      {isCurrent && phase.progressPercent > 0 && (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex justify-between text-[10px] font-mono text-[#697A66]">
-                            <span>ความคืบหน้า</span>
-                            <span className="text-[#6B9361]">{phase.progressPercent}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-[#182018] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#4E7345] rounded-full"
-                              style={{ width: `${phase.progressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from "react";
 import { JournalEntry, LifeDimension, LIFE_DIMENSIONS, UserSettings } from "../types";
-import { Plus, Edit2, Trash2, X, Tag, Settings2, Smile, BookOpen, ChevronRight, Brain, Link, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Tag, BookOpen, Brain, Search, AlertCircle, Calendar } from "lucide-react";
 import { ManageTagsModal } from "../components/ManageTagsModal";
 import { ManageMoodsModal } from "../components/ManageMoodsModal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PresetMood } from "../lib/db";
 
 interface JournalViewProps {
@@ -34,28 +35,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [moodId, setMoodId] = useState<string>(presetMoods[0]?.id ?? "happy");
   const [tags, setTags] = useState<string[]>([]);
   const [emotion, setEmotion] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showDimensionError, setShowDimensionError] = useState(false);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
   const [isManageMoodsOpen, setIsManageMoodsOpen] = useState(false);
-  const [isAllJournalsOpen, setIsAllJournalsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Timezone-aware today date key comparison (YYYY-MM-DD)
-  const todayKey = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  }).format(new Date());
-
-  const todayJournals = journals.filter((j) => {
-    if (j.timestamp) {
-      const d = new Date(j.timestamp);
-      const key = new Intl.DateTimeFormat("sv-SE", {
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }).format(d);
-      return key === todayKey;
-    }
-    return false;
-  });
 
   const selectedMood = presetMoods.find((m) => m.id === moodId) ?? presetMoods[0];
 
@@ -82,11 +68,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
   };
 
   const handleToggleTag = (tag: string) => {
-    if (tags.includes(tag)) {
-      setTags(tags.filter((t) => t !== tag));
-    } else {
-      setTags([...tags, tag]);
-    }
+    setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,25 +123,75 @@ export const JournalView: React.FC<JournalViewProps> = ({
     handleCancelEdit();
   };
 
+  // Filter journals across Title, Content, Tag, and Dimension
+  const filteredJournals = journals.filter((j) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const matchTitle = j.title?.toLowerCase().includes(q);
+    const matchContent = j.content?.toLowerCase().includes(q);
+    const matchTag = j.tags?.some((t) => t.toLowerCase().includes(q));
+    const matchDim = j.dimension?.toLowerCase().includes(q);
+    return matchTitle || matchContent || matchTag || matchDim;
+  });
+
+  // Date Grouping logic (Today, Yesterday, This Month, Earlier)
+  const now = new Date();
+  const todayKey = new Intl.DateTimeFormat("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).format(now);
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = new Intl.DateTimeFormat("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).format(yesterday);
+
+  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const groups: { label: string; items: JournalEntry[] }[] = [
+    { label: "วันนี้ (Today)", items: [] },
+    { label: "เมื่อวาน (Yesterday)", items: [] },
+    { label: "เดือนนี้ (This Month)", items: [] },
+    { label: "เดือนก่อนหน้า (Earlier)", items: [] },
+  ];
+
+  filteredJournals.forEach((j) => {
+    const d = new Date(j.timestamp || Date.now());
+    const dateKey = new Intl.DateTimeFormat("sv-SE", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).format(d);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    if (dateKey === todayKey) {
+      groups[0].items.push(j);
+    } else if (dateKey === yesterdayKey) {
+      groups[1].items.push(j);
+    } else if (ym === currentYearMonth) {
+      groups[2].items.push(j);
+    } else {
+      groups[3].items.push(j);
+    }
+  });
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-4 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto px-4 pt-4 pb-28 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-100">Journal & Reflection</h1>
-          <p className="text-xs text-gray-400">บันทึกความคิด อารมณ์ และบทเรียนชีวิต (Offline First)</p>
+          <h1 className="text-xl font-bold text-[#EBF1EA]">Journal & Reflection</h1>
+          <p className="text-xs text-[#869883]">บันทึกความคิด อารมณ์ และบทเรียนชีวิต</p>
         </div>
-        <button
-          onClick={() => setIsAllJournalsOpen(true)}
-          className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-900/40 transition-all flex items-center gap-1.5"
-        >
-          <BookOpen size={14} />
-          ดูบันทึกทั้งหมด ({journals.length})
-        </button>
+
+        {/* Global Search Bar */}
+        <div className="w-full sm:w-80 relative">
+          <Search className="w-4 h-4 text-[#697A66] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหา Title, Content, Tag, Topic..."
+            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#131913] border border-[#1F2B1F] text-xs text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345]"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Editor (Left Column) */}
-        <div className="lg:col-span-7 bg-emerald-950/10 border border-emerald-900/30 rounded-2xl p-5 space-y-4">
+        <div className="lg:col-span-7 bg-[#131913] border border-[#1F2B1F] rounded-2xl p-5 space-y-4 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Title */}
             <div>
@@ -167,16 +199,16 @@ export const JournalView: React.FC<JournalViewProps> = ({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="หัวข้อบันทึก (ระบุหรือไม่ก็ได้)..."
-                className="w-full bg-black/40 border border-emerald-900/40 rounded-xl px-4 py-2.5 text-xs text-gray-200 outline-none focus:border-emerald-500/50"
+                placeholder="หัวข้อบันทึก..."
+                className="w-full bg-[#182018] border border-[#223022] rounded-xl px-4 py-2.5 text-xs text-[#EBF1EA] outline-none focus:border-[#4E7345]"
               />
             </div>
 
-            {/* Life Dimension Picker (REQUIRED) */}
+            {/* Primary Life Dimension Picker (REQUIRED) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-gray-300">
-                  เลือก Life Dimension <span className="text-red-400">*</span>
+                <label className="text-xs font-semibold text-[#869883]">
+                  เลือก Primary Dimension <span className="text-red-400">*</span>
                 </label>
                 {showDimensionError && (
                   <span className="text-[11px] text-red-400 flex items-center gap-1">
@@ -197,8 +229,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
                       }}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 border ${
                         isSelected
-                          ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
-                          : "bg-black/30 text-gray-400 border-emerald-950 hover:border-emerald-800"
+                          ? "bg-[#3F5C3A] text-white border-[#4E7345] shadow-md"
+                          : "bg-[#182018] text-[#869883] border-[#223022] hover:border-[#273727]"
                       }`}
                     >
                       <span>{dim.emoji}</span>
@@ -209,18 +241,18 @@ export const JournalView: React.FC<JournalViewProps> = ({
               </div>
             </div>
 
-            {/* Mood & Emotion */}
+            {/* Mood Picker */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">อารมณ์/ความรู้สึก</label>
-                <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-xl border border-emerald-900/30 overflow-x-auto">
+                <label className="text-xs font-semibold text-[#869883] block mb-1">เลือก Mood</label>
+                <div className="flex items-center gap-1 bg-[#182018] p-1.5 rounded-xl border border-[#223022] overflow-x-auto">
                   {presetMoods.map((m) => (
                     <button
                       type="button"
                       key={m.id}
                       onClick={() => setMoodId(m.id)}
                       className={`p-1.5 rounded-lg text-base transition-all ${
-                        moodId === m.id ? "bg-emerald-700/60 scale-110" : "opacity-60 hover:opacity-100"
+                        moodId === m.id ? "bg-[#273727] border border-[#6B9361] scale-110" : "opacity-60 hover:opacity-100"
                       }`}
                       title={m.label}
                     >
@@ -231,37 +263,37 @@ export const JournalView: React.FC<JournalViewProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">ความรู้สึกละเอียด</label>
+                <label className="text-xs font-semibold text-[#869883] block mb-1">ความรู้สึกละเอียด</label>
                 <input
                   type="text"
                   value={emotion}
                   onChange={(e) => setEmotion(e.target.value)}
                   placeholder="เช่น ผ่อนคลาย, ภูมิใจ"
-                  className="w-full bg-black/40 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-gray-200 outline-none"
+                  className="w-full bg-[#182018] border border-[#223022] rounded-xl px-3 py-2 text-xs text-[#EBF1EA] outline-none"
                 />
               </div>
             </div>
 
-            {/* Content Area */}
+            {/* Content Textarea */}
             <div>
               <textarea
                 ref={textareaRef}
-                rows={7}
+                rows={6}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="เขียนความรู้สึก ความคิด หรือสิ่งที่ได้เรียนรู้วันนี้..."
-                className="w-full bg-black/40 border border-emerald-900/40 rounded-xl p-4 text-xs text-gray-200 outline-none focus:border-emerald-500/50 resize-none leading-relaxed"
+                className="w-full bg-[#182018] border border-[#223022] rounded-xl p-4 text-xs text-[#EBF1EA] outline-none focus:border-[#4E7345] resize-none leading-relaxed"
               />
             </div>
 
-            {/* Tags */}
+            {/* Tags Selection */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-gray-400">แท็กที่เกี่ยวข้อง:</span>
+                <span className="text-xs text-[#869883]">แท็กที่เกี่ยวข้อง:</span>
                 <button
                   type="button"
                   onClick={() => setIsManageTagsOpen(true)}
-                  className="text-[11px] text-emerald-400 hover:underline"
+                  className="text-[11px] text-[#6B9361] hover:underline"
                 >
                   + จัดการแท็ก
                 </button>
@@ -276,8 +308,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
                       onClick={() => handleToggleTag(t)}
                       className={`px-2 py-1 rounded-md text-[11px] transition-all ${
                         active
-                          ? "bg-emerald-800/60 text-emerald-200 border border-emerald-500/40"
-                          : "bg-black/30 text-gray-400 hover:text-gray-200"
+                          ? "bg-[#3F5C3A] text-white border border-[#4E7345]"
+                          : "bg-[#182018] text-[#869883] border border-[#223022] hover:text-[#EBF1EA]"
                       }`}
                     >
                       #{t}
@@ -287,13 +319,13 @@ export const JournalView: React.FC<JournalViewProps> = ({
               </div>
             </div>
 
-            {/* Form Actions */}
+            {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
               {editingId && (
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-white"
                 >
                   ยกเลิก
                 </button>
@@ -309,64 +341,80 @@ export const JournalView: React.FC<JournalViewProps> = ({
           </form>
         </div>
 
-        {/* Today's Feed (Right Column) */}
-        <div className="lg:col-span-5 space-y-3">
-          <h2 className="text-sm font-bold text-gray-300 flex items-center justify-between">
-            <span>บันทึกวันนี้ ({todayJournals.length})</span>
-            <span className="text-[11px] text-gray-500 font-normal">{todayKey}</span>
-          </h2>
-
-          {todayJournals.length === 0 ? (
-            <div className="p-8 text-center bg-black/20 border border-emerald-900/20 rounded-2xl text-gray-500 text-xs">
-              ยังไม่มีบันทึกสำหรับวันนี้ เขียนเลย! ✨
+        {/* Grouped Feed List (Right Column) */}
+        <div className="lg:col-span-5 space-y-6">
+          {groups.every((g) => g.items.length === 0) ? (
+            <div className="p-8 text-center bg-[#131913] border border-[#1F2B1F] rounded-2xl text-[#869883] text-xs">
+              ไม่พบบันทึกที่ตรงกับคำค้นหา
             </div>
           ) : (
-            todayJournals.map((j) => {
-              const dim = LIFE_DIMENSIONS.find((d) => d.id === j.dimension);
+            groups.map((group) => {
+              if (group.items.length === 0) return null;
+
               return (
-                <div
-                  key={j.id}
-                  className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/30 space-y-2 relative group hover:border-emerald-700/40 transition-all"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{j.mood}</span>
-                      <h3 className="font-bold text-xs text-gray-200 truncate max-w-[180px]">
-                        {j.title}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleStartEdit(j)}
-                        className="p-1 text-gray-400 hover:text-emerald-400"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      {onDeleteJournal && (
-                        <button
-                          onClick={() => onDeleteJournal(j.id)}
-                          className="p-1 text-gray-400 hover:text-red-400"
+                <div key={group.label} className="space-y-3">
+                  <h3 className="text-xs font-bold text-[#6B9361] uppercase tracking-wider flex items-center gap-1.5 border-b border-[#1F2B1F] pb-1.5">
+                    <Calendar className="w-3.5 h-3.5" /> {group.label} ({group.items.length})
+                  </h3>
+
+                  <div className="space-y-3">
+                    {group.items.map((j) => {
+                      const dim = LIFE_DIMENSIONS.find((d) => d.id === j.dimension);
+
+                      return (
+                        <div
+                          key={j.id}
+                          className="p-4 rounded-xl bg-[#131913] border border-[#1F2B1F] hover:border-[#273727] transition-all space-y-2 relative group shadow-sm"
                         >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{j.mood}</span>
+                              <h4 className="font-bold text-xs text-[#EBF1EA] truncate max-w-[180px]">
+                                {j.title}
+                              </h4>
+                            </div>
 
-                  <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed whitespace-pre-wrap">
-                    {j.content}
-                  </p>
+                            {/* Action Buttons: Edit = White, Delete = Red */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(j)}
+                                className="p-1 rounded-lg text-white hover:bg-[#182218] transition-colors"
+                                title="แก้ไข"
+                              >
+                                <Edit2 size={13} className="text-white" />
+                              </button>
+                              {onDeleteJournal && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingId(j.id)}
+                                  className="p-1 rounded-lg text-red-400 hover:bg-red-950/40 transition-colors"
+                                  title="ลบ"
+                                >
+                                  <Trash2 size={13} className="text-red-400" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
 
-                  <div className="flex items-center justify-between pt-1 text-[11px] text-gray-400">
-                    <div className="flex items-center gap-1.5">
-                      {dim && (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300">
-                          {dim.emoji} {dim.label}
-                        </span>
-                      )}
-                      {j.emotion && <span className="text-gray-400">• {j.emotion}</span>}
-                    </div>
-                    <span>{new Date(j.timestamp).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</span>
+                          <p className="text-xs text-[#869883] line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                            {j.content}
+                          </p>
+
+                          <div className="flex items-center justify-between pt-1 text-[11px] text-[#556653]">
+                            <div className="flex items-center gap-1.5">
+                              {dim && (
+                                <span className="px-1.5 py-0.5 rounded bg-[#182218] text-[#6B9361]">
+                                  {dim.emoji} {dim.label}
+                                </span>
+                              )}
+                              {j.emotion && <span>• {j.emotion}</span>}
+                            </div>
+                            <span>{new Date(j.timestamp).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -374,6 +422,21 @@ export const JournalView: React.FC<JournalViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Global Confirm Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={deletingId !== null}
+        title="ยืนยันการลบบันทึก Journal"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกนี้? ข้อมูลจะถูกลบถาวร"
+        confirmText="ยืนยันลบ"
+        cancelText="ยกเลิก"
+        variant="danger"
+        onConfirm={() => {
+          if (deletingId && onDeleteJournal) onDeleteJournal(deletingId);
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
 
       {/* Modals */}
       <ManageTagsModal

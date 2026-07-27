@@ -41,6 +41,7 @@ import {
   BrainCard,
   ReminderItem,
   DailyCheckin,
+  NoteItem,
 } from "./types";
 
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
   // v2.0 NEW State
   const [brainCards, setBrainCards] = useState<BrainCard[]>(() => RoomDatabase.getBrainCards());
   const [reminders, setReminders] = useState<ReminderItem[]>(() => RoomDatabase.getReminders());
+  const [notes, setNotes] = useState<NoteItem[]>(() => RoomDatabase.getNotes());
   const [suggestedCard, setSuggestedCard] = useState<Partial<BrainCard> | null>(null);
   const [popupReminder, setPopupReminder] = useState<ReminderItem | null>(null);
 
@@ -115,6 +117,50 @@ export default function App() {
     setPresetMoods(RoomDatabase.getPresetMoods());
     setBrainCards(RoomDatabase.getBrainCards());
     setReminders(RoomDatabase.getReminders());
+    setNotes(RoomDatabase.getNotes());
+  };
+
+  // Notes Handlers
+  const handleAddNote = (note: NoteItem) => {
+    const updated = [note, ...notes];
+    setNotes(updated);
+    RoomDatabase.saveNotes(updated);
+  };
+
+  const handleEditNote = (updatedNote: NoteItem) => {
+    const updated = notes.map((n) => (n.id === updatedNote.id ? updatedNote : n));
+    setNotes(updated);
+    RoomDatabase.saveNotes(updated);
+  };
+
+  const handleDeleteNote = (id: string) => {
+    const updated = notes.filter((n) => n.id !== id);
+    setNotes(updated);
+    RoomDatabase.saveNotes(updated);
+  };
+
+  // Reminder Handlers
+  const handleAddReminder = (text: string, dueDate?: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const newItem: ReminderItem = {
+      id: "r-" + Date.now(),
+      text: trimmed,
+      dueDate,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+    const updated = [newItem, ...reminders];
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
+  };
+
+  const handleEditReminder = (id: string, newText: string, dueDate?: string) => {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+    const updated = reminders.map((r) => (r.id === id ? { ...r, text: trimmed, dueDate } : r));
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
   };
 
   const todayStr = new Intl.DateTimeFormat("sv-SE", {
@@ -217,29 +263,6 @@ export default function App() {
     RoomDatabase.saveBrainCards(updated);
   };
 
-  // Reminder Handlers
-  const handleAddReminder = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const newItem: ReminderItem = {
-      id: "r-" + Date.now(),
-      text: trimmed,
-      isRead: false,
-      createdAt: Date.now(),
-    };
-    const updated = [newItem, ...reminders];
-    setReminders(updated);
-    RoomDatabase.saveReminders(updated);
-  };
-
-  const handleEditReminder = (id: string, newText: string) => {
-    const trimmed = newText.trim();
-    if (!trimmed) return;
-    const updated = reminders.map((r) => (r.id === id ? { ...r, text: trimmed } : r));
-    setReminders(updated);
-    RoomDatabase.saveReminders(updated);
-  };
-
   const handleDeleteReminder = (id: string) => {
     const updated = reminders.filter((r) => r.id !== id);
     setReminders(updated);
@@ -330,6 +353,8 @@ export default function App() {
             onAddCard={handleAddBrainCard}
             onEditCard={handleEditBrainCard}
             onDeleteCard={handleDeleteBrainCard}
+            onEditJournal={handleEditJournal}
+            onClose={() => setIsLifeBrainOpen(false)}
           />
         ) : (
           <>
@@ -357,7 +382,12 @@ export default function App() {
             )}
 
             {currentTab === "journey" && (
-              <JourneyView journey={journey} settings={settings} />
+              <JourneyView
+                brainCards={brainCards}
+                journals={journals}
+                settings={settings}
+                onOpenLifeBrain={() => setIsLifeBrainOpen(true)}
+              />
             )}
 
             {currentTab === "coach" && (
@@ -393,10 +423,10 @@ export default function App() {
 
             {currentTab === "progress" && (
               <ProgressView
-                habits={habits}
-                goals={goals}
-                character={character}
-                checkins={checkins}
+                notes={notes}
+                onAddNote={handleAddNote}
+                onEditNote={handleEditNote}
+                onDeleteNote={handleDeleteNote}
               />
             )}
           </>

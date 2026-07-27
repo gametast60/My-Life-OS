@@ -1,224 +1,236 @@
-import React from "react";
-import { HabitItem, GoalItem, CharacterStatus, DailyCheckin } from "../types";
-import { Target, Repeat, Award, ShieldAlert, Sparkles, Brain, Flame, Compass, Heart, Feather } from "lucide-react";
+import React, { useState } from "react";
+import { NoteItem } from "../types";
+import { Plus, Edit2, Trash2, Search, StickyNote, Check, X } from "lucide-react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 interface ProgressViewProps {
-  habits: HabitItem[];
-  goals: GoalItem[];
-  character: CharacterStatus;
-  checkins: DailyCheckin[];
+  notes: NoteItem[];
+  onAddNote: (note: NoteItem) => void;
+  onEditNote: (note: NoteItem) => void;
+  onDeleteNote: (id: string) => void;
 }
 
-const RPG_STATS_CONFIG: {
-  key: keyof CharacterStatus;
-  label: string;
-  category: "Physical & Action" | "Mind & Spirit";
-  color: string;
-  icon: any;
-  desc: string;
-}[] = [
-  // Original / Core Stats
-  { key: "discipline", label: "วินัย (Discipline)", category: "Physical & Action", color: "#4E7345", icon: Flame, desc: "Mission completion rate" },
-  { key: "health", label: "สุขภาพ (Health)", category: "Physical & Action", color: "#6B9361", icon: Heart, desc: "Habits & exercise" },
-  { key: "finance", label: "การเงิน (Finance)", category: "Physical & Action", color: "#B07A60", icon: Target, desc: "Financial goals progress" },
-  { key: "confidence", label: "ความมั่นใจ (Confidence)", category: "Physical & Action", color: "#7A9B61", icon: Award, desc: "Streak & achievements" },
-  { key: "energy", label: "พลังงาน (Energy)", category: "Physical & Action", color: "#6B9361", icon: Flame, desc: "Daily vitality" },
+export const ProgressView: React.FC<ProgressViewProps> = ({
+  notes,
+  onAddNote,
+  onEditNote,
+  onDeleteNote,
+}) => {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Intelligence Layer — 5 RPG Stats
-  { key: "wisdom", label: "ภูมิปัญญา (Wisdom)", category: "Mind & Spirit", color: "#6B9361", icon: Feather, desc: "Reflection & AI Lessons" },
-  { key: "creativity", label: "ความคิดสร้างสรรค์ (Creativity)", category: "Mind & Spirit", color: "#7A9B61", icon: Sparkles, desc: "Vision Board & Ideas" },
-  { key: "courage", label: "ความกล้าหาญ (Courage)", category: "Mind & Spirit", color: "#B07A60", icon: ShieldAlert, desc: "High priority goals & challenges" },
-  { key: "social", label: "ความสัมพันธ์ (Social)", category: "Mind & Spirit", color: "#4E7345", icon: Compass, desc: "Relationship journals & goals" },
-  { key: "selfAwareness", label: "การตระหนักรู้ตนเอง (Self Awareness)", category: "Mind & Spirit", color: "#6B9361", icon: Brain, desc: "Daily Check-in streak & CBT" },
-];
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingContent, setEditingContent] = useState("");
 
-export const ProgressView: React.FC<ProgressViewProps> = ({ habits, goals, character, checkins }) => {
-  const completedHabits = habits.filter((h) => h.currentStreak > 0).length;
-  const completedGoals = goals.filter((g) => g.progressPercent >= 100).length;
+  // Confirm delete dialog state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const checkinStreak = checkins.length;
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() && !title.trim()) return;
+
+    const now = Date.now();
+    const newNote: NoteItem = {
+      id: "note-" + now,
+      title: title.trim() || "โน้ตด่วน " + new Date(now).toLocaleDateString("th-TH"),
+      content: content.trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    onAddNote(newNote);
+    setTitle("");
+    setContent("");
+  };
+
+  const handleStartEdit = (n: NoteItem) => {
+    setEditingId(n.id);
+    setEditingTitle(n.title);
+    setEditingContent(n.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingId) return;
+    const existing = notes.find((n) => n.id === editingId);
+    if (existing) {
+      onEditNote({
+        ...existing,
+        title: editingTitle.trim() || existing.title,
+        content: editingContent.trim(),
+        updatedAt: Date.now(),
+      });
+    }
+    setEditingId(null);
+  };
+
+  const filteredNotes = notes.filter(
+    (n) =>
+      n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      n.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6 pb-28 animate-in fade-in duration-300">
-      {/* Top Header */}
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA]">ความคืบหน้า & RPG Life Stats</h2>
-        <p className="text-xs text-[#869883]">ติดตามพัฒนาการ สถิติตัวละคร 10 ด้าน และอัตราความสำเร็จในชีวิต</p>
+    <div className="space-y-6 pb-28 animate-in fade-in duration-300 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#EBF1EA] flex items-center gap-2">
+            <StickyNote className="w-6 h-6 text-[#6B9361]" /> โน้ตด่วน (Quick Notes)
+          </h2>
+          <p className="text-xs text-[#869883]">
+            บันทึกความทรงจำ ไอเดีย ข้อคิด หรือสิ่งที่นึกขึ้นได้ทันที (แยกจาก Journal)
+          </p>
+        </div>
+        <span className="text-xs font-mono font-bold text-[#6B9361] bg-[#182218] px-3 py-1 rounded-xl border border-[#273727]">
+          {notes.length} โน้ต
+        </span>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#182218] border border-[#273727] text-[#6B9361] flex items-center justify-center">
-            <Repeat className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#869883] uppercase block">นิสัยสม่ำเสมอ</span>
-            <span className="text-2xl font-extrabold text-[#EBF1EA] font-mono">
-              {habits.length === 0 ? "—" : `${completedHabits} / ${habits.length}`}
-            </span>
-          </div>
+      {/* Note Creation Form */}
+      <form onSubmit={handleAdd} className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg space-y-3">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="หัวข้อโน้ต..."
+          className="w-full px-4 py-2.5 rounded-xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345]"
+        />
+        <textarea
+          rows={3}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="จดสิ่งที่นึกขึ้นได้ ไอเดีย ความคิด..."
+          className="w-full px-4 py-3 rounded-xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] resize-none"
+        />
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={!content.trim() && !title.trim()}
+            className="px-5 py-2.5 rounded-xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> เพิ่มโน้ต
+          </button>
         </div>
+      </form>
 
-        <div className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#182218] border border-[#273727] text-[#6B9361] flex items-center justify-center">
-            <Target className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#869883] uppercase block">เป้าหมายที่สำเร็จ</span>
-            <span className="text-2xl font-extrabold text-[#EBF1EA] font-mono">
-              {goals.length === 0 ? "—" : `${completedGoals} / ${goals.length}`}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#182218] border border-[#273727] text-[#6B9361] flex items-center justify-center">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#869883] uppercase block">Check-in Total</span>
-            <span className="text-2xl font-extrabold text-[#6B9361] font-mono">
-              {checkinStreak} ครั้ง
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-[#131913] rounded-3xl p-5 border border-[#1F2B1F] shadow-lg flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#182218] border border-[#273727] text-[#6B9361] flex items-center justify-center">
-            <Award className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#869883] uppercase block">เฉลี่ย RPG Stat</span>
-            <span className="text-2xl font-extrabold text-[#6B9361] font-mono">
-              {Math.round(
-                RPG_STATS_CONFIG.reduce((acc, stat) => acc + (character[stat.key] || 0), 0) / RPG_STATS_CONFIG.length
-              )}
-              %
-            </span>
-          </div>
-        </div>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="w-4 h-4 text-[#697A66] absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="ค้นหาในโน้ต..."
+          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#131913] border border-[#1F2B1F] text-xs text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345]"
+        />
       </div>
 
-      {/* 10 Character RPG Stats (Life RPG System) */}
-      <section className="bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-lg space-y-6">
-        <div className="flex justify-between items-center border-b border-[#1F2B1F] pb-4">
-          <div>
-            <h3 className="font-bold text-base sm:text-lg text-[#EBF1EA] flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#6B9361]" />
-              <span>Life RPG Stats (10 สถานะชีวิต)</span>
-            </h3>
-            <p className="text-xs text-[#869883]">
-              ระบบเติบโตและเสื่อมถอยตามการใช้งานจริง (Decay -1 แต้ม / 30 วันที่ขาดการสะสม)
-            </p>
-          </div>
+      {/* Notes Grid */}
+      {filteredNotes.length === 0 ? (
+        <div className="text-center py-12 bg-[#131913] rounded-3xl border border-[#1F2B1F] text-[#869883] space-y-2">
+          <p className="text-sm font-semibold">ยังไม่มีโน้ต</p>
+          <p className="text-xs text-[#556653]">พิมพ์ในช่องด้านบนเพื่อสร้างโน้ตใหม่ได้ทันที</p>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {filteredNotes.map((n) => {
+            const isEditing = editingId === n.id;
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {["Physical & Action", "Mind & Spirit"].map((categoryGroup) => (
-            <div key={categoryGroup} className="space-y-4">
-              <h4 className="text-xs font-bold text-[#6B9361] uppercase tracking-wider border-b border-[#1F2B1F] pb-2">
-                {categoryGroup === "Physical & Action" ? "💪 การกระทำ & กายภาพ" : "🧠 จิตวิญญาณ & ปัญญา"}
-              </h4>
-
-              <div className="space-y-3.5">
-                {RPG_STATS_CONFIG.filter((s) => s.category === categoryGroup).map(({ key, label, color, icon: Icon, desc }) => {
-                  const val = character[key] || 0;
-                  return (
-                    <div key={key} className="p-3.5 rounded-2xl bg-[#182018] border border-[#223022] space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-[#6B9361]" />
-                          <span className="font-semibold text-[#EBF1EA]">{label}</span>
-                        </div>
-                        <span className="font-mono font-bold text-sm" style={{ color }}>
-                          {val}%
-                        </span>
-                      </div>
-                      <div className="h-2.5 w-full bg-[#101610] rounded-full overflow-hidden border border-[#1F2B1F]">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${val}%`, backgroundColor: color }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-[#697A66] italic">{desc}</p>
+            return (
+              <div
+                key={n.id}
+                className="p-5 rounded-2xl bg-[#131913] border border-[#1F2B1F] hover:border-[#273727] transition-all space-y-3 shadow-md group flex flex-col justify-between"
+              >
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-[#182018] border border-[#4E7345] text-sm text-[#EBF1EA] outline-none"
+                    />
+                    <textarea
+                      rows={4}
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-[#182018] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs text-white"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveEdit}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white"
+                      >
+                        บันทึก
+                      </button>
                     </div>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-sm text-[#EBF1EA] leading-snug">{n.title}</h3>
+                        <div className="flex items-center gap-1.5">
+                          {/* Edit action — White style */}
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(n)}
+                            className="p-1.5 rounded-lg text-white hover:bg-[#182218] transition-colors"
+                            title="แก้ไข"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-white" />
+                          </button>
+
+                          {/* Delete action — Red style */}
+                          <button
+                            type="button"
+                            onClick={() => setDeletingId(n.id)}
+                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-[#869883] leading-relaxed whitespace-pre-wrap">
+                        {n.content}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#1F2B1F] flex justify-between items-center text-[10px] font-mono text-[#556653]">
+                      <span>{new Date(n.updatedAt).toLocaleDateString("th-TH")}</span>
+                      <span>{new Date(n.updatedAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </section>
+      )}
 
-      {/* Detailed Habits & Goals breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Habits Progress */}
-        <div className="bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-lg space-y-4">
-          <h3 className="font-bold text-sm text-[#EBF1EA] flex items-center gap-2 border-b border-[#1F2B1F] pb-3">
-            <Repeat className="w-4 h-4 text-[#6B9361]" />
-            <span>นิสัยและวินัยประจำวัน</span>
-          </h3>
-
-          {habits.length === 0 ? (
-            <div className="text-center py-8 space-y-1">
-              <p className="text-[#869883] text-sm">ยังไม่มีนิสัยที่ติดตาม</p>
-              <p className="text-xs text-[#697A66]">เพิ่มนิสัยในเมนู "นิสัย" เพื่อเริ่มติดตาม</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {habits.map((h) => (
-                <div key={h.id} className="p-3.5 rounded-2xl bg-[#182018] border border-[#223022] space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-[#EBF1EA]">{h.title}</span>
-                    <span className="text-[#6B9361] font-mono text-[11px]">
-                      Streak: {h.currentStreak} วัน
-                    </span>
-                  </div>
-                  <div className="h-2 w-full bg-[#101610] rounded-full overflow-hidden border border-[#1F2B1F]">
-                    <div
-                      className="h-full bg-[#4E7345] rounded-full"
-                      style={{ width: `${Math.min(100, (h.currentStreak / 30) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Goals Progress */}
-        <div className="bg-[#131913] rounded-3xl p-6 border border-[#1F2B1F] shadow-lg space-y-4">
-          <h3 className="font-bold text-sm text-[#EBF1EA] flex items-center gap-2 border-b border-[#1F2B1F] pb-3">
-            <Target className="w-4 h-4 text-[#6B9361]" />
-            <span>เป้าหมายสำคัญในชีวิต</span>
-          </h3>
-
-          {goals.length === 0 ? (
-            <div className="text-center py-8 space-y-1">
-              <p className="text-[#869883] text-sm">ยังไม่มีเป้าหมาย</p>
-              <p className="text-xs text-[#697A66]">เพิ่มเป้าหมายในเมนู "เป้าหมาย" เพื่อเริ่มติดตาม</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {goals.map((g) => (
-                <div key={g.id} className="p-3.5 rounded-2xl bg-[#182018] border border-[#223022] space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-[#EBF1EA]">{g.title}</span>
-                    <span className="text-[#6B9361] font-mono text-[11px]">{g.progressPercent}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-[#101610] rounded-full overflow-hidden border border-[#1F2B1F]">
-                    <div
-                      className="h-full bg-[#4E7345] rounded-full"
-                      style={{ width: `${g.progressPercent}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Global Confirm Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={deletingId !== null}
+        title="ยืนยันการลบโน้ต"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบโน้ตนี้? ข้อมูลจะถูกลบถาวร"
+        confirmText="ยืนยันลบ"
+        cancelText="ยกเลิก"
+        variant="danger"
+        onConfirm={() => {
+          if (deletingId) onDeleteNote(deletingId);
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 };

@@ -16,11 +16,13 @@ import {
   X,
   ChevronDown,
   Link,
+  Unlink,
   Tag,
   Calendar,
   BookOpen,
 } from "lucide-react";
 import { BrainCardModal } from "../components/BrainCardModal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 interface LifeBrainViewProps {
   brainCards: BrainCard[];
@@ -28,6 +30,8 @@ interface LifeBrainViewProps {
   onAddCard: (card: BrainCard) => void;
   onEditCard: (card: BrainCard) => void;
   onDeleteCard: (id: string) => void;
+  onClose?: () => void;
+  onEditJournal?: (journal: JournalEntry) => void;
 }
 
 const DIM_COLORS: Record<LifeDimension, string> = {
@@ -65,6 +69,8 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
   onAddCard,
   onEditCard,
   onDeleteCard,
+  onClose,
+  onEditJournal,
 }) => {
   const [selectedDimension, setSelectedDimension] = useState<LifeDimension | "all">("all");
   const [selectedType, setSelectedType] = useState<BrainType | "all">("all");
@@ -109,6 +115,29 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
     );
   }, [selectedCard, journals]);
 
+  const handleUnlinkJournal = (journalId: string, card: BrainCard, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedCard = {
+      ...card,
+      linkedJournalIds: card.linkedJournalIds.filter((id) => id !== journalId),
+      updatedAt: Date.now(),
+    };
+    onEditCard(updatedCard);
+    if (selectedCard?.id === card.id) {
+      setSelectedCard(updatedCard);
+    }
+
+    if (onEditJournal) {
+      const jToUpdate = journals.find((j) => j.id === journalId);
+      if (jToUpdate && jToUpdate.linkedBrainCardIds?.includes(card.id)) {
+        onEditJournal({
+          ...jToUpdate,
+          linkedBrainCardIds: jToUpdate.linkedBrainCardIds.filter((id) => id !== card.id),
+        });
+      }
+    }
+  };
+
   const handleAdd = () => {
     setEditingCard(null);
     setIsModalOpen(true);
@@ -137,6 +166,30 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
     } else {
       onAddCard(card);
     }
+
+    // Keep JournalEntry.linkedBrainCardIds in sync with BrainCard.linkedJournalIds (two-way link)
+    if (onEditJournal) {
+      const prevIds = editingCard?.linkedJournalIds ?? [];
+      const nextIds = card.linkedJournalIds ?? [];
+      const added = nextIds.filter((id) => !prevIds.includes(id));
+      const removed = prevIds.filter((id) => !nextIds.includes(id));
+      journals.forEach((j) => {
+        const has = j.linkedBrainCardIds?.includes(card.id) ?? false;
+        const shouldHave = nextIds.includes(j.id);
+        if (added.includes(j.id) && !has) {
+          onEditJournal({
+            ...j,
+            linkedBrainCardIds: [...(j.linkedBrainCardIds ?? []), card.id],
+          });
+        } else if ((removed.includes(j.id) || (!shouldHave && has)) && has) {
+          onEditJournal({
+            ...j,
+            linkedBrainCardIds: (j.linkedBrainCardIds ?? []).filter((id) => id !== card.id),
+          });
+        }
+      });
+    }
+
     setIsModalOpen(false);
     setEditingCard(null);
   };
@@ -156,14 +209,27 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                 <p className="text-xs" style={{ color: "#869883" }}>{brainCards.length} Brain Cards</p>
               </div>
             </div>
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-              style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)", color: "white" }}
-            >
-              <Plus size={16} />
-              เพิ่มการ์ด
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)", color: "white" }}
+              >
+                <Plus size={16} />
+                เพิ่มการ์ด
+              </button>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-[#6B9361]/20 transition-all flex items-center justify-center"
+                  style={{ border: "1px solid rgba(107,147,97,0.2)", background: "rgba(255,255,255,0.04)" }}
+                  title="ปิดหน้า Life Brain"
+                  aria-label="Close Life Brain view"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Search */}
@@ -311,20 +377,20 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                       </h3>
                     </div>
                     {/* Actions */}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <div className="flex gap-1 flex-shrink-0">
                       <button
                         onClick={(e) => handleEdit(card, e)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-                        style={{ color: "#869883" }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                        title="แก้ไข"
                       >
-                        <Edit2 size={12} />
+                        <Edit2 size={12} className="text-white" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(card.id, e)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-500/10 transition-colors"
-                        style={{ color: "#B07070" }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-950/40 transition-colors"
+                        title="ลบ"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={12} className="text-red-400" />
                       </button>
                     </div>
                   </div>
@@ -381,13 +447,24 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                               Journal ที่เกี่ยวข้อง ({linkedJournals.length})
                             </p>
                             <div className="space-y-1.5">
-                              {linkedJournals.slice(0, 3).map((j) => (
-                                <div key={j.id} className="flex items-start gap-2 p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
-                                  <span className="text-sm">{j.mood}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate" style={{ color: "#EBF1EA" }}>{j.title || j.date}</p>
-                                    <p className="text-xs line-clamp-1" style={{ color: "#869883" }}>{j.content.slice(0, 60)}</p>
+                              {linkedJournals.map((j) => (
+                                <div key={j.id} className="flex items-center justify-between gap-2 p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+                                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                                    <span className="text-sm">{j.mood}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium truncate" style={{ color: "#EBF1EA" }}>{j.title || j.date}</p>
+                                      <p className="text-xs line-clamp-1" style={{ color: "#869883" }}>{j.content.slice(0, 60)}</p>
+                                    </div>
                                   </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleUnlinkJournal(j.id, card, e)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 transition-all flex-shrink-0"
+                                    title="ยกเลิกการเชื่อมโยง"
+                                  >
+                                    <Unlink size={11} />
+                                    <span>ยกเลิกเชื่อมโยง</span>
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -416,30 +493,18 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
       </div>
 
       {/* Delete Confirm */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="rounded-2xl p-6 w-full max-w-sm" style={{ background: "#131a13", border: "1px solid rgba(107,147,97,0.2)" }}>
-            <h3 className="font-bold text-lg mb-2" style={{ color: "#EBF1EA" }}>ลบ Brain Card?</h3>
-            <p className="text-sm mb-6" style={{ color: "#869883" }}>การลบไม่สามารถย้อนกลับได้</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                style={{ background: "rgba(255,255,255,0.05)", color: "#869883" }}
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={() => confirmDelete(deleteConfirmId)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(176,112,112,0.2)", color: "#B07070" }}
-              >
-                ลบ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        title="ลบ Brain Card?"
+        message="การลบ Brain Card จะลบข้อมูลนี้ถาวรและไม่สามารถย้อนกลับได้"
+        confirmText="ยืนยันลบ"
+        cancelText="ยกเลิก"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteConfirmId) confirmDelete(deleteConfirmId);
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
 
       {/* Brain Card Modal */}
       <BrainCardModal

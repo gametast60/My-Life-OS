@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { BrainCard, BRAIN_TYPES, LIFE_DIMENSIONS } from "../types";
-import { Brain, X, Plus } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { BrainCard, LifeDimension, LIFE_DIMENSIONS } from "../types";
+import { Brain, X, Plus, Edit2, Check } from "lucide-react";
 
 interface AISuggestPopupProps {
   card: Partial<BrainCard> | null;
@@ -9,28 +9,41 @@ interface AISuggestPopupProps {
 }
 
 export const AISuggestPopup: React.FC<AISuggestPopupProps> = ({ card, onConfirm, onDismiss }) => {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedDesc, setEditedDesc] = useState("");
+  const [editedDimension, setEditedDimension] = useState<LifeDimension>("mindset");
+  const [editedTags, setEditedTags] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (card) {
-      timerRef.current = setTimeout(onDismiss, 15000);
+      setEditedTitle(card.title || "");
+      setEditedDesc(card.description || "");
+      setEditedDimension(card.dimension || "mindset");
+      setEditedTags(card.tags || []);
+      setIsEditing(false);
     }
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [card, onDismiss]);
+  }, [card]);
 
   if (!card) return null;
 
-  const dim = LIFE_DIMENSIONS.find((d) => d.id === card.dimension);
+  const handleConfirmSave = () => {
+    onConfirm({
+      ...card,
+      title: editedTitle.trim() || card.title,
+      description: editedDesc.trim(),
+      dimension: editedDimension,
+      tags: editedTags,
+    });
+  };
 
   return (
     <div
       className="fixed bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300"
-      style={{ maxWidth: "420px", margin: "0 auto" }}
+      style={{ maxWidth: "440px", margin: "0 auto" }}
     >
       <div
-        className="rounded-2xl p-4 shadow-2xl"
+        className="rounded-3xl p-5 shadow-2xl space-y-4"
         style={{
           background: "linear-gradient(135deg, #131a13, #1a221a)",
           border: "1px solid rgba(107,147,97,0.35)",
@@ -38,97 +51,86 @@ export const AISuggestPopup: React.FC<AISuggestPopupProps> = ({ card, onConfirm,
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)" }}
             >
-              <Brain size={15} className="text-white" />
+              <Brain size={16} className="text-white" />
             </div>
-            <p className="text-sm font-semibold" style={{ color: "#EBF1EA" }}>
-              AI พบข้อมูลที่น่าบันทึก
-            </p>
+            <div>
+              <p className="text-sm font-bold text-[#EBF1EA]">AI สกัดข้อมูลจากบทสนทนา (Thai Preview)</p>
+              <p className="text-[11px] text-[#869883]">คุณสามารถตรวจสอบและแก้ไขข้อมูลก่อนบันทึกได้</p>
+            </div>
           </div>
           <button
             onClick={onDismiss}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors flex-shrink-0"
-            style={{ color: "#869883" }}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 text-[#869883] hover:text-[#EBF1EA]"
           >
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
 
-        {/* Card Preview */}
-        <div
-          className="rounded-xl p-3 mb-4"
-          style={{ background: "rgba(107,147,97,0.08)", border: "1px solid rgba(107,147,97,0.15)" }}
-        >
-          <p className="text-sm font-semibold mb-1" style={{ color: "#EBF1EA" }}>
-            {card.title}
-          </p>
-          {card.description && (
-            <p className="text-xs mb-2" style={{ color: "#869883" }}>
-              {card.description.slice(0, 80)}
-            </p>
-          )}
-          <div className="flex items-center gap-2 flex-wrap">
-            {dim && (
-              <span className="text-xs px-2 py-0.5 rounded-md" style={{ background: "rgba(107,147,97,0.15)", color: "#6B9361" }}>
-                {dim.emoji} {dim.label}
-              </span>
-            )}
-            {card.brainType && (
-              <span className="text-xs px-2 py-0.5 rounded-md" style={{ background: "rgba(78,115,69,0.15)", color: "#8FBC8F" }}>
-                {card.brainType}
-              </span>
-            )}
-            {card.tags?.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-xs" style={{ color: "#576656" }}>
-                #{tag}
-              </span>
-            ))}
+        {/* Editable Preview Form */}
+        <div className="space-y-3 p-3.5 rounded-2xl bg-[#182018] border border-[#223022]">
+          {/* Title Edit */}
+          <div>
+            <label className="text-[11px] font-semibold text-[#869883] block mb-1">ชื่อหัวข้อ (Title):</label>
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none"
+            />
+          </div>
+
+          {/* Description Edit */}
+          <div>
+            <label className="text-[11px] font-semibold text-[#869883] block mb-1">รายละเอียด (Description):</label>
+            <textarea
+              rows={3}
+              value={editedDesc}
+              onChange={(e) => setEditedDesc(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none leading-relaxed"
+            />
+          </div>
+
+          {/* Dimension Selector */}
+          <div>
+            <label className="text-[11px] font-semibold text-[#869883] block mb-1">หัวข้อ/มิติ (Dimension):</label>
+            <select
+              value={editedDimension}
+              onChange={(e) => setEditedDimension(e.target.value as LifeDimension)}
+              className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none cursor-pointer"
+            >
+              {LIFE_DIMENSIONS.map((dim) => (
+                <option key={dim.id} value={dim.id}>
+                  {dim.emoji} {dim.label} ({dim.id})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
+        {/* Action Buttons: Confirm (Save) / Cancel */}
+        <div className="flex gap-2 pt-1">
           <button
             onClick={onDismiss}
-            className="flex-1 py-2.5 rounded-xl text-xs font-medium transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)", color: "#869883" }}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-white transition-colors"
           >
-            ยกเลิก
+            ยกเลิก (Cancel)
           </button>
           <button
-            onClick={() => onConfirm(card)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95"
-            style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)", color: "white" }}
+            onClick={handleConfirmSave}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all hover:scale-[1.02]"
+            style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)" }}
           >
-            <Plus size={13} />
-            เพิ่มลง Life Brain
+            <Check size={14} />
+            บันทึกลง Life Brain
           </button>
-        </div>
-
-        {/* Auto-dismiss indicator */}
-        <div className="mt-2 h-0.5 rounded-full overflow-hidden" style={{ background: "rgba(107,147,97,0.15)" }}>
-          <div
-            className="h-full rounded-full"
-            style={{
-              background: "#6B9361",
-              animation: "shrink-x 15s linear forwards",
-              transformOrigin: "left",
-            }}
-          />
         </div>
       </div>
-
-      <style>{`
-        @keyframes shrink-x {
-          from { transform: scaleX(1); }
-          to { transform: scaleX(0); }
-        }
-      `}</style>
     </div>
   );
 };

@@ -12,6 +12,8 @@ import {
   EyeOff,
   ShieldCheck,
   Zap,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 interface ManageAPIModalProps {
@@ -77,7 +79,26 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
 
   const handleDeleteProvider = (id: string) => {
     const updated = providers.filter((p) => p.id !== id);
-    // re-index priority
+    const reindexed = updated.map((p, idx) => ({ ...p, priority: idx + 1 }));
+    setProviders(reindexed);
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...providers];
+    const temp = updated[index];
+    updated[index] = updated[index - 1];
+    updated[index - 1] = temp;
+    const reindexed = updated.map((p, idx) => ({ ...p, priority: idx + 1 }));
+    setProviders(reindexed);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === providers.length - 1) return;
+    const updated = [...providers];
+    const temp = updated[index];
+    updated[index] = updated[index + 1];
+    updated[index + 1] = temp;
     const reindexed = updated.map((p, idx) => ({ ...p, priority: idx + 1 }));
     setProviders(reindexed);
   };
@@ -180,7 +201,26 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => handleMoveUp(idx)}
+                          disabled={idx === 0}
+                          className="p-1 rounded hover:bg-white/10 text-gray-300 disabled:opacity-20"
+                          title="เลื่อนขึ้น"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleMoveDown(idx)}
+                          disabled={idx === providers.length - 1}
+                          className="p-1 rounded hover:bg-white/10 text-gray-300 disabled:opacity-20"
+                          title="เลื่อนลง"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+
                       <label className="flex items-center gap-2 cursor-pointer text-xs" style={{ color: "#869883" }}>
                         <input
                           type="checkbox"

@@ -173,6 +173,7 @@ export interface JournalEntry {
   aiReflection?: string;
   dimension: LifeDimension;       // required — chosen before save
   linkedBrainCardIds: string[];   // Journal ↔ Brain (two-way)
+  linkedBrainTopicIds?: string[]; // Unlimited linked Brain topics
 }
 
 export interface GoalItem {
@@ -258,8 +259,22 @@ export interface ReminderItem {
   text: string;
   dimension?: LifeDimension;
   scheduledAt?: number;
+  dueDate?: string; // Optional YYYY-MM-DDTHH:mm date/time string
   isRead: boolean;
   createdAt: number;
+}
+
+export interface NoteItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FABPosition {
+  x: number;
+  y: number;
 }
 
 export interface DailyCheckin {
@@ -286,3 +301,4 @@ export interface GuideResult {
   recommendedHabits: string[];
   checklist: string[];
 }
+

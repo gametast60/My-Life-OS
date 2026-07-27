@@ -16,6 +16,8 @@ import {
   BrainCard,
   ReminderItem,
   PendingAITask,
+  NoteItem,
+  FABPosition,
 } from "../types";
 
 // ── Storage Keys ─────────────────────────────────────────────────
@@ -40,6 +42,8 @@ const KEYS = {
   BRAIN_CARDS: "mylifeos_brain_cards_v1",
   REMINDERS: "mylifeos_reminders_v1",
   PENDING_TASKS: "mylifeos_pending_tasks_v1",
+  NOTES: "mylifeos_notes_v1",
+  FAB_POSITION: "mylifeos_fab_position_v1",
 };
 
 // ── Defaults ─────────────────────────────────────────────────────
@@ -411,6 +415,22 @@ export class RoomDatabase {
   }
   static savePendingTasks(tasks: PendingAITask[]) {
     this.set(KEYS.PENDING_TASKS, tasks);
+  }
+
+  // ── Notes (Quick Notes) ──────────────────────────────────────────
+  static getNotes(): NoteItem[] {
+    return this.get<NoteItem[]>(KEYS.NOTES, []);
+  }
+  static saveNotes(notes: NoteItem[]) {
+    this.set(KEYS.NOTES, notes);
+  }
+
+  // ── FAB Position Persistence ─────────────────────────────────────
+  static getFABPosition(): FABPosition | null {
+    return this.get<FABPosition | null>(KEYS.FAB_POSITION, null);
+  }
+  static saveFABPosition(pos: FABPosition) {
+    this.set(KEYS.FAB_POSITION, pos);
   }
 
   // ── Backup & Restore ─────────────────────────────────────────────
