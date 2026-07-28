@@ -51,9 +51,9 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ brainCards, journals, 
     });
   });
 
-  // Convert to array and filter out empty topics if query typed
+  // Convert to array and filter out empty topics
   let topicsList = Object.values(topicMap).filter((t) =>
-    t.name.toLowerCase().includes(filterQuery.toLowerCase())
+    t.count > 0 && t.name.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
   // Maximum count for percentage progress bar calculation

@@ -6,7 +6,6 @@ import { useKeyboardOpen } from "./hooks/useKeyboardOpen";
 import { useKeyboardScrollFix } from "./hooks/useKeyboardScrollFix";
 
 import { HomeView } from "./views/HomeView";
-import { JourneyView } from "./views/JourneyView";
 import { AICoachView } from "./views/AICoachView";
 import { JournalView } from "./views/JournalView";
 import { ProgressView } from "./views/ProgressView";
@@ -23,6 +22,7 @@ import { VisionBoardModal } from "./views/VisionBoardModal";
 import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
+import { JournalPlacementBottomSheet } from "./components/JournalPlacementBottomSheet";
 
 import { RoomDatabase } from "./lib/db";
 import { PresetMood } from "./lib/db";
@@ -54,10 +54,13 @@ import {
   createCheckinEvidence,
   createGoalProgressEvidence,
   createHabitCompletedEvidence,
+  createReminderCompletedEvidence,
   findPlacementCandidatesByKeyword,
   buildFullTree,
   recalcAndPersistTagGrowth,
+  seedDefaultTemplateIfEmpty,
 } from "./lib/brainTree/brainTreeService";
+import type { FullTree } from "./lib/brainTree/brainTreeService";
 import {
   suggestJournalBrainPlacement,
   AIBrainPlacementSuggestion,
@@ -68,12 +71,11 @@ export default function App() {
   const isKeyboardOpen = useKeyboardOpen();
   useKeyboardScrollFix();
 
-  // Run migrations on start
   useEffect(() => {
     RoomDatabase.runMigrations();
+    seedDefaultTemplateIfEmpty();
   }, []);
 
-  // Core State
   const [settings, setSettings] = useState<UserSettings>(() => RoomDatabase.getSettings());
   const [character, setCharacter] = useState<CharacterStatus>(() => RoomDatabase.getCharacter());
   const [journey, setJourney] = useState<LifeJourneyPhase[]>(() => RoomDatabase.getJourney());
@@ -90,14 +92,12 @@ export default function App() {
   const [presetTags, setPresetTags] = useState<string[]>(() => RoomDatabase.getPresetTags());
   const [presetMoods, setPresetMoods] = useState<PresetMood[]>(() => RoomDatabase.getPresetMoods());
 
-  // v2.0 NEW State
   const [brainCards, setBrainCards] = useState<BrainCard[]>(() => RoomDatabase.getBrainCards());
   const [reminders, setReminders] = useState<ReminderItem[]>(() => RoomDatabase.getReminders());
   const [notes, setNotes] = useState<NoteItem[]>(() => RoomDatabase.getNotes());
   const [suggestedCard, setSuggestedCard] = useState<Partial<BrainCard> | null>(null);
   const [popupReminder, setPopupReminder] = useState<ReminderItem | null>(null);
 
-  // Brain Tree Engine V1 State
   const [brainTreeTypes, setBrainTreeTypes] = useState<BrainTreeType[]>(() =>
     RoomDatabase.getBrainTreeTypes()
   );
@@ -113,8 +113,8 @@ export default function App() {
   const [brainConfig, setBrainConfig] = useState<BrainConfiguration>(() =>
     RoomDatabase.getBrainConfig()
   );
+  const [brainFullTree, setBrainFullTree] = useState<FullTree>(() => buildFullTree());
 
-  // Pending Journal → Brain placement (for future confirmation UI)
   const [pendingJournalPlacement, setPendingJournalPlacement] = useState<{
     journalId: string;
     suggestion: AIBrainPlacementSuggestion;
@@ -124,7 +124,6 @@ export default function App() {
   const priorHabitsRef = useRef<HabitItem[]>([]);
   const priorGoalsRef = useRef<GoalItem[]>([]);
 
-  // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isManageAPIOpen, setIsManageAPIOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -135,7 +134,6 @@ export default function App() {
   const [isAffirmationOpen, setIsAffirmationOpen] = useState(false);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
-  const [isLifeBrainOpen, setIsLifeBrainOpen] = useState(false);
 
   const handleSavePresetTags = (tags: string[]) => {
     setPresetTags(tags);
@@ -166,13 +164,12 @@ export default function App() {
     setBrainCards(RoomDatabase.getBrainCards());
     setReminders(RoomDatabase.getReminders());
     setNotes(RoomDatabase.getNotes());
-    // Brain Tree Engine V1 reload
     setBrainTreeTypes(RoomDatabase.getBrainTreeTypes());
     setBrainTreeDims(RoomDatabase.getBrainTreeDimensions());
     setBrainTreeTags(RoomDatabase.getBrainTreeTags());
     setBrainEvidence(RoomDatabase.getBrainEvidence());
     setBrainConfig(RoomDatabase.getBrainConfig());
-    buildFullTree(); // ensures consistency noop
+    setBrainFullTree(buildFullTree());
   };
 
   const reloadBrainTreeSnapshots = () => {
@@ -181,9 +178,9 @@ export default function App() {
     setBrainEvidence(RoomDatabase.getBrainEvidence());
     setBrainTreeTypes(RoomDatabase.getBrainTreeTypes());
     setBrainTreeDims(RoomDatabase.getBrainTreeDimensions());
+    setBrainFullTree(buildFullTree());
   };
 
-  // Seed prior refs for Habit/Goal delta detection
   useEffect(() => {
     priorHabitsRef.current = habits;
   }, [habits]);
@@ -191,7 +188,6 @@ export default function App() {
     priorGoalsRef.current = goals;
   }, [goals]);
 
-  // Notes Handlers
   const handleAddNote = (note: NoteItem) => {
     const updated = [note, ...notes];
     setNotes(updated);
@@ -210,7 +206,6 @@ export default function App() {
     RoomDatabase.saveNotes(updated);
   };
 
-  // Reminder Handlers
   const handleAddReminder = (text: string, dueDate?: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -256,7 +251,6 @@ export default function App() {
     RoomDatabase.saveCharacter(updatedCharacter);
   };
 
-  // Journal Handler — Save Immediately + AI Brain Tree Placement in Background
   const handleAddJournal = (entry: JournalEntry) => {
     const updated = [entry, ...journals];
     setJournals(updated);
@@ -281,55 +275,59 @@ export default function App() {
     setCharacter(updatedChar);
     RoomDatabase.saveCharacter(updatedChar);
 
-    // ── Brain Tree Engine V1: Background AI Placement ──────────────
     const latestTypes = RoomDatabase.getBrainTreeTypes();
     const latestDims = RoomDatabase.getBrainTreeDimensions();
     const latestTags = RoomDatabase.getBrainTreeTags();
-    if (latestTags.length > 0) {
-      // Non-blocking: AI analyzes + returns suggestion
-      Promise.resolve()
-        .then(() =>
-          suggestJournalBrainPlacement({
-            title: entry.title,
-            content: entry.content,
-            allTypes: latestTypes,
-            allDimensions: latestDims,
-            allTags: latestTags,
-            settings,
-          })
-        )
-        .then((placement) => {
-          if (!placement || placement.candidates.length === 0) return;
-          const AUTO_CONFIDENCE_THRESHOLD = 65;
-          const top = placement.candidates[0];
-          // Auto-apply only if confidence is strong (AI ≥65 or fallback found match)
-          const shouldAuto =
-            top.score >= AUTO_CONFIDENCE_THRESHOLD || placement.usedFallback === false;
-          let appliedTagIds: string[] = [];
-          if (shouldAuto) {
-            const ev = createJournalEvidence(entry, [top.tag.id]);
-            if (ev) {
-              appliedTagIds = [...ev.brainTreeTagIds];
-              reloadBrainTreeSnapshots();
-            }
-          }
-          // Persist suggestion for future confirmation UI
+    if (latestTags.length === 0) return;
+
+    Promise.resolve()
+      .then(() =>
+        suggestJournalBrainPlacement({
+          title: entry.title,
+          content: entry.content,
+          allTypes: latestTypes,
+          allDimensions: latestDims,
+          allTags: latestTags,
+          settings,
+        })
+      )
+      .then((placement) => {
+        if (placement) {
           setPendingJournalPlacement({
             journalId: entry.id,
             suggestion: placement,
-            autoAppliedTagIds: appliedTagIds,
+            autoAppliedTagIds: [],
           });
-        })
-        .catch((err) => {
-          console.warn("[handleAddJournal] placement analysis failed:", err);
-          // Last resort: keyword fallback, then try silent attach
-          const kw = findPlacementCandidatesByKeyword(`${entry.title} ${entry.content}`, 1, 1);
-          if (kw.length > 0) {
-            const ev = createJournalEvidence(entry, [kw[0].tag.id]);
-            if (ev) reloadBrainTreeSnapshots();
-          }
+          return;
+        }
+        const kw = findPlacementCandidatesByKeyword(`${entry.title} ${entry.content}`, 4, 1);
+        if (kw.length === 0) return;
+        const fallbackSuggestion: AIBrainPlacementSuggestion = {
+          candidates: kw,
+          missingNodeProposals: [],
+          usedFallback: true,
+        };
+        setPendingJournalPlacement({
+          journalId: entry.id,
+          suggestion: fallbackSuggestion,
+          autoAppliedTagIds: [],
         });
-    }
+      })
+      .catch((err) => {
+        console.warn("[handleAddJournal] placement analysis failed:", err);
+        const kw = findPlacementCandidatesByKeyword(`${entry.title} ${entry.content}`, 4, 1);
+        if (kw.length === 0) return;
+        const fallbackSuggestion: AIBrainPlacementSuggestion = {
+          candidates: kw,
+          missingNodeProposals: [],
+          usedFallback: true,
+        };
+        setPendingJournalPlacement({
+          journalId: entry.id,
+          suggestion: fallbackSuggestion,
+          autoAppliedTagIds: [],
+        });
+      });
   };
 
   const handleConfirmJournalPlacement = (journalId: string, tagIds: string[]) => {
@@ -345,6 +343,210 @@ export default function App() {
 
   const handleDismissJournalPlacement = () => setPendingJournalPlacement(null);
 
+  const handleCreateMissingBrainNode = async (proposal: {
+    typeName: string;
+    dimensionName: string;
+    tagName: string;
+    reasoning: string;
+  }): Promise<{ tagId: string } | null> => {
+    const existingTypes = RoomDatabase.getBrainTreeTypes();
+    let type = existingTypes.find(
+      (t) => t.name.toLowerCase() === proposal.typeName.toLowerCase()
+    );
+
+    if (!type) {
+      const typeColorMap: Record<string, string> = {
+        Goal: "#4E7345",
+        Habit: "#6B9361",
+        Knowledge: "#4682B4",
+        Belief: "#9370DB",
+        Identity: "#5F9EA0",
+        Preference: "#CD853F",
+        Skill: "#4E8080",
+        Strength: "#8FBC8F",
+        Weakness: "#B07070",
+        Decision: "#708090",
+        Relationship: "#B07070",
+        Memory: "#CD853F",
+        Fear: "#B07070",
+        Idea: "#8FBC8F",
+      };
+      const iconMap: Record<string, string> = {
+        Goal: "Target",
+        Habit: "Repeat",
+        Knowledge: "BookOpen",
+        Belief: "Heart",
+        Identity: "User",
+        Skill: "Zap",
+        Memory: "Calendar",
+        Fear: "AlertTriangle",
+        Idea: "Lightbulb",
+      };
+      const now = Date.now();
+      const typeId = `bt-type-${proposal.typeName.toLowerCase()}-${now}-${Math.random()
+        .toString(36)
+        .slice(2, 4)}`;
+      const color = typeColorMap[proposal.typeName] ?? "#6B9361";
+      const icon = iconMap[proposal.typeName] ?? "TreeDeciduous";
+      type = {
+        id: typeId,
+        name: proposal.typeName,
+        color,
+        icon,
+        priority: existingTypes.length + 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      RoomDatabase.addBrainTreeType(type);
+    }
+
+    const existingDims = RoomDatabase.getBrainTreeDimensions().filter(
+      (d) => d.brainTreeTypeId === type!.id
+    );
+    let dim = existingDims.find(
+      (d) => d.name.toLowerCase() === proposal.dimensionName.toLowerCase()
+    );
+    if (!dim) {
+      const now = Date.now();
+      const dimId = `bt-dim-${proposal.dimensionName
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${now}-${Math.random().toString(36).slice(2, 4)}`;
+      dim = {
+        id: dimId,
+        brainTreeTypeId: type!.id,
+        name: proposal.dimensionName,
+        color: type!.color,
+        priority: existingDims.length + 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      RoomDatabase.addBrainTreeDimension(dim);
+    }
+
+    const existingTags = RoomDatabase.getBrainTreeTags().filter(
+      (t) => t.brainTreeDimensionId === dim!.id
+    );
+    let tag = existingTags.find(
+      (t) => t.name.toLowerCase() === proposal.tagName.toLowerCase()
+    );
+    if (!tag) {
+      const now = Date.now();
+      const tagId = `bt-tag-${now}-${Math.random().toString(36).slice(2, 8)}`;
+      tag = {
+        id: tagId,
+        brainTreeTypeId: type!.id,
+        brainTreeDimensionId: dim!.id,
+        name: proposal.tagName,
+        growthScore: 0,
+        level: 0,
+        progressPct: 0,
+        priority: existingTags.length + 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      RoomDatabase.addBrainTreeTag(tag);
+    }
+
+    reloadBrainTreeSnapshots();
+    return { tagId: tag.id };
+  };
+
+  const handleAddBrainTreeType = (name: string, color: string, icon: string, priority: number) => {
+    const now = Date.now();
+    const id = `bt-type-${now}-${Math.random().toString(36).slice(2, 6)}`;
+    RoomDatabase.addBrainTreeType({
+      id,
+      name,
+      color,
+      icon,
+      priority,
+      createdAt: now,
+      updatedAt: now,
+    });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleUpdateBrainTreeType = (id: string, patch: Partial<BrainTreeType>) => {
+    RoomDatabase.updateBrainTreeType(id, { ...patch, updatedAt: Date.now() });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleDeleteBrainTreeType = (id: string) => {
+    RoomDatabase.deleteBrainTreeType(id);
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleAddBrainTreeDimension = (
+    brainTreeTypeId: string,
+    name: string,
+    color?: string,
+    priority?: number
+  ) => {
+    const types = RoomDatabase.getBrainTreeTypes();
+    const parent = types.find((t) => t.id === brainTreeTypeId);
+    const siblings = RoomDatabase.getBrainTreeDimensions().filter(
+      (d) => d.brainTreeTypeId === brainTreeTypeId
+    );
+    const now = Date.now();
+    const id = `bt-dim-${now}-${Math.random().toString(36).slice(2, 6)}`;
+    RoomDatabase.addBrainTreeDimension({
+      id,
+      brainTreeTypeId,
+      name,
+      priority: priority ?? siblings.length + 1,
+      color: color ?? parent?.color ?? "#6B9361",
+      createdAt: now,
+      updatedAt: now,
+    });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleUpdateBrainTreeDimension = (id: string, patch: Partial<BrainTreeDimension>) => {
+    RoomDatabase.updateBrainTreeDimension(id, { ...patch, updatedAt: Date.now() });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleDeleteBrainTreeDimension = (id: string) => {
+    RoomDatabase.deleteBrainTreeDimension(id);
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleAddBrainTreeTag = (
+    brainTreeTypeId: string,
+    brainTreeDimensionId: string,
+    name: string,
+    priority?: number
+  ) => {
+    const siblings = RoomDatabase.getBrainTreeTags().filter(
+      (t) => t.brainTreeDimensionId === brainTreeDimensionId
+    );
+    const now = Date.now();
+    const id = `bt-tag-${now}-${Math.random().toString(36).slice(2, 8)}`;
+    RoomDatabase.addBrainTreeTag({
+      id,
+      brainTreeTypeId,
+      brainTreeDimensionId,
+      name,
+      growthScore: 0,
+      level: 0,
+      progressPct: 0,
+      priority: priority ?? siblings.length + 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleUpdateBrainTreeTag = (id: string, patch: Partial<BrainTreeTag>) => {
+    RoomDatabase.updateBrainTreeTag(id, { ...patch, updatedAt: Date.now() });
+    reloadBrainTreeSnapshots();
+  };
+
+  const handleDeleteBrainTreeTag = (id: string) => {
+    RoomDatabase.deleteBrainTreeTag(id);
+    reloadBrainTreeSnapshots();
+  };
+
   const handleEditJournal = (updatedEntry: JournalEntry) => {
     const updated = journals.map((j) => (j.id === updatedEntry.id ? updatedEntry : j));
     setJournals(updated);
@@ -357,7 +559,6 @@ export default function App() {
     RoomDatabase.saveJournals(updated);
   };
 
-  // Checkin Handler — Save + auto-attach as Brain Evidence by keyword
   const handleSaveCheckin = (checkin: DailyCheckin) => {
     const updatedCheckins = [checkin, ...checkins];
     setCheckins(updatedCheckins);
@@ -381,7 +582,6 @@ export default function App() {
     setCharacter(updatedChar);
     RoomDatabase.saveCharacter(updatedChar);
 
-    // ── Brain Tree Engine V1: attach checkin to matching tags
     const blob = [
       checkin.answers.wentWell,
       checkin.answers.challenge,
@@ -396,7 +596,6 @@ export default function App() {
     }
   };
 
-  // Brain Card Handlers (User-Managed)
   const handleAddBrainCard = (card: BrainCard) => {
     const updated = [card, ...brainCards];
     setBrainCards(updated);
@@ -428,6 +627,11 @@ export default function App() {
   const handleConfirmReminderJournal = (entry: JournalEntry) => {
     handleAddJournal(entry);
     if (popupReminder) {
+      const kw = findPlacementCandidatesByKeyword(popupReminder.text, 2, 1);
+      if (kw.length > 0) {
+        createReminderCompletedEvidence(popupReminder, kw.map((k) => k.tag.id));
+        reloadBrainTreeSnapshots();
+      }
       handleDeleteReminder(popupReminder.id);
     }
     setPopupReminder(null);
@@ -438,7 +642,6 @@ export default function App() {
     RoomDatabase.saveReminders([]);
   };
 
-  // ── Brain Tree Engine V1: Habits / Goals delta evidence attachers ──
   const handleSaveHabitsWithEvidence = (updated: HabitItem[]) => {
     const priorMap: Map<string, HabitItem> = new Map(priorHabitsRef.current.map((h) => [h.id, h]));
     setHabits(updated);
@@ -522,12 +725,15 @@ export default function App() {
     if (action === "affirmation") setIsAffirmationOpen(true);
     if (action === "checklist") setIsChecklistOpen(true);
     if (action === "checkin") setIsCheckinOpen(true);
-    if (action === "brain") setIsLifeBrainOpen(true);
+    if (action === "brain") setCurrentTab("journey");
   };
+
+  const pendingJournal = pendingJournalPlacement
+    ? journals.find((j) => j.id === pendingJournalPlacement.journalId) ?? null
+    : null;
 
   return (
     <div className="min-h-screen bg-[#0A0E0A] text-[#EBF1EA] font-sans antialiased selection:bg-[#4E7345]/30 selection:text-[#6B9361]">
-      {/* Top Header */}
       <Header
         settings={settings}
         reminders={reminders}
@@ -542,106 +748,103 @@ export default function App() {
         onOpenManageAPI={() => setIsManageAPIOpen(true)}
       />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-20 pb-12">
-        {isLifeBrainOpen ? (
+        {currentTab === "home" && (
+          <HomeView
+            settings={settings}
+            character={character}
+            journey={journey}
+            missions={missions}
+            recentJournals={journals}
+            todayCheckin={todayCheckin}
+            presetTags={presetTags}
+            reminders={reminders}
+            onAddReminder={handleAddReminder}
+            onEditReminder={handleEditReminder}
+            onDeleteReminder={handleDeleteReminder}
+            onCompleteReminder={handleCompleteReminder}
+            onToggleMission={handleToggleMission}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
+            onOpenQuickAction={handleQuickAction}
+            onOpenCheckinModal={() => setIsCheckinOpen(true)}
+            onAddJournal={handleAddJournal}
+            onSavePresetTags={handleSavePresetTags}
+          />
+        )}
+
+        {currentTab === "journey" && (
           <LifeBrainView
             brainCards={brainCards}
             journals={journals}
+            brainFullTree={brainFullTree}
+            brainTreeTypes={brainTreeTypes}
+            brainTreeDimensions={brainTreeDims}
+            brainTreeTags={brainTreeTags}
             onAddCard={handleAddBrainCard}
             onEditCard={handleEditBrainCard}
             onDeleteCard={handleDeleteBrainCard}
             onEditJournal={handleEditJournal}
-            onClose={() => setIsLifeBrainOpen(false)}
+            onAddType={handleAddBrainTreeType}
+            onUpdateType={handleUpdateBrainTreeType}
+            onDeleteType={handleDeleteBrainTreeType}
+            onAddDimension={handleAddBrainTreeDimension}
+            onUpdateDimension={handleUpdateBrainTreeDimension}
+            onDeleteDimension={handleDeleteBrainTreeDimension}
+            onAddTag={handleAddBrainTreeTag}
+            onUpdateTag={handleUpdateBrainTreeTag}
+            onDeleteTag={handleDeleteBrainTreeTag}
           />
-        ) : (
-          <>
-            {currentTab === "home" && (
-              <HomeView
-                settings={settings}
-                character={character}
-                journey={journey}
-                missions={missions}
-                recentJournals={journals}
-                todayCheckin={todayCheckin}
-                presetTags={presetTags}
-                reminders={reminders}
-                onAddReminder={handleAddReminder}
-                onEditReminder={handleEditReminder}
-                onDeleteReminder={handleDeleteReminder}
-                onCompleteReminder={handleCompleteReminder}
-                onToggleMission={handleToggleMission}
-                onNavigateTab={(tab) => setCurrentTab(tab)}
-                onOpenQuickAction={handleQuickAction}
-                onOpenCheckinModal={() => setIsCheckinOpen(true)}
-                onAddJournal={handleAddJournal}
-                onSavePresetTags={handleSavePresetTags}
-              />
-            )}
+        )}
 
-            {currentTab === "journey" && (
-              <JourneyView
-                brainCards={brainCards}
-                journals={journals}
-                settings={settings}
-                onOpenLifeBrain={() => setIsLifeBrainOpen(true)}
-              />
-            )}
+        {currentTab === "coach" && (
+          <AICoachView
+            settings={settings}
+            character={character}
+            messages={messages}
+            brainCards={brainCards}
+            journals={journals}
+            habits={habits}
+            goals={goals}
+            onSaveMessage={handleSaveMessage}
+            onClearSession={handleClearChatSession}
+            onOpenManageAPI={() => setIsManageAPIOpen(true)}
+            onOpenLifeBrain={() => setCurrentTab("journey")}
+            onSuggestCard={(card) => setSuggestedCard(card)}
+          />
+        )}
 
-            {currentTab === "coach" && (
-              <AICoachView
-                settings={settings}
-                character={character}
-                messages={messages}
-                brainCards={brainCards}
-                journals={journals}
-                habits={habits}
-                goals={goals}
-                onSaveMessage={handleSaveMessage}
-                onClearSession={handleClearChatSession}
-                onOpenManageAPI={() => setIsManageAPIOpen(true)}
-                onOpenLifeBrain={() => setIsLifeBrainOpen(true)}
-                onSuggestCard={(card) => setSuggestedCard(card)}
-              />
-            )}
+        {currentTab === "journal" && (
+          <JournalView
+            journals={journals}
+            settings={settings}
+            presetTags={presetTags}
+            presetMoods={presetMoods}
+            onAddJournal={handleAddJournal}
+            onEditJournal={handleEditJournal}
+            onDeleteJournal={handleDeleteJournal}
+            onSavePresetTags={handleSavePresetTags}
+            onSavePresetMoods={handleSavePresetMoods}
+          />
+        )}
 
-            {currentTab === "journal" && (
-              <JournalView
-                journals={journals}
-                settings={settings}
-                presetTags={presetTags}
-                presetMoods={presetMoods}
-                onAddJournal={handleAddJournal}
-                onEditJournal={handleEditJournal}
-                onDeleteJournal={handleDeleteJournal}
-                onSavePresetTags={handleSavePresetTags}
-                onSavePresetMoods={handleSavePresetMoods}
-              />
-            )}
-
-            {currentTab === "progress" && (
-              <ProgressView
-                notes={notes}
-                onAddNote={handleAddNote}
-                onEditNote={handleEditNote}
-                onDeleteNote={handleDeleteNote}
-              />
-            )}
-          </>
+        {currentTab === "progress" && (
+          <ProgressView
+            notes={notes}
+            onAddNote={handleAddNote}
+            onEditNote={handleEditNote}
+            onDeleteNote={handleDeleteNote}
+          />
         )}
       </main>
 
-      {/* Bottom Nav */}
       <BottomNav
         currentTab={currentTab}
         hidden={isKeyboardOpen}
         onTabChange={(tab) => {
-          setIsLifeBrainOpen(false);
           setCurrentTab(tab);
         }}
       />
 
-      {/* Modals & Overlays */}
       <GlobalSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
@@ -653,7 +856,7 @@ export default function App() {
         brainCards={brainCards}
         onSelectJournal={() => setCurrentTab("journal")}
         onSelectGoal={() => setIsGoalsOpen(true)}
-        onSelectBrainCard={() => setIsLifeBrainOpen(true)}
+        onSelectBrainCard={() => setCurrentTab("journey")}
       />
 
       <SettingsModal
@@ -682,6 +885,22 @@ export default function App() {
         card={suggestedCard}
         onConfirm={handleConfirmSuggestedCard}
         onDismiss={() => setSuggestedCard(null)}
+      />
+
+      <JournalPlacementBottomSheet
+        isOpen={pendingJournalPlacement !== null}
+        journal={pendingJournal}
+        suggestion={pendingJournalPlacement?.suggestion ?? null}
+        existingTypes={brainTreeTypes}
+        existingDimensions={brainTreeDims}
+        existingTags={brainTreeTags}
+        onConfirm={(selectedTagIds) => {
+          if (pendingJournalPlacement) {
+            handleConfirmJournalPlacement(pendingJournalPlacement.journalId, selectedTagIds);
+          }
+        }}
+        onDismiss={handleDismissJournalPlacement}
+        onRequestCreateMissing={handleCreateMissingBrainNode}
       />
 
       {popupReminder && (

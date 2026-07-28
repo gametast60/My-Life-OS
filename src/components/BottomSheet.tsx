@@ -6,6 +6,7 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string;
   headerIcon?: LucideIcon;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -17,6 +18,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
+  subtitle,
   headerIcon: HeaderIcon,
   children,
   footer,
@@ -70,26 +72,35 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             {/* Header */}
             {title && (
               <div
-                className="flex items-center justify-between px-6 py-4"
+                className="px-6 py-4"
                 style={{ borderBottom: "1px solid rgba(107,147,97,0.15)" }}
               >
-                <div className="flex items-center gap-2.5">
-                  {HeaderIcon && (
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center"
-                      style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)" }}
-                    >
-                      <HeaderIcon size={16} className="text-white" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    {HeaderIcon && (
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)" }}
+                      >
+                        <HeaderIcon size={16} className="text-white" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h2 className="font-bold text-base text-[#EBF1EA] truncate">{title}</h2>
+                      {subtitle && (
+                        <p className="text-[11px] text-[#869883] mt-0.5 leading-tight line-clamp-2">
+                          {subtitle}
+                        </p>
+                      )}
                     </div>
-                  )}
-                  <h2 className="font-bold text-base text-[#EBF1EA]">{title}</h2>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                >
-                  <X size={18} />
-                </button>
               </div>
             )}
 
