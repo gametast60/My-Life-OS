@@ -5,6 +5,7 @@ import { ManageTagsModal } from "../components/ManageTagsModal";
 import { ManageMoodsModal } from "../components/ManageMoodsModal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PresetMood } from "../lib/db";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface JournalViewProps {
   journals: JournalEntry[];
@@ -41,7 +42,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
   const [isManageMoodsOpen, setIsManageMoodsOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const contentField = useAutoResizeTextarea(content, { minRows: 3, maxRows: 10 });
 
   const selectedMood = presetMoods.find((m) => m.id === moodId) ?? presetMoods[0];
 
@@ -277,12 +279,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
             {/* Content Textarea */}
             <div>
               <textarea
-                ref={textareaRef}
-                rows={6}
-                value={content}
+                {...contentField.textAreaProps}
+                ref={contentField.ref}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="เขียนความรู้สึก ความคิด หรือสิ่งที่ได้เรียนรู้วันนี้..."
-                className="w-full bg-[#182018] border border-[#223022] rounded-xl p-4 text-xs text-[#EBF1EA] outline-none focus:border-[#4E7345] resize-none leading-relaxed"
+                className="w-full bg-[#182018] border border-[#223022] rounded-xl p-4 text-xs text-[#EBF1EA] outline-none focus:border-[#4E7345] resize-none leading-relaxed overflow-hidden"
               />
             </div>
 

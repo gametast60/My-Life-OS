@@ -14,6 +14,7 @@ import {
   Zap,
   ChevronUp,
   ChevronDown,
+  GripVertical,
 } from "lucide-react";
 
 interface ManageAPIModalProps {
@@ -51,6 +52,9 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -101,6 +105,52 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
     updated[index + 1] = temp;
     const reindexed = updated.map((p, idx) => ({ ...p, priority: idx + 1 }));
     setProviders(reindexed);
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverId !== id && draggedId !== id) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const fromIdx = providers.findIndex((p) => p.id === draggedId);
+    const toIdx = providers.findIndex((p) => p.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const updated = [...providers];
+    const [moved] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    const reindexed = updated.map((p, idx) => ({ ...p, priority: idx + 1 }));
+    setProviders(reindexed);
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   const handleTestConnection = async (provider: APIProvider) => {
@@ -179,20 +229,45 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
               const test = testResults[p.id];
               const isTesting = testingId === p.id;
               const showKey = !!showKeys[p.id];
+              const isDragged = draggedId === p.id;
+              const isOver = dragOverId === p.id && draggedId !== p.id;
 
               return (
                 <div
                   key={p.id}
-                  className="rounded-xl p-4 space-y-3 relative"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, p.id)}
+                  onDragOver={(e) => handleDragOver(e, p.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, p.id)}
+                  onDragEnd={handleDragEnd}
+                  className="rounded-xl p-4 space-y-3 relative select-none transition-all duration-150"
                   style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: `1px solid ${p.enabled ? "rgba(107,147,97,0.25)" : "rgba(255,255,255,0.08)"}`,
-                    opacity: p.enabled ? 1 : 0.6,
+                    background: isDragged
+                      ? "rgba(78,115,69,0.08)"
+                      : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${
+                      isOver
+                        ? "rgba(107,147,97,0.7)"
+                        : p.enabled
+                          ? "rgba(107,147,97,0.25)"
+                          : "rgba(255,255,255,0.08)"
+                    }`,
+                    opacity: isDragged ? 0.5 : p.enabled ? 1 : 0.6,
+                    cursor: "grab",
+                    transform: isOver ? "translateY(2px)" : "translateY(0)",
                   }}
                 >
                   {/* Provider Card Top Bar */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white cursor-grab active:cursor-grabbing"
+                        title="ลากเพื่อจัดลำดับ"
+                      >
+                        <GripVertical size={14} />
+                      </button>
                       <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: "rgba(107,147,97,0.2)", color: "#6B9361" }}>
                         #{idx + 1}
                       </span>

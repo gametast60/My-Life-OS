@@ -21,6 +21,16 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
+
+  html {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
 }
 
 /* Tactical Dark Olive Glassmorphism Card System */
@@ -61,6 +71,14 @@
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Safe Area helpers (for devices with rounded screens / notches) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
 }
 
 /* DateTimePicker bottom-sheet animations */

@@ -8,6 +8,7 @@ import {
   JournalEntry,
 } from "../types";
 import { X, Plus, ChevronDown, Search, Link } from "lucide-react";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface BrainCardModalProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ export const BrainCardModal: React.FC<BrainCardModalProps> = ({
   const [linkSearch, setLinkSearch] = useState("");
   const [errors, setErrors] = useState<{ title?: string; dimension?: string; brainType?: string }>({});
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  const descField = useAutoResizeTextarea(description, { minRows: 3, maxRows: 10 });
 
   // Reset form when modal opens/editingCard changes
   React.useEffect(() => {
@@ -173,11 +176,11 @@ export const BrainCardModal: React.FC<BrainCardModalProps> = ({
               Description
             </label>
             <textarea
-              value={description}
+              {...descField.textAreaProps}
+              ref={descField.ref}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="รายละเอียดเพิ่มเติม..."
-              rows={3}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none overflow-hidden leading-relaxed"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(107,147,97,0.2)", color: "#EBF1EA" }}
             />
           </div>

@@ -17,8 +17,15 @@ import {
   ReminderItem,
   PendingAITask,
   NoteItem,
-  FABPosition,
+  BrainTreeType,
+  BrainTreeDimension,
+  BrainTreeTag,
+  BrainEvidence,
+  BrainConfiguration,
+  EvidenceKind,
+  TreeGrowthStatus,
 } from "../types";
+import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
 // ── Storage Keys ─────────────────────────────────────────────────
 const KEYS = {
@@ -38,12 +45,48 @@ const KEYS = {
   CHECKINS: "mylifeos_checkins_v2",
   PRESET_TAGS: "mylifeos_preset_tags_v2",
   PRESET_MOODS: "mylifeos_preset_moods_v2",
-  // v2.0 NEW
+  // v2.0 NEW (LEGACY after BrainTree V1 — keep for Soft Migration)
   BRAIN_CARDS: "mylifeos_brain_cards_v1",
   REMINDERS: "mylifeos_reminders_v1",
   PENDING_TASKS: "mylifeos_pending_tasks_v1",
   NOTES: "mylifeos_notes_v1",
-  FAB_POSITION: "mylifeos_fab_position_v1",
+  // Brain Tree Engine V1 (NEW)
+  BRAIN_TREE_TYPES: "mylifeos_bt_types_v1",
+  BRAIN_TREE_DIMS: "mylifeos_bt_dims_v1",
+  BRAIN_TREE_TAGS: "mylifeos_bt_tags_v1",
+  BRAIN_EVIDENCE: "mylifeos_bt_evidence_v1",
+  BRAIN_CONFIG: "mylifeos_bt_config_v1",
+  BRAIN_MIGRATION_V1_DONE: "mylifeos_bt_migration_v1_done",
+};
+
+// ── Default Brain Configuration ──────────────────────────────────
+export const DEFAULT_BRAIN_CONFIG: BrainConfiguration = {
+  evidenceWeights: {
+    journal: 2,
+    habit_completed: 5,
+    reminder_completed: 3,
+    goal_progress: 10,
+    daily_checkin: 1,
+    ai_memory: 1,
+    brain_card_legacy: 2,
+  } satisfies Record<EvidenceKind, number>,
+  growthLevelConstant: 100, // Level n score = 100 * n^2
+  statusThresholds: {
+    seedling: 20,
+    growing: 50,
+    strong: 80,
+    mastery: 100,
+  } satisfies Record<TreeGrowthStatus, number>,
+  aiSuggest: {
+    maxCandidates: 4,
+    minLinkConfidence: 55,
+  },
+  decay: {
+    enabled: false, // V1 disabled; V2 will enable
+    daysUntilStart: 30,
+    perDayPctDrop: 0.5,
+  },
+  updatedAt: Date.now(),
 };
 
 // ── Defaults ─────────────────────────────────────────────────────
@@ -260,7 +303,447 @@ export class RoomDatabase {
       }
       localStorage.setItem("mylifeos_migrated_v3", "true");
     }
+
+    // v4 migration — Brain Tree Engine V1 Smart Migration
+    if (!localStorage.getItem(KEYS.BRAIN_MIGRATION_V1_DONE)) {
+      RoomDatabase.BrainTreeMigration.migrateLegacyBrainCards();
+      localStorage.setItem(KEYS.BRAIN_MIGRATION_V1_DONE, String(Date.now()));
+    }
+
+    // v4b — ensure default template exists for new users (empty tree)
+    seedDefaultTemplateIfEmpty();
+
+    // always normalize denormalized tag growth snapshots on startup
+    recalcAndPersistTagGrowth();
   }
+
+  // ──────────────────────────────────────────────────────────────
+  // Brain Tree Engine V1 — CRUD
+  // ──────────────────────────────────────────────────────────────
+
+  // Brain Tree Configuration
+  static getBrainConfig(): BrainConfiguration {
+    const saved = this.get<Partial<BrainConfiguration>>(KEYS.BRAIN_CONFIG, {});
+    return {
+      ...DEFAULT_BRAIN_CONFIG,
+      ...saved,
+      evidenceWeights: {
+        ...DEFAULT_BRAIN_CONFIG.evidenceWeights,
+        ...(saved.evidenceWeights || {}),
+      },
+      statusThresholds: {
+        ...DEFAULT_BRAIN_CONFIG.statusThresholds,
+        ...(saved.statusThresholds || {}),
+      },
+      aiSuggest: {
+        ...DEFAULT_BRAIN_CONFIG.aiSuggest,
+        ...(saved.aiSuggest || {}),
+      },
+      decay: {
+        ...DEFAULT_BRAIN_CONFIG.decay,
+        ...(saved.decay || {}),
+      },
+    };
+  }
+  static saveBrainConfig(cfg: BrainConfiguration) {
+    this.set(KEYS.BRAIN_CONFIG, { ...cfg, updatedAt: Date.now() });
+  }
+
+  // BrainTreeType (🌳 ต้นไม้)
+  static getBrainTreeTypes(): BrainTreeType[] {
+    return this.get<BrainTreeType[]>(KEYS.BRAIN_TREE_TYPES, []);
+  }
+  static saveBrainTreeTypes(list: BrainTreeType[]) {
+    this.set(KEYS.BRAIN_TREE_TYPES, list);
+  }
+  static addBrainTreeType(t: BrainTreeType) {
+    const list = this.getBrainTreeTypes();
+    list.push(t);
+    this.saveBrainTreeTypes(list);
+  }
+  static updateBrainTreeType(id: string, patch: Partial<BrainTreeType>) {
+    const list = this.getBrainTreeTypes();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+      this.saveBrainTreeTypes(list);
+    }
+  }
+  static deleteBrainTreeType(id: string) {
+    const types = this.getBrainTreeTypes().filter((x) => x.id !== id);
+    this.saveBrainTreeTypes(types);
+    // cascade: delete dims/tags under this type
+    const dims = this.getBrainTreeDimensions().filter((d) => d.brainTreeTypeId !== id);
+    this.saveBrainTreeDimensions(dims);
+    const tagIdsRemoved = new Set(
+      this.getBrainTreeTags().filter((t) => t.brainTreeTypeId === id).map((t) => t.id)
+    );
+    const tags = this.getBrainTreeTags().filter((t) => t.brainTreeTypeId !== id);
+    this.saveBrainTreeTags(tags);
+    // also clean evidence tagIds referencing removed tags
+    const allEv = this.getBrainEvidence();
+    let changed = false;
+    const cleaned = allEv.map((e) => {
+      if (e.brainTreeTagIds.some((tid) => tagIdsRemoved.has(tid))) {
+        changed = true;
+        return { ...e, brainTreeTagIds: e.brainTreeTagIds.filter((tid) => !tagIdsRemoved.has(tid)) };
+      }
+      return e;
+    });
+    if (changed) this.saveBrainEvidence(cleaned);
+  }
+
+  // BrainTreeDimension (🌿 กิ่ง)
+  static getBrainTreeDimensions(): BrainTreeDimension[] {
+    return this.get<BrainTreeDimension[]>(KEYS.BRAIN_TREE_DIMS, []);
+  }
+  static saveBrainTreeDimensions(list: BrainTreeDimension[]) {
+    this.set(KEYS.BRAIN_TREE_DIMS, list);
+  }
+  static addBrainTreeDimension(d: BrainTreeDimension) {
+    const list = this.getBrainTreeDimensions();
+    list.push(d);
+    this.saveBrainTreeDimensions(list);
+  }
+  static updateBrainTreeDimension(id: string, patch: Partial<BrainTreeDimension>) {
+    const list = this.getBrainTreeDimensions();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+      this.saveBrainTreeDimensions(list);
+    }
+  }
+  static deleteBrainTreeDimension(id: string) {
+    const dims = this.getBrainTreeDimensions().filter((d) => d.id !== id);
+    this.saveBrainTreeDimensions(dims);
+    // cascade delete tags (or re-parent: by default delete)
+    const tagIdsRemoved = new Set(
+      this.getBrainTreeTags().filter((t) => t.brainTreeDimensionId === id).map((t) => t.id)
+    );
+    const tags = this.getBrainTreeTags().filter((t) => t.brainTreeDimensionId !== id);
+    this.saveBrainTreeTags(tags);
+    // clean evidence references
+    const allEv = this.getBrainEvidence();
+    let changed = false;
+    const cleaned = allEv.map((e) => {
+      if (e.brainTreeTagIds.some((tid) => tagIdsRemoved.has(tid))) {
+        changed = true;
+        return { ...e, brainTreeTagIds: e.brainTreeTagIds.filter((tid) => !tagIdsRemoved.has(tid)) };
+      }
+      return e;
+    });
+    if (changed) this.saveBrainEvidence(cleaned);
+  }
+
+  // BrainTreeTag (🍃 ใบไม้)
+  static getBrainTreeTags(): BrainTreeTag[] {
+    return this.get<BrainTreeTag[]>(KEYS.BRAIN_TREE_TAGS, []);
+  }
+  static saveBrainTreeTags(list: BrainTreeTag[]) {
+    this.set(KEYS.BRAIN_TREE_TAGS, list);
+  }
+  static addBrainTreeTag(t: BrainTreeTag) {
+    const list = this.getBrainTreeTags();
+    list.push(t);
+    this.saveBrainTreeTags(list);
+  }
+  static updateBrainTreeTag(id: string, patch: Partial<BrainTreeTag>) {
+    const list = this.getBrainTreeTags();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+      this.saveBrainTreeTags(list);
+    }
+  }
+  /**
+   * Merge tag A into tag B. All Evidence hanging from A is re-hung on B, then A deleted.
+   * Returns B id (or new tag id target).
+   */
+  static mergeBrainTreeTag(idA: string, idB: string): string {
+    if (idA === idB) return idA;
+    const list = this.getBrainTreeTags();
+    const tagA = list.find((t) => t.id === idA);
+    const tagB = list.find((t) => t.id === idB);
+    if (!tagA || !tagB) return idB;
+    // move evidence tagIds
+    const ev = this.getBrainEvidence().map((e) => {
+      if (e.brainTreeTagIds.includes(idA)) {
+        const next = e.brainTreeTagIds.filter((t) => t !== idA);
+        if (!next.includes(idB)) next.push(idB);
+        return { ...e, brainTreeTagIds: next, updatedAt: Date.now() };
+      }
+      return e;
+    });
+    this.saveBrainEvidence(ev);
+    // delete tag A
+    this.saveBrainTreeTags(list.filter((t) => t.id !== idA));
+    return idB;
+  }
+  static deleteBrainTreeTag(id: string) {
+    const tags = this.getBrainTreeTags().filter((t) => t.id !== id);
+    this.saveBrainTreeTags(tags);
+    // clean evidence references
+    const allEv = this.getBrainEvidence();
+    let changed = false;
+    const cleaned = allEv.map((e) => {
+      if (e.brainTreeTagIds.includes(id)) {
+        changed = true;
+        return { ...e, brainTreeTagIds: e.brainTreeTagIds.filter((tid) => tid !== id) };
+      }
+      return e;
+    });
+    if (changed) this.saveBrainEvidence(cleaned);
+  }
+
+  // BrainEvidence (🍎 ผลไม้)
+  static getBrainEvidence(): BrainEvidence[] {
+    return this.get<BrainEvidence[]>(KEYS.BRAIN_EVIDENCE, []);
+  }
+  static saveBrainEvidence(list: BrainEvidence[]) {
+    this.set(KEYS.BRAIN_EVIDENCE, list);
+  }
+  static addBrainEvidence(ev: BrainEvidence) {
+    const list = this.getBrainEvidence();
+    list.push(ev);
+    this.saveBrainEvidence(list);
+  }
+  static updateBrainEvidence(id: string, patch: Partial<BrainEvidence>) {
+    const list = this.getBrainEvidence();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...patch, updatedAt: Date.now() };
+      this.saveBrainEvidence(list);
+    }
+  }
+  static deleteBrainEvidence(id: string) {
+    this.saveBrainEvidence(this.getBrainEvidence().filter((e) => e.id !== id));
+  }
+  /**
+   * Attach a source (journal, habit_completed, etc.) to one or more brainTreeTagIds.
+   * Multi-label: one source may hang from many tags.
+   * Returns the BrainEvidence row it created/updated.
+   */
+  static attachEvidenceToTags(params: {
+    kind: EvidenceKind;
+    sourceId: string;
+    preview: string;
+    occurredAt?: number;
+    tagIds: string[];
+    legacyBrainCardId?: string;
+  }): BrainEvidence {
+    const evs = this.getBrainEvidence();
+    const existing = evs.find((e) => e.kind === params.kind && e.sourceId === params.sourceId);
+    const now = Date.now();
+    if (existing) {
+      // union tagIds to avoid duplicates
+      const union = Array.from(new Set([...existing.brainTreeTagIds, ...params.tagIds]));
+      const patched = {
+        ...existing,
+        brainTreeTagIds: union,
+        preview: params.preview || existing.preview,
+        updatedAt: now,
+      };
+      this.updateBrainEvidence(existing.id, patched);
+      return patched;
+    }
+    const newRow: BrainEvidence = {
+      id: `ev-${now}-${Math.random().toString(36).slice(2, 7)}`,
+      kind: params.kind,
+      sourceId: params.sourceId,
+      preview: params.preview,
+      brainTreeTagIds: params.tagIds,
+      legacyBrainCardId: params.legacyBrainCardId,
+      occurredAt: params.occurredAt || now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.addBrainEvidence(newRow);
+    return newRow;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Brain Tree V1 Smart Migration (Legacy BrainCard → Tree+Evidence)
+  // ──────────────────────────────────────────────────────────────
+
+  private static BrainTreeMigration = {
+    /**
+     * For each legacy BrainCard:
+     * 1. Upsert BrainType (using card.brainType)
+     * 2. Upsert BrainDimension (using card.dimension → mapped via LIFE_DIMENSIONS.label)
+     * 3. Upsert Tag for each card.tag (under dimension of step 2)
+     * 4. Create Legacy Evidence pointing to the card description.
+     * 5. Hang evidence on ALL tags (multi-label).
+     */
+    migrateLegacyBrainCards(): void {
+      const cards: BrainCard[] = RoomDatabase.getBrainCards();
+      if (cards.length === 0) return;
+
+      const existingTypes = new Map<string, BrainTreeType>();
+      RoomDatabase.getBrainTreeTypes().forEach((t) => existingTypes.set(t.name, t));
+
+      const existingDimsByKey = new Map<string, BrainTreeDimension>();
+      RoomDatabase.getBrainTreeDimensions().forEach((d) =>
+        existingDimsByKey.set(`${d.brainTreeTypeId}::${d.name}`, d)
+      );
+
+      const existingTagsByKey = new Map<string, BrainTreeTag>();
+      RoomDatabase.getBrainTreeTags().forEach((t) =>
+        existingTagsByKey.set(`${t.brainTreeDimensionId}::${t.name.toLowerCase()}`, t)
+      );
+
+      const lifeDimToLabel: Record<string, string> = {};
+      (
+        [
+          { id: "work", label: "การงาน" },
+          { id: "finance", label: "การเงิน" },
+          { id: "relationship", label: "ความสัมพันธ์" },
+          { id: "health", label: "สุขภาพ" },
+          { id: "mindset", label: "ความคิด" },
+          { id: "learning", label: "การเรียนรู้" },
+          { id: "emotion", label: "อารมณ์" },
+          { id: "goal", label: "เป้าหมาย" },
+          { id: "lifestyle", label: "การใช้ชีวิต" },
+          { id: "values", label: "คุณค่าและความเชื่อ" },
+          { id: "hobby", label: "งานอดิเรก" },
+          { id: "identity", label: "ตัวตน" },
+        ] as { id: string; label: string }[]
+      ).forEach((d) => (lifeDimToLabel[d.id] = d.label));
+
+      const dimColorMap: Record<string, string> = {
+        work: "#6B9361",
+        finance: "#B8860B",
+        relationship: "#B07070",
+        health: "#4E8080",
+        mindset: "#7B68EE",
+        learning: "#4682B4",
+        emotion: "#CD853F",
+        goal: "#8FBC8F",
+        lifestyle: "#708090",
+        values: "#9370DB",
+        hobby: "#DA70D6",
+        identity: "#5F9EA0",
+      };
+      const typeColorMap: Record<string, string> = {
+        Goal: "#4E7345",
+        Habit: "#6B9361",
+        Knowledge: "#4682B4",
+        Belief: "#9370DB",
+        Identity: "#5F9EA0",
+        Preference: "#CD853F",
+        Skill: "#4E8080",
+        Strength: "#8FBC8F",
+        Weakness: "#B07070",
+        Decision: "#708090",
+        Relationship: "#B07070",
+      };
+      const typeIconMap: Record<string, string> = {
+        Goal: "Target",
+        Habit: "Repeat",
+        Knowledge: "BookOpen",
+        Belief: "Heart",
+        Identity: "User",
+        Preference: "ThumbsUp",
+        Skill: "Zap",
+        Strength: "ShieldCheck",
+        Weakness: "AlertTriangle",
+        Decision: "Scale",
+        Relationship: "Users",
+      };
+
+      const finalTypes = new Map(existingTypes);
+      const finalDims = new Map(existingDimsByKey);
+      const finalTags = new Map(existingTagsByKey);
+
+      const now = Date.now();
+
+      for (const card of cards) {
+        // Step 1: Upsert Type
+        let typeObj = finalTypes.get(card.brainType);
+        if (!typeObj) {
+          const id = `bt-type-${card.brainType.toLowerCase()}-${now + Math.random()
+            .toString(36)
+            .slice(2, 5)}`;
+          typeObj = {
+            id,
+            name: card.brainType,
+            color: typeColorMap[card.brainType] || "#4E7345",
+            icon: typeIconMap[card.brainType] || "Brain",
+            priority: finalTypes.size + 1,
+            createdAt: now,
+            updatedAt: now,
+          };
+          finalTypes.set(typeObj.name, typeObj);
+        }
+
+        // Step 2: Upsert Dimension (use card.dimension id → label)
+        const dimLabel = lifeDimToLabel[card.dimension] || card.dimension;
+        const dimKey = `${typeObj.id}::${dimLabel}`;
+        let dimObj = finalDims.get(dimKey);
+        if (!dimObj) {
+          const id = `bt-dim-${card.dimension}-${now + Math.random().toString(36).slice(2, 5)}`;
+          dimObj = {
+            id,
+            brainTreeTypeId: typeObj.id,
+            name: dimLabel,
+            color: dimColorMap[card.dimension] || "#6B9361",
+            priority: Array.from(finalDims.values()).filter((d) => d.brainTreeTypeId === typeObj.id).length + 1,
+            createdAt: now,
+            updatedAt: now,
+          };
+          finalDims.set(dimKey, dimObj);
+        }
+
+        // Step 3: Upsert Tags (one tag per card.tags[] entry — each entry under the same dim)
+        const tagIds: string[] = [];
+        const tagNames = card.tags && card.tags.length > 0 ? card.tags : [card.title.slice(0, 24)];
+        for (const rawName of tagNames) {
+          const name = rawName.trim();
+          if (!name) continue;
+          const tagKey = `${dimObj.id}::${name.toLowerCase()}`;
+          let tag = finalTags.get(tagKey);
+          if (!tag) {
+            const id = `bt-tag-${now + Math.random().toString(36).slice(2, 8)}`;
+            tag = {
+              id,
+              brainTreeTypeId: typeObj.id,
+              brainTreeDimensionId: dimObj.id,
+              name,
+              growthScore: 0,
+              level: 0,
+              progressPct: 0,
+              priority: Array.from(finalTags.values()).filter(
+                (t) => t.brainTreeDimensionId === dimObj!.id
+              ).length + 1,
+              createdAt: now,
+              updatedAt: now,
+            };
+            finalTags.set(tagKey, tag);
+          }
+          if (!tagIds.includes(tag.id)) tagIds.push(tag.id);
+        }
+
+        // Step 4+5: Create Legacy Evidence + Hang on ALL tags (multi-label)
+        const preview = `${card.title}: ${card.description}`.slice(0, 140);
+        RoomDatabase.attachEvidenceToTags({
+          kind: "brain_card_legacy",
+          sourceId: card.id,
+          preview,
+          occurredAt: card.createdAt,
+          tagIds,
+          legacyBrainCardId: card.id,
+        });
+      }
+
+      // Persist final state (sorted by priority ascending, then name)
+      const typesList = Array.from(finalTypes.values()).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+      const dimsList = Array.from(finalDims.values()).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+      const tagsList = Array.from(finalTags.values()).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+
+      RoomDatabase.saveBrainTreeTypes(typesList);
+      RoomDatabase.saveBrainTreeDimensions(dimsList);
+      RoomDatabase.saveBrainTreeTags(tagsList);
+    },
+  };
 
   // ── Clear All ───────────────────────────────────────────────────
   static clearAllData(): void {
@@ -425,19 +908,11 @@ export class RoomDatabase {
     this.set(KEYS.NOTES, notes);
   }
 
-  // ── FAB Position Persistence ─────────────────────────────────────
-  static getFABPosition(): FABPosition | null {
-    return this.get<FABPosition | null>(KEYS.FAB_POSITION, null);
-  }
-  static saveFABPosition(pos: FABPosition) {
-    this.set(KEYS.FAB_POSITION, pos);
-  }
-
   // ── Backup & Restore ─────────────────────────────────────────────
   static async exportBackupZip(): Promise<Blob> {
     const zip = new JSZip();
     const backupData = {
-      version: "2.0",
+      version: "2.1",
       exportedAt: new Date().toISOString(),
       settings: this.getSettings(),
       character: this.getCharacter(),
@@ -454,6 +929,15 @@ export class RoomDatabase {
       checkins: this.getCheckins(),
       brainCards: this.getBrainCards(),
       reminders: this.getReminders(),
+      pendingTasks: this.getPendingTasks(),
+      notes: this.getNotes(),
+      presetTags: this.getPresetTags(),
+      presetMoods: this.getPresetMoods(),
+      brainTreeTypes: this.getBrainTreeTypes(),
+      brainTreeDimensions: this.getBrainTreeDimensions(),
+      brainTreeTags: this.getBrainTreeTags(),
+      brainEvidence: this.getBrainEvidence(),
+      brainConfig: this.getBrainConfig(),
     };
     zip.file("backup.json", JSON.stringify(backupData, null, 2));
     return await zip.generateAsync({ type: "blob" });
@@ -483,6 +967,15 @@ export class RoomDatabase {
       if (data.checkins) this.saveCheckins(data.checkins);
       if (data.brainCards) this.saveBrainCards(data.brainCards);
       if (data.reminders) this.saveReminders(data.reminders);
+      if (data.pendingTasks) this.savePendingTasks(data.pendingTasks);
+      if (data.notes) this.saveNotes(data.notes);
+      if (data.presetTags) this.savePresetTags(data.presetTags);
+      if (data.presetMoods) this.savePresetMoods(data.presetMoods);
+      if (data.brainTreeTypes) this.saveBrainTreeTypes(data.brainTreeTypes);
+      if (data.brainTreeDimensions) this.saveBrainTreeDimensions(data.brainTreeDimensions);
+      if (data.brainTreeTags) this.saveBrainTreeTags(data.brainTreeTags);
+      if (data.brainEvidence) this.saveBrainEvidence(data.brainEvidence);
+      if (data.brainConfig) this.saveBrainConfig(data.brainConfig);
 
       return true;
     } catch (e) {

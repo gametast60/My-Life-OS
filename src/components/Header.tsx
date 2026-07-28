@@ -6,8 +6,8 @@ import { NotificationBell } from "./NotificationBell";
 interface HeaderProps {
   settings: UserSettings;
   reminders?: ReminderItem[];
-  onAddReminder?: (text: string) => void;
-  onEditReminder?: (id: string, newText: string) => void;
+  onAddReminder?: (text: string, dueDate?: string) => void;
+  onEditReminder?: (id: string, newText: string, dueDate?: string) => void;
   onDeleteReminder?: (id: string) => void;
   onCompleteReminder?: (item: ReminderItem) => void;
   onClearAllReminders?: () => void;

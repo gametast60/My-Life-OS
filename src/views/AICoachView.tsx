@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   AIMode,
   AIChatMessage,
@@ -8,34 +8,24 @@ import {
   JournalEntry,
   HabitItem,
   GoalItem,
-  ReflectionPeriod,
 } from "../types";
 import {
   sendAIChatRequest,
-  analyzeTodayJournals,
   suggestBrainCard,
-  getSmallTalk,
-  generateReflection,
 } from "../lib/aiService";
 import {
   Bot,
-  User,
   Send,
-  Sparkles,
   ChevronRight,
   Brain,
-  Scale,
   HeartHandshake,
   Compass,
   Hourglass,
   Calendar,
   Layers,
   X,
-  RefreshCw,
-  MessageSquare,
-  Globe,
-  FileText,
 } from "lucide-react";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface AICoachViewProps {
   settings: UserSettings;
@@ -61,121 +51,35 @@ const MODES = [
   { mode: "Reflection" as AIMode, label: "Reflection", sub: "ทบทวนบทเรียนสรุป Insight", icon: Layers, color: "#4E7345" },
 ];
 
-export const AICoachView: React.FC<AICoachViewProps> = ({
-  settings,
-  character,
-  messages,
-  brainCards,
-  journals,
-  habits,
-  goals,
-  onSaveMessage,
-  onClearSession,
-  onOpenManageAPI,
-  onOpenLifeBrain,
-  onSuggestCard,
-}) => {
-  const [selectedMode, setSelectedMode] = useState<AIMode>("Coach");
+export const AICoachView: React.FC<AICoachViewProps> = (props) => {
+  const {
+    settings,
+    messages,
+    brainCards,
+    journals,
+    onSaveMessage,
+    onClearSession,
+    onSuggestCard,
+  } = props;
   const [activePopupMode, setActivePopupMode] = useState<AIMode | null>(null);
-  const [reflectionPeriod, setReflectionPeriod] = useState<ReflectionPeriod>("today");
-  
-  // Today's analysis & smalltalk state
-  const [todayAnalysis, setTodayAnalysis] = useState<string>("");
-  const [isAnalyzingToday, setIsAnalyzingToday] = useState(false);
-  const [smallTalk, setSmallTalk] = useState<string>("");
-  const [smallTalkLang, setSmallTalkLang] = useState<"th" | "en" | "ko">(settings.smallTalkLanguage || "th");
-  const [isLoadingSmallTalk, setIsLoadingSmallTalk] = useState(false);
-
-  // Load smalltalk on mount or lang change
-  useEffect(() => {
-    setSmallTalk(getSmallTalk(smallTalkLang));
-  }, [smallTalkLang]);
-
-  const handleAnalyzeToday = async () => {
-    setIsAnalyzingToday(true);
-    // filter today's journals using timezone-aware comparison
-    const todayKey = new Intl.DateTimeFormat("sv-SE", {
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }).format(new Date());
-
-    const todayJournals = journals.filter((j) => {
-      const d = new Date(j.timestamp);
-      const key = new Intl.DateTimeFormat("sv-SE", {
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }).format(d);
-      return key === todayKey;
-    });
-
-    const result = await analyzeTodayJournals(todayJournals, brainCards, settings);
-    setTodayAnalysis(result);
-    setIsAnalyzingToday(false);
-  };
-
-  const handleGenerateReflection = async () => {
-    setIsAnalyzingToday(true);
-    const result = await generateReflection(reflectionPeriod, journals, brainCards, settings);
-    setTodayAnalysis(result);
-    setIsAnalyzingToday(false);
-  };
 
   return (
     <div className="space-y-6 pb-20 max-w-5xl mx-auto px-4">
-      {/* Top Banner / Small Talk Card */}
-      <div
-        className="rounded-2xl p-5 relative overflow-hidden shadow-xl border"
-        style={{
-          background: "linear-gradient(135deg, rgba(20,28,20,0.9), rgba(10,14,10,0.95))",
-          borderColor: "rgba(107,147,97,0.25)",
-        }}
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                💬 Today's Small Talk
-              </span>
-              <div className="flex items-center gap-1 bg-black/40 rounded-lg p-0.5 border border-emerald-900/40 text-[11px]">
-                {(["th", "en", "ko"] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setSmallTalkLang(lang)}
-                    className={`px-2 py-0.5 rounded ${
-                      smallTalkLang === lang ? "bg-emerald-700/50 text-white font-medium" : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    {lang.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="text-sm md:text-base font-medium text-emerald-100 italic">
-              "{smallTalk}"
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenLifeBrain}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 text-emerald-300 transition-all"
-            >
-              <Brain size={14} />
-              Life Brain ({brainCards.length})
-            </button>
-            <button
-              onClick={onOpenManageAPI}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 text-emerald-300 transition-all"
-            >
-              🔑 Manage AI
-            </button>
-          </div>
-        </div>
+      {/* Header */}
+      <div className="pt-2">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#EBF1EA]">
+          AI Coach
+        </h1>
+        <p className="text-xs text-[#869883] mt-1">
+          AI Assistant ส่วนตัว อ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัว
+        </p>
       </div>
 
       {/* Mode Grid Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-100">เลือกโหมด AI Assistant</h2>
-          <p className="text-xs text-gray-400">AI จะอ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัวคุณ</p>
+          <p className="text-xs text-gray-400">แตะโหมดเพื่อเริ่มคุยกับ AI</p>
         </div>
       </div>
 
@@ -204,64 +108,6 @@ export const AICoachView: React.FC<AICoachViewProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Special Feature: Analyze Today & Reflection Box */}
-      <div
-        className="rounded-2xl p-5 border space-y-4 shadow-xl"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          borderColor: "rgba(107,147,97,0.2)",
-        }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-amber-400" />
-            <h3 className="font-bold text-sm text-gray-200">เครื่องมือวิเคราะห์และทบทวน (Reflection)</h3>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleAnalyzeToday}
-              disabled={isAnalyzingToday}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700/40 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-200 transition-all flex items-center gap-1.5"
-            >
-              {isAnalyzingToday ? <RefreshCw size={14} className="animate-spin" /> : <FileText size={14} />}
-              วิเคราะห์วันนี้
-            </button>
-
-            <div className="flex items-center bg-black/40 rounded-xl p-1 border border-emerald-900/30 text-xs">
-              {(["today", "week", "month", "year"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setReflectionPeriod(p)}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${
-                    reflectionPeriod === p ? "bg-emerald-600 text-white font-medium" : "text-gray-400 hover:text-gray-200"
-                  }`}
-                >
-                  {p === "today" ? "วันนี้" : p === "week" ? "7 วัน" : p === "month" ? "30 วัน" : "1 ปี"}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleGenerateReflection}
-              disabled={isAnalyzingToday}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-900/30 hover:bg-emerald-800/30 border border-emerald-500/20 text-emerald-300 transition-all"
-            >
-              สรุป Reflection
-            </button>
-          </div>
-        </div>
-
-        {todayAnalysis && (
-          <div
-            className="p-4 rounded-xl text-xs text-gray-200 leading-relaxed whitespace-pre-wrap animate-in fade-in duration-300"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(107,147,97,0.2)" }}
-          >
-            {todayAnalysis}
-          </div>
-        )}
       </div>
 
       {/* Interactive Chat Popup Modal */}
@@ -309,7 +155,8 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const inputField = useAutoResizeTextarea(input, { minRows: 2, maxRows: 8 });
 
   const modeMessages = messages.filter((m) => m.mode === mode || (!m.mode && mode === "Coach"));
 
@@ -329,8 +176,8 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
     }
 
     // blur keyboard for mobile
-    if (textareaRef.current) {
-      textareaRef.current.blur();
+    if (inputField.ref.current) {
+      inputField.ref.current.blur();
     }
 
     const userMsg: AIChatMessage = {
@@ -448,9 +295,8 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
         <div className="p-3 border-t border-emerald-900/30 bg-black/40">
           <div className="flex items-center gap-2 bg-emerald-950/30 rounded-xl p-1.5 border border-emerald-900/40">
             <textarea
-              ref={textareaRef}
-              rows={1}
-              value={input}
+              {...inputField.textAreaProps}
+              ref={inputField.ref}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -459,7 +305,7 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
                 }
               }}
               placeholder="พิมพ์ข้อความ... (Shift+Enter เพื่อเว้นวรรค)"
-              className="flex-1 bg-transparent px-2 text-xs text-gray-200 outline-none resize-none max-h-24"
+              className="flex-1 bg-transparent px-2 text-xs text-gray-200 outline-none resize-none overflow-hidden leading-relaxed"
             />
             <button
               onClick={handleSend}

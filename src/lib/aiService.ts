@@ -7,10 +7,16 @@ import {
   GuideResult,
   HabitItem,
   JournalEntry,
-  ReflectionPeriod,
   UserSettings,
+  BrainTreeType,
+  BrainTreeDimension,
+  BrainTreeTag,
 } from "../types";
 import { AIRouter } from "./aiRouter";
+import {
+  PlacementCandidate,
+  findPlacementCandidatesByKeyword,
+} from "./brainTree/brainTreeService";
 
 // ── Helper: get providers from settings (with legacy fallback) ────
 export function getProviders(settings: UserSettings): APIProvider[] {
@@ -269,99 +275,6 @@ export async function suggestBrainCard(
   }
 }
 
-const SMALL_TALK_PRESETS: Record<"th" | "en" | "ko", string[]> = {
-  th: [
-    "วันนี้คุณได้ทำอะไรที่ทำให้ตัวเองภูมิใจบ้างครับ? 🌟",
-    "อะไรคือสิ่งเล็กๆ ที่ทำให้คุณรู้สึกขอบคุณในวันนี้? 😊",
-    "ถ้าเลือกผ่อนคลายได้ 1 อย่างตอนนี้ คุณอยากทำอะไรที่สุด? ☕",
-    "เป้าหมายเล็กๆ ที่ตั้งใจจะทำก่อนหมดวันคืออะไร? 🎯",
-    "บทเรียนสำคัญที่คุณได้เรียนรู้ในสัปดาห์นี้คืออะไร? 📚",
-    "กิจกรรมอะไรที่ช่วยเติมพลังชีวิตให้คุณได้ดีที่สุด? ⚡",
-    "ใครคือคนที่คุณอยากส่งรอยยิ้มหรือคำขอบคุณให้วันนี้? 🙏",
-  ],
-  en: [
-    "What's one thing you learned today that surprised you? 🤔",
-    "What is a small victory you achieved today? 🏆",
-    "If you had 30 minutes of free time right now, how would you spend it? ☕",
-    "What's one good habit you're proud of maintaining? 🌿",
-    "Who is someone that inspired you recently? 💡",
-    "What is your favorite way to unwind after a productive day? ✨",
-    "What is one goal you're excited to work on tomorrow? 🎯",
-  ],
-  ko: [
-    "오늘 하루 가장 기억에 남는 순간은 무엇인가요? ✨",
-    "오늘 나 자신에게 해주고 싶은 칭찬 한 마디는? 😊",
-    "오늘 소소하게 행복했던 순간이 있었나요? ☕",
-    "내일 꼭 이루고 싶은 작은 목표는 무엇인가요? 🎯",
-    "요즘 나를 가장 웃게 만드는 것은 무엇인가요? 🌟",
-    "오늘 열심히 보낸 나를 위해 어떤 휴식을 주고 싶나요? 🌿",
-    "오늘 감사하고 싶은 사람이나 순간이 있었나요? 🙏",
-  ],
-};
-
-export function getSmallTalk(language: "th" | "en" | "ko" = "th"): string {
-  const list = SMALL_TALK_PRESETS[language] || SMALL_TALK_PRESETS.th;
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-  return list[dayOfYear % list.length];
-}
-
-export async function generateSmallTalk(
-  language: "th" | "en" | "ko"
-): Promise<string> {
-  return getSmallTalk(language);
-}
-
-// ── generateReflection ────────────────────────────────────────────
-export async function generateReflection(
-  period: ReflectionPeriod,
-  journals: JournalEntry[],
-  brainCards: BrainCard[],
-  settings?: UserSettings
-): Promise<string> {
-  const providers = getProviders(settings!);
-  if (providers.length === 0) return "กรุณาตั้งค่า AI Provider ก่อนใช้ฟีเจอร์นี้";
-
-  const periodLabels: Record<ReflectionPeriod, string> = {
-    today: "วันนี้",
-    week: "สัปดาห์นี้ (7 วันที่ผ่านมา)",
-    month: "เดือนนี้ (30 วันที่ผ่านมา)",
-    year: "ปีนี้ (365 วันที่ผ่านมา)",
-  };
-
-  const cutoffDays: Record<ReflectionPeriod, number> = {
-    today: 1, week: 7, month: 30, year: 365,
-  };
-
-  const cutoff = Date.now() - cutoffDays[period] * 24 * 60 * 60 * 1000;
-  const filteredJournals = journals.filter((j) => j.timestamp >= cutoff).slice(0, 20);
-
-  try {
-    const systemPrompt = `คุณคือ AI Reflection Guide ทบทวน${periodLabels[period]}
-วิเคราะห์ Journal และ Life Brain แล้วให้ผลลัพธ์:
-- 🏆 สิ่งที่สำเร็จ/เติบโต
-- 💡 Pattern ที่สังเกตได้
-- 🌱 บทเรียนสำคัญ
-- 🎯 ทิศทางต่อไป
-ตอบภาษาไทย ลึกซึ้ง สร้างแรงบันดาลใจ`;
-
-    const contextBlock = AIRouter.buildContextBlock(
-      AIRouter.filterBrainCards(brainCards, [], undefined, 8)
-    );
-    const journalText = filteredJournals
-      .map((j) => `${j.date}: ${j.content.slice(0, 100)}`)
-      .join("\n");
-
-    const userPrompt = `${contextBlock}\n\n[Journal ${periodLabels[period]}]:\n${journalText || "ยังไม่มี Journal ในช่วงเวลานี้"}`;
-
-    return await AIRouter.call(providers, systemPrompt, userPrompt);
-  } catch (err: any) {
-    return `[ไม่สามารถวิเคราะห์ได้] ${err.message}`;
-  }
-}
-
 // ── generateGuide (GPS ชีวิต) ─────────────────────────────────────
 export async function generateGuide(
   brainCards: BrainCard[],
@@ -436,4 +349,194 @@ export async function testAIConnection(
     enabled: true,
     priority: 1,
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Brain Tree Engine V1 — AI Journal Placement Suggestion
+// ─────────────────────────────────────────────────────────────────────
+
+export interface AIBrainPlacementSuggestion {
+  candidates: PlacementCandidate[];
+  missingNodeProposals: {
+    typeName: string;
+    dimensionName: string;
+    tagName: string;
+    reasoning: string;
+  }[];
+  usedFallback: boolean;
+}
+
+/**
+ * Given a journal content + existing Brain Tree (Type[] + Dimension[] + Tag[]),
+ * ask AI to suggest WHERE in the tree the journal should be "hung" as Evidence.
+ *
+ * AI returns:
+ *  - candidate placements (Type → Dimension → Tag) from the EXISTING tree
+ *  - proposals for NEW nodes if no existing node is a good match
+ *
+ * If AI fails → keyword fallback. If no keyword matches → empty candidates.
+ */
+export async function suggestJournalBrainPlacement(params: {
+  title?: string;
+  content: string;
+  allTypes: BrainTreeType[];
+  allDimensions: BrainTreeDimension[];
+  allTags: BrainTreeTag[];
+  settings?: UserSettings;
+}): Promise<AIBrainPlacementSuggestion> {
+  const { title = "", content, allTypes, allDimensions, allTags, settings } = params;
+  const providers = getProviders(settings!);
+  const fallbackCandidates = findPlacementCandidatesByKeyword(
+    `${title} ${content}`,
+    4,
+    1
+  );
+
+  // Build a compact tree structure for the AI prompt — names + ids only, not too long
+  const treeSummary: Record<string, Record<string, string[]>> = {};
+  for (const t of allTypes) {
+    const dimMap: Record<string, string[]> = {};
+    const underT = allDimensions.filter((d) => d.brainTreeTypeId === t.id);
+    for (const d of underT) {
+      const tagNames = allTags
+        .filter((tag) => tag.brainTreeDimensionId === d.id)
+        .map((tag) => tag.name)
+        .slice(0, 30);
+      if (tagNames.length > 0) dimMap[d.name] = tagNames;
+    }
+    if (Object.keys(dimMap).length > 0) treeSummary[t.name] = dimMap;
+  }
+
+  const emptyResult: AIBrainPlacementSuggestion = {
+    candidates: fallbackCandidates,
+    missingNodeProposals: [],
+    usedFallback: true,
+  };
+
+  if (providers.length === 0 || !content.trim() || allTags.length === 0) {
+    return emptyResult;
+  }
+
+  try {
+    const systemPrompt = `You are Brain Tree Scout AI for My Life OS.
+Your job: analyze a user's journal entry and decide WHERE on their knowledge tree it should hang as Evidence.
+
+The knowledge tree hierarchy is:
+  Brain Type (like Goal, Habit, Knowledge, Belief, Identity, Skill, Memory, Fear, Idea, Principle, Vision)
+    → Brain Dimension (category, e.g., Finance / Health / Learning / Career / Relationship)
+      → Tag (specific topic, e.g., Korean / English / Flutter / React / Trading / DCA)
+
+Given the EXISTING tree below and a journal entry, output a compact JSON response:
+
+{
+  "candidates": [
+    {
+      "typeName": "Goal",
+      "dimensionName": "Learning",
+      "tagName": "Korean",
+      "confidencePct": 92
+    }
+  ],
+  "missingNodes": [
+    {
+      "typeName": "Skill",
+      "dimensionName": "Programming",
+      "tagName": "Flutter",
+      "reasoning": "Journal talks about starting to learn Flutter but no Flutter tag exists under any dimension."
+    }
+  ]
+}
+
+Rules:
+- Only return existing typeName/dimensionName/tagName that EXIST in the provided tree.
+- Prefer top 3-4 best candidates.
+- If no existing nodes fit well, propose missing nodes in missingNodes.
+- Confidence % for candidates is required.
+- If nothing fits at all, return {"candidates":[],"missingNodes":[]}.
+- Respond with ONLY JSON. No other text.`;
+
+    const userPrompt = `[JOURNAL]:
+Title: ${title || "(untitled)"}
+Content: ${content.slice(0, 800)}
+
+[EXISTING BRAIN TREE (Type → Dimension → [Tags])]:
+${JSON.stringify(treeSummary, null, 2).slice(0, 3500)}`;
+
+    const raw = await AIRouter.call(providers, systemPrompt, userPrompt);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return emptyResult;
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    const nameToType = new Map<string, BrainTreeType>();
+    allTypes.forEach((t) => nameToType.set(t.name.toLowerCase(), t));
+    const dimsByTypeId = new Map<string, BrainTreeDimension[]>();
+    allDimensions.forEach((d) => {
+      const arr = dimsByTypeId.get(d.brainTreeTypeId) ?? [];
+      arr.push(d);
+      dimsByTypeId.set(d.brainTreeTypeId, arr);
+    });
+    const tagsByDimId = new Map<string, BrainTreeTag[]>();
+    allTags.forEach((t) => {
+      const arr = tagsByDimId.get(t.brainTreeDimensionId) ?? [];
+      arr.push(t);
+      tagsByDimId.set(t.brainTreeDimensionId, arr);
+    });
+
+    const resolvedCandidates: PlacementCandidate[] = [];
+    const minConfidence = 55;
+    if (Array.isArray(parsed.candidates)) {
+      for (const c of parsed.candidates) {
+        if (!c.typeName || !c.dimensionName || !c.tagName) continue;
+        const confidence = Number(c.confidencePct) ?? 0;
+        if (confidence < minConfidence) continue;
+        const type = nameToType.get(String(c.typeName).toLowerCase());
+        if (!type) continue;
+        const dim = (dimsByTypeId.get(type.id) ?? []).find(
+          (d) => d.name.toLowerCase() === String(c.dimensionName).toLowerCase()
+        );
+        if (!dim) continue;
+        const tag = (tagsByDimId.get(dim.id) ?? []).find(
+          (t) => t.name.toLowerCase() === String(c.tagName).toLowerCase()
+        );
+        if (!tag) continue;
+        resolvedCandidates.push({
+          type,
+          dimension: dim,
+          tag,
+          score: confidence,
+        });
+      }
+    }
+    resolvedCandidates.sort((a, b) => b.score - a.score);
+
+    const missingNodeProposals: AIBrainPlacementSuggestion["missingNodeProposals"] = [];
+    if (Array.isArray(parsed.missingNodes)) {
+      for (const m of parsed.missingNodes) {
+        if (!m.typeName || !m.dimensionName || !m.tagName) continue;
+        missingNodeProposals.push({
+          typeName: String(m.typeName),
+          dimensionName: String(m.dimensionName),
+          tagName: String(m.tagName),
+          reasoning: String(m.reasoning || ""),
+        });
+      }
+    }
+
+    // Merge with keyword fallback to ensure at least something is returned
+    const finalCandidates =
+      resolvedCandidates.length > 0 ? resolvedCandidates.slice(0, 4) : fallbackCandidates;
+
+    return {
+      candidates: finalCandidates,
+      missingNodeProposals,
+      usedFallback: finalCandidates === fallbackCandidates && fallbackCandidates.length > 0,
+    };
+  } catch (err) {
+    console.error("[suggestJournalBrainPlacement] error:", err);
+    return {
+      candidates: fallbackCandidates,
+      missingNodeProposals: [],
+      usedFallback: true,
+    };
+  }
 }

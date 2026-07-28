@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { BrainCard, LifeDimension, LIFE_DIMENSIONS } from "../types";
 import { Brain, X, Plus, Edit2, Check } from "lucide-react";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface AISuggestPopupProps {
   card: Partial<BrainCard> | null;
@@ -14,6 +15,8 @@ export const AISuggestPopup: React.FC<AISuggestPopupProps> = ({ card, onConfirm,
   const [editedDimension, setEditedDimension] = useState<LifeDimension>("mindset");
   const [editedTags, setEditedTags] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+
+  const descField = useAutoResizeTextarea(editedDesc, { minRows: 3, maxRows: 9 });
 
   useEffect(() => {
     if (card) {
@@ -89,10 +92,10 @@ export const AISuggestPopup: React.FC<AISuggestPopupProps> = ({ card, onConfirm,
           <div>
             <label className="text-[11px] font-semibold text-[#869883] block mb-1">รายละเอียด (Description):</label>
             <textarea
-              rows={3}
-              value={editedDesc}
+              {...descField.textAreaProps}
+              ref={descField.ref}
               onChange={(e) => setEditedDesc(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none leading-relaxed"
+              className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none leading-relaxed overflow-hidden"
             />
           </div>
 

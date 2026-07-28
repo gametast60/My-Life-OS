@@ -3,6 +3,7 @@ import { DailyCheckin, MoodType, UserSettings } from "../types";
 import { summarizeDailyCheckin } from "../lib/aiService";
 import { countWords } from "../lib/textUtils";
 import { X, Sparkles, CheckCircle2, Heart, HelpCircle, Target, Lightbulb, Brain } from "lucide-react";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 
 interface DailyCheckinModalProps {
@@ -34,6 +35,12 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
   const [grateful, setGrateful] = useState("");
   const [tomorrow, setTomorrow] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const wentWellField = useAutoResizeTextarea(wentWell, { minRows: 3, maxRows: 8 });
+  const challengeField = useAutoResizeTextarea(challenge, { minRows: 3, maxRows: 8 });
+  const learnedField = useAutoResizeTextarea(learned, { minRows: 3, maxRows: 8 });
+  const gratefulField = useAutoResizeTextarea(grateful, { minRows: 3, maxRows: 8 });
+  const tomorrowField = useAutoResizeTextarea(tomorrow, { minRows: 3, maxRows: 8 });
 
   if (!isOpen) return null;
 
@@ -146,10 +153,11 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                 วันนี้มีเรื่องอะไรที่ดี หรือเป็นชัยชนะเล็กๆ (Wins)?
               </label>
               <textarea
-                value={wentWell}
+                {...wentWellField.textAreaProps}
+                ref={wentWellField.ref}
                 onChange={(e) => setWentWell(e.target.value)}
                 placeholder="เช่น ทำงานเสร็จตามเป้า, ได้ออกกำลังกาย 20 นาที..."
-                className="w-full h-24 p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
+                className="w-full p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden leading-relaxed"
               />
             </div>
           </div>
@@ -162,10 +170,11 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <span>2. วันนี้มีอุปสรรค หรือเรื่องอะไรที่ท้าทาย/ยากลำบาก?</span>
             </div>
             <textarea
-              value={challenge}
+              {...challengeField.textAreaProps}
+              ref={challengeField.ref}
               onChange={(e) => setChallenge(e.target.value)}
               placeholder="เช่น รู้สึกหลุดโฟกัสช่วงบ่าย, มีอารมณ์หงุดหงิด..."
-              className="w-full h-36 p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
+              className="w-full p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden leading-relaxed"
             />
           </div>
         )}
@@ -177,10 +186,11 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <span>3. บทเรียนหรือสิ่งที่คุณได้เรียนรู้ในวันนี้คืออะไร?</span>
             </div>
             <textarea
-              value={learned}
+              {...learnedField.textAreaProps}
+              ref={learnedField.ref}
               onChange={(e) => setLearned(e.target.value)}
               placeholder="เช่น การพักผ่อนสายตามีผลต่อสมาธิมาก..."
-              className="w-full h-36 p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
+              className="w-full p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden leading-relaxed"
             />
           </div>
         )}
@@ -192,10 +202,11 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <span>4. วันนี้มีสิ่งไหนที่คุณรู้สึกซาบซึ้ง/ขอบคุณ (Gratitude)?</span>
             </div>
             <textarea
-              value={grateful}
+              {...gratefulField.textAreaProps}
+              ref={gratefulField.ref}
               onChange={(e) => setGrateful(e.target.value)}
               placeholder="เช่น ขอบคุณเพื่อนร่วมงานที่ช่วยเหลือ, กาแฟร้อนๆ ช่วงเช้า..."
-              className="w-full h-36 p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
+              className="w-full p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden leading-relaxed"
             />
           </div>
         )}
@@ -207,10 +218,11 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <span>5. พรุ่งนี้คุณตั้งใจจะปรับปรุงหรือโฟกัสเรื่องอะไรเป็นพิเศษ?</span>
             </div>
             <textarea
-              value={tomorrow}
+              {...tomorrowField.textAreaProps}
+              ref={tomorrowField.ref}
               onChange={(e) => setTomorrow(e.target.value)}
               placeholder="เช่น ตื่นนอนตรงเวลา, โฟกัสงาน Deep Work 2 ชั่วโมง..."
-              className="w-full h-36 p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345]"
+              className="w-full p-3 rounded-2xl bg-[#182018] border border-[#223022] text-xs text-[#EBF1EA] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden leading-relaxed"
             />
           </div>
         )}

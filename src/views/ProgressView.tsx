@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NoteItem } from "../types";
 import { Plus, Edit2, Trash2, Search, StickyNote, Check, X } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface ProgressViewProps {
   notes: NoteItem[];
@@ -23,6 +24,9 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingContent, setEditingContent] = useState("");
+
+  const contentField = useAutoResizeTextarea(content, { minRows: 3, maxRows: 9 });
+  const editContentField = useAutoResizeTextarea(editingContent, { minRows: 4, maxRows: 9 });
 
   // Confirm delete dialog state
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -97,11 +101,11 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           className="w-full px-4 py-2.5 rounded-xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345]"
         />
         <textarea
-          rows={3}
-          value={content}
+          {...contentField.textAreaProps}
+          ref={contentField.ref}
           onChange={(e) => setContent(e.target.value)}
           placeholder="จดสิ่งที่นึกขึ้นได้ ไอเดีย ความคิด..."
-          className="w-full px-4 py-3 rounded-xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] resize-none"
+          className="w-full px-4 py-3 rounded-xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] resize-none overflow-hidden"
         />
         <div className="flex justify-end">
           <button
@@ -151,10 +155,10 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                       className="w-full px-3 py-1.5 rounded-lg bg-[#182018] border border-[#4E7345] text-sm text-[#EBF1EA] outline-none"
                     />
                     <textarea
-                      rows={4}
-                      value={editingContent}
+                      {...editContentField.textAreaProps}
+                      ref={editContentField.ref}
                       onChange={(e) => setEditingContent(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-[#182018] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none"
+                      className="w-full px-3 py-2 rounded-lg bg-[#182018] border border-[#4E7345] text-xs text-[#EBF1EA] outline-none resize-none overflow-hidden"
                     />
                     <div className="flex justify-end gap-2">
                       <button

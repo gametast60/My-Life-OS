@@ -33,6 +33,106 @@ export const BRAIN_TYPES = [
 
 export type BrainType = typeof BRAIN_TYPES[number];
 
+// ─────────────────────────────────────────────────────────────────────
+// BRAIN TREE ENGINE V1 (Knowledge Index)
+// ─────────────────────────────────────────────────────────────────────
+
+/** Brain Tree DB Type = 🌳 ต้นไม้ (Goal, Habit, Principle...) */
+export interface BrainTreeType {
+  id: string;
+  /** Display name (unique user-facing). */
+  name: string;
+  color: string;
+  /** Lucide icon name (e.g., "Target", "Brain", "Sparkles"). */
+  icon: string;
+  priority: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Brain Tree DB Dimension = 🌿 กิ่ง (Finance/Health/Learning...) */
+export interface BrainTreeDimension {
+  id: string;
+  brainTreeTypeId: string;
+  name: string;
+  /** Optional color override (inherited from type if empty) */
+  color?: string;
+  priority: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Brain Tree DB Tag = 🍃 ใบไม้ (Korean, React, DCA...) */
+export interface BrainTreeTag {
+  id: string;
+  brainTreeTypeId: string;
+  brainTreeDimensionId: string;
+  name: string;
+  /** Growth score snapshot (denormalized) — recompute pass. */
+  growthScore: number;
+  /** Level snapshot from growth score. */
+  level: number;
+  /** 0-100 within current level. */
+  progressPct: number;
+  priority: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Source types Evidence links to. Evidence = REFERENCE, never duplicated content. */
+export type EvidenceKind =
+  | "journal"
+  | "habit_completed"
+  | "reminder_completed"
+  | "goal_progress"
+  | "daily_checkin"
+  | "ai_memory"
+  | "brain_card_legacy";
+
+/** Evidence = 🍎 ผลไม้. A single row of real user activity linked to MANY tags (multi-label). */
+export interface BrainEvidence {
+  id: string;
+  kind: EvidenceKind;
+  /** Id in the source table (journal / habit / reminder / goal etc). */
+  sourceId: string;
+  /** Short preview for UI display only. */
+  preview: string;
+  /** Multiple tags per evidence (multi-label) — Gmail style. */
+  brainTreeTagIds: string[];
+  /** For Smart Migration compat — points to the BrainCard we migrated from. */
+  legacyBrainCardId?: string;
+  /** When activity happened. */
+  occurredAt: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Threshold status band for growth progress. */
+export type TreeGrowthStatus = "seedling" | "growing" | "strong" | "mastery";
+
+/** Brain System Configuration — rules of the tree; NOT user preference. */
+export interface BrainConfiguration {
+  /** Weight per evidence kind when computing growth score. */
+  evidenceWeights: Record<EvidenceKind, number>;
+  /** Level n score = growthLevelConstant * level^2. */
+  growthLevelConstant: number;
+  /** Upper bound (%) for each status band. */
+  statusThresholds: Record<TreeGrowthStatus, number>;
+  /** AI multi-tag suggestion config. */
+  aiSuggest: {
+    maxCandidates: number;
+    minLinkConfidence: number;
+  };
+  /** V2 decay (present to reserve key; disabled by default). */
+  decay: { enabled: boolean; daysUntilStart: number; perDayPctDrop: number };
+  updatedAt: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// LEGACY Brain Card (List-style; kept for Soft Migration + AI compat)
+// Remove table + UI usage only after V1 system stabilizes (V2).
+// ─────────────────────────────────────────────────────────────────────
+
 // ── Brain Card — user-managed, AI read-only ───────────────────────
 export interface BrainCard {
   id: string;
@@ -270,11 +370,6 @@ export interface NoteItem {
   content: string;
   createdAt: number;
   updatedAt: number;
-}
-
-export interface FABPosition {
-  x: number;
-  y: number;
 }
 
 export interface DailyCheckin {

@@ -20,11 +20,9 @@ import {
   Trash2,
   Clock,
   Moon,
-  MessageSquareQuote,
 } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DateTimePicker } from "../components/DateTimePicker";
-import { getSmallTalk } from "../lib/aiService";
 
 interface HomeViewProps {
   settings: UserSettings;
@@ -68,11 +66,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [isEditDateModalOpen, setIsEditDateModalOpen] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [smallTalk, setSmallTalk] = useState<string>("");
-
-  useEffect(() => {
-    setSmallTalk(getSmallTalk(settings.smallTalkLanguage || "th"));
-  }, [settings.smallTalkLanguage]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -106,7 +99,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <div className="space-y-6 pb-28 animate-in fade-in duration-300">
-      {/* 1. Small Talk Welcome Section */}
+      {/* 1. Greeting Section */}
       <section className="space-y-3 pt-2 px-1">
         <div className="flex justify-between items-start">
           <div>
@@ -116,16 +109,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <p className="text-xs text-[#869883] mt-1">ยินดีต้อนรับกลับสู่ My Life OS</p>
           </div>
         </div>
-
-        {/* Small Talk Card */}
-        {smallTalk && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#182218] to-[#131913] border border-[#273727] shadow-md flex items-start gap-3">
-            <MessageSquareQuote className="w-5 h-5 text-[#6B9361] flex-shrink-0 mt-0.5" />
-            <p className="text-xs sm:text-sm text-[#EBF1EA] italic leading-relaxed">
-              "{smallTalk}"
-            </p>
-          </div>
-        )}
       </section>
 
       {/* 2. Daily Check-in Card (with Bedtime Reminder Prompt) */}
