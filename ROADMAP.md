@@ -10,7 +10,7 @@
 Phase 1 ─── Foundation            ✅  Complete   (PIE 7 Layers + Pipeline)
 Phase 2 ─── Full Pipeline         ✅  Complete   (AI Calls 100% through PIE)
 Phase 3 ─── Clean Architecture    ✅  Complete (Repo, Docs, Legacy Removal)
-Phase 4 ─── Brain Intelligence    🚧  In Progress    (S1 of 4A Complete — Type & Interface Contracts)
+Phase 4 ─── Brain Intelligence    🚧  In Progress    (S1+S2 of 4A Complete — Types + Core Utilities)
 Phase 5 ─── Personal Intelligence ⏳  Planned    (Reflection + Self-Awareness)
 ```
 
@@ -162,11 +162,12 @@ Phase 5 ─── Personal Intelligence ⏳  Planned    (Reflection + Self-Aware
 ```
 ╔══════════════════════════════════════════════════════════════════╗
 ║  Phase 4: Brain Intelligence Engine (BIE)                        ║
-║  Status: 🚧 In Progress — 4A S1 Complete                         ║
+║  Status: 🚧 In Progress — 4A S1+S2 Complete                      ║
 ║  Sub-Phase Breakdown (per 2026-07-30 user specification):        ║
 ║    4A: Semantic Retrieval + Hybrid Search        🚧 In Progress  ║
 ║       └─ S1: Type & Interface Contracts ✅ (2026-07-30)          ║
-║       └─ S2-S9: ⏳ Pending                                       ║
+║       └─ S2: Core Utilities (Pure Functions) ✅ (2026-07-30)     ║
+║       └─ S3-S9: ⏳ Pending                                       ║
 ║    4B: Knowledge Graph + Relationship Engine     ⏳ Planned 25%  ║
 ║    4C: Reflection Engine + Memory Intelligence   ⏳ Planned 25%  ║
 ║    4D: Identity + Insight + Timeline             ⏳ Planned 25%  ║
@@ -189,7 +190,7 @@ Phase 5 ─── Personal Intelligence ⏳  Planned    (Reflection + Self-Aware
 ---
 
 ### 📦 Phase 4A — Semantic Retrieval + Hybrid Search (Infrastructure-First)
-> **Status:** 🚧 In Progress (S1 Complete — 1/9 Steps)
+> **Status:** 🚧 In Progress (S2 Complete — 2/9 Steps)
 >
 > **Engineering Style:** Infrastructure First (Interfaces → Default Impls → Utilities → Hooks → Tuning)
 >
@@ -202,8 +203,8 @@ Phase 5 ─── Personal Intelligence ⏳  Planned    (Reflection + Self-Aware
 | Step | Priority | Work Item | Deliverable | Status |
 |------|----------|-----------|-------------|--------|
 | **S1** | P0 (Blocking) | Define Type & Interface Contracts (All First) | `pie/types.ts` new optional fields + `src/pie/bie/types.ts` + `providers/embeddingProvider.ts` Interface + `BrainIntelligenceRepository.ts` Interface | ✅ Complete |
-| **S2** | P0 (Blocking) | Core Utilities (Pure Functions — No I/O) | `contentHash()`, `normalizeVector()`, `cosineSimilarity()`, `levenshteinDistance()`, `bm25Tokenize()`, Thai/English synonym dictionary | ⏳ Next |
-| **S3** | P0 | Default Provider Implementations | `GeminiEmbeddingProvider` (via existing @google/genai provider router) + `LocalBM25EmbeddingProvider` (Fallback, offline) |
+| **S2** | P0 (Blocking) | Core Utilities (Pure Functions — No I/O) | `contentHash()`, `normalizeVector()`, `cosineSimilarity()`, `levenshteinDistance()`, `bm25Tokenize()`, Thai/English synonym dictionary | ✅ Complete |
+| **S3** | P0 | Default Provider Implementations | `GeminiEmbeddingProvider` (via existing @google/genai provider router) + `LocalBM25EmbeddingProvider` (Fallback, offline) | ⏳ Next |
 | **S4** | P0 | Repository + DB Schema Extensions | `RoomBrainIntelligenceRepository` Impl + RoomDatabase add: `bie_embeddings`, `bie_pending_queue` tables (just Phase 4A tables first) |
 | **S5** | P1 | Indexing & Scoring Logic | `semanticService.ts` (Hybrid orchestrator: Cache lookup → Primary Provider → Failover Local) + `vectorIndex.ts` (Dimension-agnostic cosine O(N)) + `hybridScorer.ts` (6-factor weights) |
 | **S6** | P1 | Wire Hooks into PIE Layers (Preserve Signatures) | Add additive fields: `RetrievalSource.semanticScore`, `.tagMatchScore`, `.graphScore`; Extend `RoomBrainRepository.getRelevantMemory()` to call semantic service when enabled |
@@ -223,7 +224,7 @@ Phase 5 ─── Personal Intelligence ⏳  Planned    (Reflection + Self-Aware
 - ❌ OUT OF SCOPE: Identity / Insights / Timeline (→ 4D)
 
 **Deliverables:**
-- Files ใหม่: `src/pie/bie/types.ts`, `src/pie/bie/providers/embeddingProvider.ts` (Interface), `src/pie/bie/providers/geminiEmbeddingProvider.ts`, `src/pie/bie/providers/localBM25EmbeddingProvider.ts`, `src/pie/bie/semanticService.ts`, `src/pie/bie/vectorIndex.ts`, `src/pie/bie/hybridScorer.ts`, `src/pie/bie/BrainIntelligenceRepository.ts` (Interface), `src/pie/bie/RoomBrainIntelligenceRepository.ts`, `src/pie/bie/utils.ts` (Pure Fn Utils + Synonyms), `src/pie/bie/index.ts` (Barrel)
+- Files ใหม่: `src/pie/bie/types.ts`, `src/pie/bie/providers/embeddingProvider.ts` (Interface), `src/pie/bie/providers/geminiEmbeddingProvider.ts`, `src/pie/bie/providers/localBM25EmbeddingProvider.ts`, `src/pie/bie/semanticService.ts`, `src/pie/bie/vectorIndex.ts`, `src/pie/bie/hybridScorer.ts`, `src/pie/bie/BrainIntelligenceRepository.ts` (Interface), `src/pie/bie/RoomBrainIntelligenceRepository.ts`, `src/pie/bie/utils.ts` (Pure Fn Utils ✅ S2), `src/pie/bie/synonyms.ts` (Thai/Eng Synonym Dict ✅ S2), `src/pie/bie/index.ts` (Barrel)
 - Files แก้ไข (Additive only, no breaking API): `src/types.ts` (RoomDatabase bie_* schema), `src/lib/db.ts` (RoomDatabase getter/setter extensions), `src/pie/types.ts` (new RetrievalSource optional fields, PipelineOptions.bieEnabled), `src/pie/layers/memoryRetrieval.ts` (hook semantic query injection), `src/pie/layers/contextRanking.ts` (extend scorer with 3 new factors), `src/pie/repository/RoomBrainRepository.ts` (call to semantic service + vector index), `src/pie/pipeline.ts` (bieEnabled option pass-through)
 - Docs Updated: AI_ARCHITECTURE.md + ROADMAP.md + CHANGELOG.md + KNOWN_ISSUES.md (Phase 4A resolved gaps)
 
@@ -350,7 +351,7 @@ My Life OS AI กลายเป็น "ตัวตนเสมือน" ข�
 | **1** | Foundation | ✅ Complete | PIE 7 Layers + 9 Roles + Repo Pattern |
 | **2** | Full Pipeline | ✅ Complete | 100% AI Calls through PIE |
 | **3** | Clean Architecture | ✅ Complete | Repo Single Source + Docs + Legacy Remove + Docs Policy |
-| **4A** | Semantic Retrieval | 🚧 In Progress | S1 ✅ Type & Interface Contracts |
+| **4A** | Semantic Retrieval | 🚧 In Progress | S1 ✅ Types · S2 ✅ Core Utilities |
 | **4B** | Knowledge Graph | ⏳ Planned | GraphNodes/Edges + Relationship Engine |
 | **4C** | Memory + Reflection | ⏳ Planned | Consolidation + Decay + Pattern Detection |
 | **4D** | Personal Intel | ⏳ Planned | Identity + Insights + Timeline |

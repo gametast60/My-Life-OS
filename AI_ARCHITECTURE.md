@@ -11,7 +11,7 @@ Phase 1: Foundation (PIE 7 Layers)          ✅ Complete
 Phase 2: Full Pipeline Integration          ✅ Complete
 Phase 3: Clean Architecture & Docs          ✅ Complete
 Phase 4: Brain Intelligence Engine (BIE)    🚧 In Progress
-   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1 Complete (Type & Interface Contracts)
+   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1+S2 Complete (Types + Core Utilities)
    ├─ 4B: Knowledge Graph + Relationship    ⏳ Planned
    ├─ 4C: Reflection + Memory Intel         ⏳ Planned
    └─ 4D: Identity + Insight + Timeline     ⏳ Planned
@@ -410,6 +410,9 @@ src/
 │
 ├─ bie/                                          ← BIE — Brain Intelligence Engine (Phase 4 — Side Extension Layer)
 │  ├─ types.ts                                   ← BIE Domain Type Contracts (S1) — 7 row types + unions
+│  ├─ utils.ts                                   ← Core Utilities (S2) — 5 Pure Functions: contentHash, normalizeVector,
+│                                                  cosineSimilarity, levenshteinDistance, bm25Tokenize
+│  ├─ synonyms.ts                                ← Thai/English Synonym Dictionary (S2) — Seed set + expandSynonyms()
 │  ├─ BrainIntelligenceRepository.ts             ← SSOT Repository Interface (S1) — 20+ methods, no impl
 │  └─ providers/
 │     └─ embeddingProvider.ts                    ← EmbeddingProvider Interface ONLY (S1) — Provider-agnostic
@@ -524,6 +527,34 @@ src/
 | `src/pie/types.ts` | `RetrievalSource.semanticScore?` / `.tagMatchScore?` / `.graphScore?` (optional); `PipelineOptions.bieEnabled?` (optional, default true) |
 | `src/lib/db.ts` | `KEYS.BIE_*` constants × 7 — Table DEFINITIONS only (`BIE_EMBEDDINGS`, `BIE_GRAPH_NODES`, `BIE_GRAPH_EDGES`, `BIE_IDENTITY`, `BIE_INSIGHTS`, `BIE_TIMELINE`, `BIE_PENDING_QUEUE`). No get/set methods yet (S4). |
 
+### 🆕 Phase 4A S2 — Core Utilities (Pure Functions) (DELIVERED 2026-07-30)
+
+> S2 = Pure Functions only. **No I/O, No Provider, No Database, No Pipeline,
+> No Business Logic.** S3 (Provider Impl) and S4 (Repository) import from
+> here; keeping S2 side-effect-free keeps S3/S4 tests isolated.
+> All additions are unimported — zero runtime impact.
+
+**Files Added (`src/pie/bie/`):**
+| File | Role |
+|------|------|
+| `utils.ts` | 5 pure functions: `contentHash`, `normalizeVector`, `cosineSimilarity`, `levenshteinDistance`, `bm25Tokenize` |
+| `synonyms.ts` | Thai/English Synonym Dictionary (~45 keys seed set) + `expandSynonyms()` lookup |
+
+**Utility Details:**
+| Function | Purpose | Edge-case Guard |
+|----------|---------|-----------------|
+| `contentHash(content)` | FNV-1a 32-bit hash for embedding cache invalidation (P4-10). Normalizes trim/lowercase/whitespace/punctuation. Prefix `fnv1a:` self-describing. | Empty/whitespace-only → constant hash (no error) |
+| `normalizeVector(vector)` | L2 normalization before cosine similarity. | Empty → `[]`; zero-magnitude → copy (no NaN); input never mutated |
+| `cosineSimilarity(a, b)` | Cosine similarity [-1, 1]. | Dimension mismatch → **returns 0** (graceful, not throw — P4-5); zero-magnitude or non-finite → 0 |
+| `levenshteinDistance(a, b)` | Edit distance for fuzzy synonym matching. Case-insensitive. Two-row DP. | Empty string → length of other |
+| `bm25Tokenize(text)` | Tokenizer for LocalBM25EmbeddingProvider (S3). Mirrors Phase 1 Intent Engine patterns exactly. | Empty → `[]`; de-duplicated, lowercase |
+
+**Synonym Dictionary (`synonyms.ts`):**
+- Addresses KI-101 directly (e.g. `"วิกฤติเศรษฐกิจ"` → `["การเงิน", "เงิน", ...]`)
+- Covers: Finance, Work, Health, Emotion, Goal, Relationship, Learning, Identity + English cross-script mirrors
+- `expandSynonyms(term)` — case-insensitive lookup, returns fresh de-duplicated array
+- Intentionally small seed set — S8 will bootstrap expansion from evidence co-occurrence
+
 **Domain Types Declared (in `bie/types.ts`):**
 `EmbeddingRecord`, `GraphNode`, `GraphEdge`, `IdentityProfile`, `Insight`, `TimelineItem`, `PendingLearning` — each mirrors the CONFIRMED `bie_*` schema (DECISIONS.md). HITL invariant encoded structurally: `GraphEdge.applied`, `IdentityProfile.applied`, `Insight.applied` are required `boolean`; `PendingLearning` has no `applied` field (in-queue = not applied by definition).
 
@@ -571,7 +602,7 @@ src/
 - Namespace `bie_` = wipe BIE ทั้งหมดได้โดยไม่กระทบ brain_tree_types, brain_tree_tags, brain_evidence (Core Brain Tree Tables)
 - Persist ผ่าน `BrainIntelligenceRepository` Interface เท่านั้น → BIE Modules ห้ามเรียก `RoomDatabase.setBie*` โดยตรง
 - ทุก write บน applied=true path = **ผ่าน Pending Queue + Confirm UI**; NO direct write from AI
-- `contentHash(text)` = SHA-1 ของ trimmed normalized text (lowercase + remove spaces/punctuation) สำหรับ embedding cache invalidation
+- `contentHash(text)` = FNV-1a 32-bit hash ของ trimmed normalized text (lowercase + remove spaces/punctuation + collapse whitespace) สำหรับ embedding cache invalidation — implemented in `src/pie/bie/utils.ts`
 
 **Runtime Cache Only (localStorage = NOT Persistent):**
 - `bie_runtime_cache_v1` = Hot-path ระหว่าง App session (recent semantic queries, cosine sim hot vectors, computed rankings)

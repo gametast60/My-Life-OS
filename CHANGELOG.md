@@ -46,6 +46,40 @@
 
 ---
 
+## [Phase 4A — S2] — Core Utilities (Pure Functions)
+**Status**: ✅ Complete (2026-07-30)
+
+> Infrastructure-First Step 2 of 9. Pure-function toolkit — no I/O,
+> no Provider calls, no Database, no Pipeline, no Business Logic.
+> S3 (Provider Implementations) and S4 (Repository) will import from
+> these utilities; keeping S2 side-effect-free ensures S3/S4 tests
+> remain isolated.
+>
+> All additions are unimported — zero runtime impact. Effective
+> behavior is identical to Pre-Phase-4 (Keyword-only 3-factor ranking).
+
+### Added
+
+- 🆕 **`src/pie/bie/utils.ts`** — 5 pure functions with full JSDoc + edge-case guards:
+  - `contentHash(content: string): string` — FNV-1a 32-bit deterministic hash for embedding cache invalidation (P4-10). Normalizes trim/lowercase/whitespace/punctuation before hashing. Output prefix `fnv1a:` makes hash self-describing.
+  - `normalizeVector(vector: number[]): number[]` — L2 normalization. Returns empty for empty input; returns copy for zero-magnitude (avoids NaN). No mutation of input.
+  - `cosineSimilarity(a: number[], b: number[]): number` — Cosine similarity [-1, 1]. Dimension mismatch returns **0** (graceful, not throw) so the hybrid scorer stays online during provider failover (P4-5). Zero-magnitude and non-finite guards included.
+  - `levenshteinDistance(a: string, b: string): number` — Classic edit distance (case-insensitive). Two-row DP, O(n·m) time, O(min(n,m)) space. Used for synonym-fuzzy-match fallback path.
+  - `bm25Tokenize(text: string): string[]` — Tokenizer for LocalBM25EmbeddingProvider (S3). Mirrors Phase 1 Intent Engine extraction patterns exactly: Thai `[\u0E00-\u0E7F]{2,}`, English `[A-Za-z]{3,}`. De-duplicated, lowercase, first-seen order.
+- 🆕 **`src/pie/bie/synonyms.ts`** — Thai/English Synonym Dictionary + lookup helper:
+  - `SYNONYM_DICTIONARY: Readonly<Record<string, string[]>>` — Seed set (~45 keys) covering Finance, Work, Health, Emotion, Goal, Relationship, Learning, Identity, and English cross-script mirrors. Directly addresses KI-101 ("วิกฤติเศรษฐกิจ" → maps to "การเงิน"). Intentionally small — S8 will bootstrap expansion.
+  - `expandSynonyms(term: string): string[]` — Case-insensitive lookup, returns fresh de-duplicated array. Empty for unknown terms. No mutation of dictionary.
+
+### Verified
+
+- ✅ **Lint**: `npm run lint` (`tsc --noEmit`) → Exit 0, 0 errors
+- ✅ **Build**: `npm run build` (vite + esbuild server) → Exit 0
+- ✅ **Backward Compatibility**: 2 new files unimported anywhere → zero runtime impact
+- ✅ **Regression**: existing 7 aiService features unaffected (nothing wired yet)
+- ✅ **Pure-function correctness**: 25/25 sanity assertions pass (contentHash determinism, normalizeVector edge cases, cosineSimilarity dimension mismatch/NaN guards, levenshtein known values, bm25Tokenize mirror of Intent Engine)
+
+---
+
 ## [Phase 4 — Pre-4A Setup] — Documentation Policy + Project Memory Files
 **Status**: ✅ Complete (2026-07-30)
 

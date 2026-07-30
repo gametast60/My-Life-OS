@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   UserSettings,
   CharacterStatus,
@@ -57,7 +57,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
 }) => {
   const [inputText, setInputText] = useState("");
   const [inputDueDate, setInputDueDate] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -66,6 +65,28 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [isEditDateModalOpen, setIsEditDateModalOpen] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const mainTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Auto-expanding textarea: starts at 4 lines, grows up to 6 lines, then scrolls
+  const TEXTAREA_MIN_LINES = 3;
+  const TEXTAREA_MAX_LINES = 5;
+  const TEXTAREA_LINE_HEIGHT = 20; // px, matches text-sm leading-5
+  const TEXTAREA_VERTICAL_PADDING = 20; // px, matches py-2.5 (10px top + 10px bottom)
+
+  const autoResizeTextarea = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = "auto";
+    const minHeight = TEXTAREA_MIN_LINES * TEXTAREA_LINE_HEIGHT + TEXTAREA_VERTICAL_PADDING;
+    const maxHeight = TEXTAREA_MAX_LINES * TEXTAREA_LINE_HEIGHT + TEXTAREA_VERTICAL_PADDING;
+    const newHeight = Math.min(Math.max(el.scrollHeight, minHeight), maxHeight);
+    el.style.height = `${newHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  };
+
+  useEffect(() => {
+    autoResizeTextarea(mainTextareaRef.current);
+  }, [inputText]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -77,10 +98,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const handleAdd = () => {
     const trimmed = inputText.trim();
     if (!trimmed) return;
-    onAddReminder(trimmed, showDatePicker && inputDueDate ? inputDueDate : undefined);
+    onAddReminder(trimmed, inputDueDate || undefined);
     setInputText("");
     setInputDueDate("");
-    setShowDatePicker(false);
   };
 
   const handleStartEdit = (r: ReminderItem) => {
@@ -172,68 +192,70 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        {/* Input Controls */}
+        {/* Input Controls - New Order: Input Field (own row) → Date Button + Add Button (row below) */}
         <div className="space-y-2">
+          {/* 1. Input Text Field - auto-expands 4→6 lines, then scrolls */}
+          <textarea
+            ref={(el) => {
+              mainTextareaRef.current = el;
+              autoResizeTextarea(el);
+            }}
+            value={inputText}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              autoResizeTextarea(e.target);
+            }}
+            rows={TEXTAREA_MIN_LINES}
+            placeholder="จดสิ่งที่กลัวลืม..."
+            className="w-full px-3.5 py-2.5 rounded-2xl bg-[#182018] border border-[#223022] text-sm leading-5 text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors resize-none"
+          />
+
           <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdd();
-              }}
-              placeholder="จดสิ่งที่กลัวลืม..."
-              className="flex-1 px-3.5 py-2.5 rounded-2xl bg-[#182018] border border-[#223022] text-sm text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors"
-            />
+            {/* 2. Date/Time Button - CalendarDays icon */}
             <button
               type="button"
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`p-2.5 rounded-2xl border transition-colors flex items-center justify-center ${
-                showDatePicker ? "bg-[#3F5C3A] border-[#4E7345] text-white" : "bg-[#182018] border-[#223022] text-[#869883] hover:text-white"
+              onClick={() => setIsDateModalOpen(true)}
+              className={`p-2.5 rounded-2xl border transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 ${
+                inputDueDate ? "bg-[#3F5C3A] border-[#4E7345] text-white" : "bg-[#182018] border-[#223022] text-[#869883] hover:text-white"
               }`}
               title="กำหนด วัน/เวลา เตือน (Optional)"
             >
-              <Clock className="w-4 h-4" />
+              <CalendarDays className="w-4 h-4" />
+              {inputDueDate && <span className="text-xs text-white/80">ตั้งค่าแล้ว</span>}
             </button>
+
+            {/* 3. Add Button - Plus icon */}
             <button
               onClick={handleAdd}
               disabled={!inputText.trim()}
-              className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white disabled:opacity-40 transition-colors flex-shrink-0"
+              className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-2xl bg-[#3F5C3A] hover:bg-[#4E7345] text-white disabled:opacity-40 transition-colors text-sm font-semibold"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" /> เพิ่ม
             </button>
           </div>
 
-          {/* Optional Date / Time Selector */}
-          {showDatePicker && (
+          {/* Optional Date / Time Selector - shown when date is selected */}
+          {inputDueDate && (
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#182018] border border-[#223022] animate-in fade-in duration-200">
               <span className="text-xs text-[#869883] whitespace-nowrap">วัน/เวลาเตือน:</span>
-              <button
-                type="button"
-                onClick={() => setIsDateModalOpen(true)}
-                className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] hover:border-[#6B9361] transition-colors text-left"
-              >
+              <span className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] truncate">
                 <Clock className="w-3 h-3 text-[#6B9361] flex-shrink-0" />
                 <span className="truncate">
-                  {inputDueDate
-                    ? new Date(inputDueDate).toLocaleString("th-TH", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "กำหนดวัน/เวลา..."}
+                  {new Date(inputDueDate).toLocaleString("th-TH", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setInputDueDate("")}
+                className="text-[11px] text-[#869883] hover:text-white underline whitespace-nowrap"
+              >
+                ลบ
               </button>
-              {inputDueDate && (
-                <button
-                  type="button"
-                  onClick={() => setInputDueDate("")}
-                  className="text-[11px] text-[#869883] hover:text-white underline ml-auto whitespace-nowrap"
-                >
-                  ลบ
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -263,31 +285,34 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {/* Inline Edit or Text */}
                 {editingId === r.id ? (
                   <div className="flex-1 flex flex-col gap-2">
+                    <textarea
+                      autoFocus
+                      ref={(el) => autoResizeTextarea(el)}
+                      value={editingText}
+                      onChange={(e) => {
+                        setEditingText(e.target.value);
+                        autoResizeTextarea(e.target);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      rows={TEXTAREA_MIN_LINES}
+                      className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-sm leading-5 text-[#EBF1EA] outline-none resize-none"
+                    />
                     <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        autoFocus
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveEdit(r.id);
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-sm text-[#EBF1EA] outline-none"
-                      />
                       <button
                         onClick={() => handleSaveEdit(r.id)}
-                        className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-950/40"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-lg text-emerald-400 bg-emerald-950/20 hover:bg-emerald-950/40 text-xs font-semibold"
                         title="บันทึก"
                       >
-                        <Check className="w-4 h-4" />
+                        <Check className="w-4 h-4" /> บันทึก
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-white/5"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-lg text-gray-400 bg-white/5 hover:bg-white/10 text-xs font-semibold"
                         title="ยกเลิก"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4" /> ยกเลิก
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -312,10 +337,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p
                         onClick={() => handleStartEdit(r)}
-                        className="text-sm text-[#EBF1EA] leading-relaxed cursor-pointer hover:text-emerald-300 transition-colors"
+                        className="text-sm text-[#EBF1EA] leading-relaxed cursor-pointer hover:text-emerald-300 transition-colors break-words whitespace-pre-wrap"
                         title="คลิกเพื่อแก้ไข"
                       >
                         {r.text}
