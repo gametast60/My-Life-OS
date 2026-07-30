@@ -8,75 +8,56 @@ import {
   HabitItem,
   JournalEntry,
   UserSettings,
-  BrainTreeType,
-  BrainTreeDimension,
-  BrainTreeTag,
 } from "../types";
-import { AIRouter } from "./aiRouter";
 import {
   PlacementCandidate,
   findPlacementCandidatesByKeyword,
 } from "./brainTree/brainTreeService";
+import {
+  runPipeline,
+  getProvidersFromSettings,
+  testProviderConnection as pieTestProvider,
+  createPipelineRequestFromLegacy,
+} from "../pie";
+import type {
+  AIRoleId,
+  PipelineContext,
+  PIPELINE_STAGE,
+  PipelineOptions,
+} from "../pie";
 
-// ── Helper: get providers from settings (with legacy fallback) ────
 export function getProviders(settings: UserSettings): APIProvider[] {
-  // If multi-provider list exists, use it
-  if (settings.apiProviders && settings.apiProviders.length > 0) {
-    return settings.apiProviders;
-  }
-  // Legacy fallback: wrap single aiApiKey as Gemini provider
-  if (settings.aiApiKey?.trim()) {
-    return [
-      {
-        id: "legacy-gemini",
-        name: "Gemini",
-        apiKey: settings.aiApiKey,
-        model: settings.aiModel || "gemini-2.5-flash",
-        enabled: true,
-        priority: 1,
-      },
-    ];
-  }
-  return [];
+  return getProvidersFromSettings(settings);
 }
 
-// ── Mode System Prompts ───────────────────────────────────────────
-const MODE_PROMPTS: Record<AIMode, string> = {
-  Coach: `คุณคือ AI Life Coach สำหรับ My Life OS ช่วยผู้ใช้พัฒนาชีวิต ตั้งเป้าหมาย และวางแผนการเติบโต
-ใช้ข้อมูลจาก Life Brain ของผู้ใช้เพื่อให้คำแนะนำที่ตรงจุดและเป็นส่วนตัว
-ตอบภาษาไทย เป็นธรรมชาติ กระตุ้นและให้กำลังใจ`,
-
-  Therapist: `คุณคือ AI Therapist ที่เน้น CBT และจิตวิทยาเชิงบวก
-ช่วยผู้ใช้วิเคราะห์ความรู้สึก เปลี่ยน Negative Thought Pattern และรักษาสุขภาพจิต
-ใช้ข้อมูลจาก Life Brain เพื่อเข้าใจบริบทชีวิตผู้ใช้
-ตอบภาษาไทย เป็นมิตร อบอุ่น ไม่ตัดสิน`,
-
-  Decision: `คุณคือ AI Decision Coach ช่วยผู้ใช้วิเคราะห์ทางเลือกอย่างเป็นระบบ
-ใช้ Pros/Cons, Second-Order Effects และ Value Alignment
-ใช้ข้อมูลจาก Life Brain เพื่อเชื่อมโยงกับคุณค่าและเป้าหมายของผู้ใช้
-ตอบภาษาไทย ชัดเจน มีโครงสร้าง`,
-
-  "Future Self": `คุณคือตัวตนของผู้ใช้ในอีก 5 ปีข้างหน้า ที่ประสบความสำเร็จตามเป้าหมาย
+const LEGACY_MODE_CONFIG: Record<
+  AIMode,
+  { roleId: AIRoleId; customSystemPrompt?: string }
+> = {
+  Coach: { roleId: "coach" },
+  Therapist: { roleId: "therapist" },
+  Decision: { roleId: "planner" },
+  "Future Self": {
+    roleId: "coach",
+    customSystemPrompt: `คุณคือตัวตนของผู้ใช้ในอีก 5 ปีข้างหน้า ที่ประสบความสำเร็จตามเป้าหมาย
 พูดจากมุมมองนั้นด้วยความเป็นห่วง ปัญญา และความเฉพาะเจาะจง
 ใช้ข้อมูลจาก Life Brain เพื่อ reference เป้าหมายและความฝันที่แท้จริง
 ตอบภาษาไทย ลึกซึ้ง มีพลัง`,
-
-  Secretary: `คุณคือ AI Secretary ผู้ช่วยส่วนตัวของผู้ใช้
+  },
+  Secretary: {
+    roleId: "planner",
+    customSystemPrompt: `คุณคือ AI Secretary ผู้ช่วยส่วนตัวของผู้ใช้
 ช่วยจัดการ Task, Checklist, Reminder, การวางแผน, จัดลำดับความสำคัญ, ติดตามงาน และสรุปงาน
 ใช้ข้อมูลจาก Life Brain เพื่อเข้าใจบริบทงานและเป้าหมาย
 ตอบภาษาไทย กระชับ เป็นระเบียบ action-oriented`,
-
-  Reflection: `คุณคือ AI Reflection Guide ช่วยผู้ใช้ทบทวนและสรุปบทเรียนชีวิต
-วิเคราะห์ Journal ที่ได้รับ สรุป Highlights, Patterns, Growth และ Actionable Insights
-ใช้ข้อมูลจาก Life Brain เพื่อเชื่อมโยงกับเป้าหมายระยะยาว
-ตอบภาษาไทย ลึกซึ้ง สร้างแรงบันดาลใจ`,
-
-  Chat: `คุณคือ AI Assistant ของ My Life OS
-ช่วยผู้ใช้ด้านการพัฒนาตนเองและชีวิตประจำวัน ใช้ข้อมูลจาก Life Brain เพื่อเข้าใจผู้ใช้
-ตอบภาษาไทย เป็นธรรมชาติ เป็นกันเอง`,
+  },
+  Reflection: { roleId: "coach" },
+  Chat: { roleId: "custom" },
 };
 
-// ── sendAIChatRequest ─────────────────────────────────────────────
+export const getRoleForLegacyMode = (mode: AIMode): AIRoleId =>
+  LEGACY_MODE_CONFIG[mode].roleId;
+
 export interface AIChatOptions {
   prompt: string;
   mode?: AIMode;
@@ -93,24 +74,44 @@ export async function sendAIChatRequest({
   settings,
 }: AIChatOptions): Promise<string> {
   const providers = getProviders(settings!);
-
   if (providers.length === 0) {
     return `⚠️ ยังไม่ได้ตั้งค่า AI Provider\n\nกรุณาไปที่ 🔑 Manage AI เพื่อเพิ่ม API Key\n\nรับ Gemini API Key ฟรีได้ที่: https://aistudio.google.com/app/apikey`;
   }
 
   try {
-    const systemPrompt = MODE_PROMPTS[mode];
-    const contextualPrompt = AIRouter.buildContextualPrompt(
-      prompt,
-      brainCards,
+    const modeCfg = LEGACY_MODE_CONFIG[mode];
+    const journalBlock =
       recentJournals.length > 0
         ? `[Journal ล่าสุด]: ${recentJournals
             .slice(0, 3)
             .map((j) => `${j.date} (${j.mood}): ${j.content.slice(0, 80)}`)
             .join("\n")}`
-        : undefined
-    );
-    return await AIRouter.call(providers, systemPrompt, contextualPrompt);
+        : undefined;
+
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt,
+      systemPrompt: modeCfg.customSystemPrompt,
+      roleHint: modeCfg.roleId as any,
+      settings,
+      brainCards,
+      recentJournals: recentJournals.map((j) => ({
+        ...j,
+        timestamp: new Date(j.date).getTime() || Date.now(),
+      })),
+    });
+
+    if (journalBlock && pieRequest.extraContext) {
+      pieRequest.extraContext.customUserSuffix = journalBlock;
+    }
+
+    const result = await runPipeline(pieRequest);
+    if (result.success) return result.finalText;
+
+    if (mode === "Therapist") {
+      const err = result.context.providerResult.error || "ไม่ทราบสาเหตุ";
+      return `[ไม่สามารถเชื่อมต่อ AI ได้] ${err}\n\n[โหมดออฟไลน์] ลองหายใจเข้าลึกๆ และเขียนสิ่งที่ติดอยู่ในใจลงใน Journal ก่อนนะครับ`;
+    }
+    return result.finalText || "[ไม่สามารถเชื่อมต่อ AI ได้] กรุณาตรวจสอบ API Key ใน Manage AI ครับ";
   } catch (err: any) {
     console.error("[sendAIChatRequest] error:", err);
     if (mode === "Therapist") {
@@ -120,7 +121,6 @@ export async function sendAIChatRequest({
   }
 }
 
-// ── generateGreeting ──────────────────────────────────────────────
 export async function generateGreeting(
   context: {
     userName: string;
@@ -140,24 +140,36 @@ export async function generateGreeting(
 วันที่วันนี้: ${new Date().toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 ตอบภาษาไทย เป็นธรรมชาติ ไม่ทางการเกินไป`;
 
-    const dims = AIRouter.detectDimensions(context.recentJournals.map((j) => j.content).join(" "));
-    const relevantCards = AIRouter.filterBrainCards(context.brainCards, dims, undefined, 6);
-    const contextBlock = AIRouter.buildContextBlock(relevantCards);
-
-    const userPrompt = `ผู้ใช้: ${context.userName}
-${contextBlock}
-Journal ล่าสุด: ${context.recentJournals
+    const journalBlock = context.recentJournals
       .slice(0, 3)
       .map((j) => `${j.date} (${j.mood}): ${j.content.slice(0, 60)}`)
-      .join("\n")}`;
+      .join("\n");
 
-    return await AIRouter.call(providers, systemPrompt, userPrompt);
+    const userPrefix = `ผู้ใช้: ${context.userName}\nJournal ล่าสุด: ${journalBlock || "(ไม่มี)"}`;
+
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: `สวัสดี กรุณาทักทายผู้ใช้ ${context.userName}`,
+      systemPrompt,
+      roleHint: "coach",
+      settings,
+      brainCards: context.brainCards,
+      recentJournals: context.recentJournals.map((j) => ({
+        ...j,
+        timestamp: new Date(j.date).getTime() || Date.now(),
+      })),
+    });
+    if (pieRequest.extraContext) {
+      pieRequest.extraContext.customUserPrefix = userPrefix;
+    }
+
+    const result = await runPipeline(pieRequest);
+    if (result.success) return result.finalText;
+    return `สวัสดี ${context.userName} 👋 วันนี้อยากคุยเรื่องอะไรครับ?`;
   } catch {
     return `สวัสดี ${context.userName} 👋 วันนี้อยากคุยเรื่องอะไรครับ?`;
   }
 }
 
-// ── summarizeDailyCheckin ─────────────────────────────────────────
 export async function summarizeDailyCheckin(
   checkin: Omit<DailyCheckin, "id" | "aiSummary">,
   settings?: UserSettings
@@ -168,7 +180,6 @@ export async function summarizeDailyCheckin(
   try {
     const systemPrompt = `คุณคือ Daily Reflection AI สรุปคำตอบ Check-in รายวันเป็น Insight 2-3 ประโยค
 กระชับ อบอุ่น สร้างแรงบันดาลใจ ชี้ให้เห็น Pattern ที่ผู้ใช้อาจมองข้าม ตอบภาษาไทย`;
-
     const userPrompt = `Mood: ${checkin.mood}
 วันนี้อะไรดี: ${checkin.answers.wentWell}
 วันนี้อะไรยาก: ${checkin.answers.challenge}
@@ -176,13 +187,26 @@ export async function summarizeDailyCheckin(
 วันนี้ขอบคุณอะไร: ${checkin.answers.grateful}
 พรุ่งนี้จะปรับอะไร: ${checkin.answers.tomorrow}`;
 
-    return await AIRouter.call(providers, systemPrompt, userPrompt);
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: userPrompt,
+      systemPrompt,
+      roleHint: "coach",
+      settings,
+    });
+
+    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
+      retrieval: true,
+      ranking: true,
+    };
+    const options: PipelineOptions = { skipStages };
+
+    const result = await runPipeline(pieRequest, options);
+    return result.success ? result.finalText : "วันนี้คุณสำรวจตัวเองอย่างมีสติ — นั่นคือก้าวแรกของการเติบโต";
   } catch {
     return "วันนี้คุณสำรวจตัวเองอย่างมีสติ — นั่นคือก้าวแรกของการเติบโต";
   }
 }
 
-// ── analyzeTodayJournals ──────────────────────────────────────────
 export async function analyzeTodayJournals(
   todayJournals: JournalEntry[],
   brainCards: BrainCard[],
@@ -207,20 +231,28 @@ export async function analyzeTodayJournals(
       .map((j) => `[${j.mode}] ${j.title}: ${j.content.slice(0, 200)}`)
       .join("\n\n");
 
-    // Get relevant brain context
-    const dims = AIRouter.detectDimensions(journalText);
-    const relevantCards = AIRouter.filterBrainCards(brainCards, dims, undefined, 5);
-    const contextBlock = AIRouter.buildContextBlock(relevantCards);
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: journalText,
+      systemPrompt,
+      roleHint: "coach",
+      settings,
+      brainCards,
+      recentJournals: todayJournals.map((j) => ({
+        title: j.title,
+        mood: j.mood,
+        content: j.content,
+        date: j.date,
+        timestamp: new Date(j.date).getTime() || Date.now(),
+      })),
+    });
 
-    const userPrompt = `${contextBlock ? contextBlock + "\n\n" : ""}[Journal วันนี้]:\n${journalText}`;
-
-    return await AIRouter.call(providers, systemPrompt, userPrompt);
+    const result = await runPipeline(pieRequest);
+    return result.success ? result.finalText : `[ไม่สามารถวิเคราะห์ได้] กรุณาลองใหม่อีกครั้ง`;
   } catch (err: any) {
     return `[ไม่สามารถวิเคราะห์ได้] ${err.message}`;
   }
 }
 
-// ── suggestBrainCard ──────────────────────────────────────────────
 export async function suggestBrainCard(
   text: string,
   existingCards: BrainCard[],
@@ -249,14 +281,29 @@ export async function suggestBrainCard(
     const userPrompt = `[ข้อความ]: ${text.slice(0, 500)}
 [Brain ที่มีอยู่แล้ว]: ${existingTitles.slice(0, 200) || "ยังไม่มี"}`;
 
-    const raw = await AIRouter.call(providers, systemPrompt, userPrompt);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: userPrompt,
+      systemPrompt,
+      roleHint: "custom",
+      settings,
+      outputFormat: "json",
+    });
 
+    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
+      retrieval: true,
+      ranking: true,
+    };
+    const options: PipelineOptions = { skipStages };
+
+    const result = await runPipeline(pieRequest, options);
+    if (!result.success) return null;
+    const rawText = result.finalText || result.context.providerResult.rawText;
+
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[0]);
     if (!parsed.found || !parsed.title) return null;
 
-    // Don't suggest if very similar card already exists
     const alreadyExists = existingCards.some(
       (c) => c.title.toLowerCase() === parsed.title.toLowerCase()
     );
@@ -275,7 +322,6 @@ export async function suggestBrainCard(
   }
 }
 
-// ── generateGuide (GPS ชีวิต) ─────────────────────────────────────
 export async function generateGuide(
   brainCards: BrainCard[],
   goals: GoalItem[],
@@ -306,7 +352,6 @@ export async function generateGuide(
   "checklist": ["งาน 1", "งาน 2", "งาน 3"]
 }`;
 
-    const contextBlock = AIRouter.buildContextBlock(brainCards.slice(0, 15));
     const activeGoals = goals
       .filter((g) => !g.completed && !g.archived)
       .slice(0, 5)
@@ -315,28 +360,42 @@ export async function generateGuide(
       .slice(0, 5)
       .map((h) => `${h.title} (streak: ${h.currentStreak})`);
 
-    const userPrompt = `${contextBlock}
-Goals: ${activeGoals.join(", ") || "ยังไม่มี"}
+    const userPrompt = `Goals: ${activeGoals.join(", ") || "ยังไม่มี"}
 Habits: ${activeHabits.join(", ") || "ยังไม่มี"}`;
 
-    const raw = await AIRouter.call(providers, systemPrompt, userPrompt);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return defaultResult;
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: userPrompt,
+      systemPrompt,
+      roleHint: "planner",
+      settings,
+      brainCards,
+      outputFormat: "json",
+    });
 
+    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
+      retrieval: true,
+      ranking: true,
+    };
+    const options: PipelineOptions = { skipStages };
+
+    const result = await runPipeline(pieRequest, options);
+    if (!result.success) return defaultResult;
+    const rawText = result.finalText || result.context.providerResult.rawText;
+
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return defaultResult;
     return { ...defaultResult, ...JSON.parse(jsonMatch[0]) };
   } catch {
     return defaultResult;
   }
 }
 
-// ── testProviderConnection ────────────────────────────────────────
 export async function testProviderConnection(
   provider: APIProvider
 ): Promise<{ success: boolean; message: string }> {
-  return AIRouter.testProvider(provider);
+  return pieTestProvider(provider);
 }
 
-// ── Legacy compatibility: testAIConnection ────────────────────────
 export async function testAIConnection(
   apiKey: string,
   model = "gemini-2.5-flash"
@@ -351,10 +410,6 @@ export async function testAIConnection(
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Brain Tree Engine V1 — AI Journal Placement Suggestion
-// ─────────────────────────────────────────────────────────────────────
-
 export interface AIBrainPlacementSuggestion {
   candidates: PlacementCandidate[];
   missingNodeProposals: {
@@ -366,22 +421,12 @@ export interface AIBrainPlacementSuggestion {
   usedFallback: boolean;
 }
 
-/**
- * Given a journal content + existing Brain Tree (Type[] + Dimension[] + Tag[]),
- * ask AI to suggest WHERE in the tree the journal should be "hung" as Evidence.
- *
- * AI returns:
- *  - candidate placements (Type → Dimension → Tag) from the EXISTING tree
- *  - proposals for NEW nodes if no existing node is a good match
- *
- * If AI fails → keyword fallback. If no keyword matches → empty candidates.
- */
 export async function suggestJournalBrainPlacement(params: {
   title?: string;
   content: string;
-  allTypes: BrainTreeType[];
-  allDimensions: BrainTreeDimension[];
-  allTags: BrainTreeTag[];
+  allTypes: any[];
+  allDimensions: any[];
+  allTags: any[];
   settings?: UserSettings;
 }): Promise<AIBrainPlacementSuggestion> {
   const { title = "", content, allTypes, allDimensions, allTags, settings } = params;
@@ -392,7 +437,6 @@ export async function suggestJournalBrainPlacement(params: {
     1
   );
 
-  // Build a compact tree structure for the AI prompt — names + ids only, not too long
   const treeSummary: Record<string, Record<string, string[]>> = {};
   for (const t of allTypes) {
     const dimMap: Record<string, string[]> = {};
@@ -462,20 +506,44 @@ Content: ${content.slice(0, 800)}
 [EXISTING BRAIN TREE (Type → Dimension → [Tags])]:
 ${JSON.stringify(treeSummary, null, 2).slice(0, 3500)}`;
 
-    const raw = await AIRouter.call(providers, systemPrompt, userPrompt);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: userPrompt,
+      systemPrompt,
+      roleHint: "custom",
+      settings,
+      outputFormat: "json",
+    });
+    if (pieRequest.extraContext) {
+      pieRequest.extraContext.brainTree = {
+        types: allTypes,
+        dimensions: allDimensions,
+        tags: allTags,
+      };
+    }
+
+    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
+      retrieval: true,
+      ranking: true,
+    };
+    const options: PipelineOptions = { skipStages };
+
+    const result = await runPipeline(pieRequest, options);
+    if (!result.success) return emptyResult;
+    const rawText = result.finalText || result.context.providerResult.rawText;
+
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return emptyResult;
     const parsed = JSON.parse(jsonMatch[0]);
 
-    const nameToType = new Map<string, BrainTreeType>();
+    const nameToType = new Map<string, any>();
     allTypes.forEach((t) => nameToType.set(t.name.toLowerCase(), t));
-    const dimsByTypeId = new Map<string, BrainTreeDimension[]>();
+    const dimsByTypeId = new Map<string, any[]>();
     allDimensions.forEach((d) => {
       const arr = dimsByTypeId.get(d.brainTreeTypeId) ?? [];
       arr.push(d);
       dimsByTypeId.set(d.brainTreeTypeId, arr);
     });
-    const tagsByDimId = new Map<string, BrainTreeTag[]>();
+    const tagsByDimId = new Map<string, any[]>();
     allTags.forEach((t) => {
       const arr = tagsByDimId.get(t.brainTreeDimensionId) ?? [];
       arr.push(t);
@@ -522,7 +590,6 @@ ${JSON.stringify(treeSummary, null, 2).slice(0, 3500)}`;
       }
     }
 
-    // Merge with keyword fallback to ensure at least something is returned
     const finalCandidates =
       resolvedCandidates.length > 0 ? resolvedCandidates.slice(0, 4) : fallbackCandidates;
 
@@ -540,3 +607,15 @@ ${JSON.stringify(treeSummary, null, 2).slice(0, 3500)}`;
     };
   }
 }
+
+export const MODE_TO_ROLE: Record<AIMode, AIRoleId> = {
+  Coach: LEGACY_MODE_CONFIG.Coach.roleId,
+  Therapist: LEGACY_MODE_CONFIG.Therapist.roleId,
+  Decision: LEGACY_MODE_CONFIG.Decision.roleId,
+  "Future Self": LEGACY_MODE_CONFIG["Future Self"].roleId,
+  Secretary: LEGACY_MODE_CONFIG.Secretary.roleId,
+  Reflection: LEGACY_MODE_CONFIG.Reflection.roleId,
+  Chat: LEGACY_MODE_CONFIG.Chat.roleId,
+};
+
+export type { PipelineContext };

@@ -361,35 +361,22 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
                       <label className="text-xs mb-1 block" style={{ color: "#869883" }}>
                         Model Name
                       </label>
-                      {p.name === "OpenRouter" ? (
-                        <select
-                          value={p.model === "auto-free" ? "openrouter/free" : (p.model || "openrouter/free")}
-                          onChange={(e) => handleUpdateProvider(p.id, { model: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg text-xs outline-none cursor-pointer"
-                          style={{
-                            background: "rgba(0,0,0,0.3)",
-                            border: "1px solid rgba(107,147,97,0.2)",
-                            color: "#EBF1EA",
-                          }}
-                        >
-                          <option value="openrouter/free">✨ openrouter/free (เลือกตัวฟรีที่ใช้งานได้ให้อัตโนมัติ)</option>
-                          <option value="google/gemma-4-31b-it:free">Gemma 4 31B (Free)</option>
-                          <option value="openai/gpt-oss-20b:free">GPT-OSS 20B (Free)</option>
-                          <option value="google/gemma-2-9b-it:free">Gemma 2 9B (Free)</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={p.model}
-                          onChange={(e) => handleUpdateProvider(p.id, { model: e.target.value })}
-                          placeholder={defaults?.defaultModel}
-                          className="w-full px-3 py-2 rounded-lg text-xs outline-none"
-                          style={{
-                            background: "rgba(0,0,0,0.3)",
-                            border: "1px solid rgba(107,147,97,0.2)",
-                            color: "#EBF1EA",
-                          }}
-                        />
+                      <input
+                        type="text"
+                        value={p.model === "auto-free" ? "openrouter/free" : p.model}
+                        onChange={(e) => handleUpdateProvider(p.id, { model: e.target.value })}
+                        placeholder={defaults?.defaultModel}
+                        className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                        style={{
+                          background: "rgba(0,0,0,0.3)",
+                          border: "1px solid rgba(107,147,97,0.2)",
+                          color: "#EBF1EA",
+                        }}
+                      />
+                      {p.name === "OpenRouter" && (
+                        <p className="text-[10px] mt-1" style={{ color: "#5f6e5d" }}>
+                          พิมพ์ชื่อ model เอง เช่น qwen/qwen3.7-flash, google/gemma-2-9b-it:free
+                        </p>
                       )}
                     </div>
                   </div>
