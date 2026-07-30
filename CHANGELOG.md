@@ -6,6 +6,46 @@
 
 ---
 
+## [Phase 4A — S1] — Type & Interface Contracts
+**Status**: ✅ Complete (2026-07-30)
+
+> Infrastructure-First Step 1 of 9. Foundation only — no business logic,
+> no queries, no migration. All additions additive; zero existing
+> signatures changed. BIE not yet wired into pipeline; effective
+> behavior is identical to Pre-Phase-4 (Keyword-only 3-factor ranking).
+
+### Added
+
+- 🆕 **`src/pie/bie/types.ts`** — BIE domain type contracts (single source of truth):
+  - 7 row types: `EmbeddingRecord`, `GraphNode`, `GraphEdge`, `IdentityProfile`, `Insight`, `TimelineItem`, `PendingLearning` (+ `IdentityEntry`, `TimelineTheme`, `TimelineMilestone` helpers)
+  - Shared unions: `EmbeddingMethod`, `GraphNodeKind`, `GraphEdgeType`, `GraphNodeCoreType`, `InsightKind`, `InsightSeverity`, `IdentityCategory`, `TimelinePeriodKind`, `BiePendingKind`
+  - Schema mirrors CONFIRMED `bie_*` table spec (DECISIONS.md "BIE Storage Location")
+  - HITL invariant encoded structurally: `GraphEdge.applied` / `IdentityProfile.applied` / `Insight.applied` required `boolean`; `PendingLearning` carries no `applied` (in-queue = not applied by definition)
+- 🆕 **`src/pie/bie/providers/embeddingProvider.ts`** — `EmbeddingProvider` interface ONLY (no Gemini/Local impl — deferred to S3):
+  - Async-only surface: `embed()`, `batchEmbed()` (uniform for hybrid fallback, P4-5)
+  - Typed `EmbeddingOutcome = ok | failure` — providers never throw on quota/network
+  - `isAvailable()` cheap probe + `dimensions`/`id`/`displayName` so orchestrator can probe before awaiting
+- 🆕 **`src/pie/bie/BrainIntelligenceRepository.ts`** — SSOT repository interface for all `bie_*` tables (no impl — deferred to S4):
+  - 20+ methods across 7 areas: Embeddings, Graph Nodes, Graph Edges, Identity, Insights, Timeline, Pending Queue
+  - HITL surface enforced: AI writes go via `appendPendingBieItem()`; `applyGraphEdge()` / `applyIdentity()` / `applyInsight()` reserved for Confirm UI
+
+### Changed
+
+- ➕ **`src/pie/types.ts`** (additive only, no breaking change — P4-8):
+  - `RetrievalSource`: + optional `semanticScore?`, `tagMatchScore?`, `graphScore?` (undefined ⇒ existing 3-factor scorer runs unchanged)
+  - `PipelineOptions`: + optional `bieEnabled?` (default true; explicit `false` ⇒ SKIP all BIE hooks ⇒ Pre-Phase-4 behavior, P4-14)
+- ➕ **`src/lib/db.ts`** (additive only):
+  - `KEYS` map extended with 7 `BIE_*` storage-key constants — Table DEFINITIONS only (`BIE_EMBEDDINGS`, `BIE_GRAPH_NODES`, `BIE_GRAPH_EDGES`, `BIE_IDENTITY`, `BIE_INSIGHTS`, `BIE_TIMELINE`, `BIE_PENDING_QUEUE`). No get/set methods yet (S4). No migration.
+
+### Verified
+
+- ✅ **Lint**: `npm run lint` (`tsc --noEmit`) → Exit 0, 0 errors
+- ✅ **Build**: `npm run build` (vite + esbuild server) → Exit 0
+- ✅ **Backward Compatibility**: 3 new files unimported anywhere → zero runtime impact; all changes to `pie/types.ts` and `db.ts` are additive optional fields/constants
+- ✅ **Regression**: existing 7 aiService features unaffected (PipelineContext shape unchanged beyond optional fields)
+
+---
+
 ## [Phase 4 — Pre-4A Setup] — Documentation Policy + Project Memory Files
 **Status**: ✅ Complete (2026-07-30)
 

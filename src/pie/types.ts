@@ -42,6 +42,16 @@ export interface RetrievalSource {
   timestamp: number;
   tags: string[];
   rawRef: unknown;
+  // ── BIE (Phase 4A) additive ranking signals ──────────────────────
+  // All OPTIONAL: when BIE is disabled OR a signal is not computed,
+  // these remain undefined and the existing 3-factor scorer is used
+  // unchanged (hard constraint P4-8 — additive only, no breakage).
+  /** Semantic similarity [0,1] from embedding cosine vs query vector. */
+  semanticScore?: number;
+  /** Tag-overlap score [0,1] from synonym-aware tag matching. */
+  tagMatchScore?: number;
+  /** Knowledge-graph boost [0,1] from graph edge traversal (Phase 4B). */
+  graphScore?: number;
 }
 
 export interface RetrievedMemory {
@@ -206,6 +216,17 @@ export interface PipelineOptions {
   learningEnabled?: boolean;
   onStageComplete?: (stage: PIPELINE_STAGE, ctx: PipelineContext) => void;
   repository?: BrainRepository;
+  /**
+   * BIE enable switch (Phase 4A).
+   *
+   * Default behavior when omitted/true: BIE hooks (when wired in later
+   * sub-phases) MAY run. When explicitly `false`: ALL BIE hooks SKIP,
+   * so the pipeline behaves EXACTLY like Pre-Phase-4 (keyword-only
+   * 3-factor ranking, no embeddings, no graph, no identity).
+   *
+   * Hard constraint P4-14 — Future-Proof Disable Switch.
+   */
+  bieEnabled?: boolean;
 }
 
 export interface PipelineRunResult {

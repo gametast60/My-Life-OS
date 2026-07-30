@@ -10,8 +10,8 @@
 Phase 1: Foundation (PIE 7 Layers)          ✅ Complete
 Phase 2: Full Pipeline Integration          ✅ Complete
 Phase 3: Clean Architecture & Docs          ✅ Complete
-Phase 4: Brain Intelligence Engine (BIE)    ⏳ Pre-4A (Documentation Ready)
-   ├─ 4A: Semantic Retrieval + Hybrid       ⏳ Ready to Start (3/3 Decisions CONFIRMED)
+Phase 4: Brain Intelligence Engine (BIE)    🚧 In Progress
+   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1 Complete (Type & Interface Contracts)
    ├─ 4B: Knowledge Graph + Relationship    ⏳ Planned
    ├─ 4C: Reflection + Memory Intel         ⏳ Planned
    └─ 4D: Identity + Insight + Timeline     ⏳ Planned
@@ -408,6 +408,13 @@ src/
 │     └─ RoomBrainRepository.ts                  ← Implementation wraps RoomDatabase(localStorage)
 │                                                  + Conversion Helpers (DRY — ไม่มีซ้ำที่อื่น)
 │
+├─ bie/                                          ← BIE — Brain Intelligence Engine (Phase 4 — Side Extension Layer)
+│  ├─ types.ts                                   ← BIE Domain Type Contracts (S1) — 7 row types + unions
+│  ├─ BrainIntelligenceRepository.ts             ← SSOT Repository Interface (S1) — 20+ methods, no impl
+│  └─ providers/
+│     └─ embeddingProvider.ts                    ← EmbeddingProvider Interface ONLY (S1) — Provider-agnostic
+│                                                  (Gemini + LocalBM25 impls land in S3)
+
 ├─ lib/
 │  ├─ aiService.ts                               ← AI Facade (Thin Orchestration Layer)
 │  ├─ db.ts                                      ← RoomDatabase Singleton — localStorage Storage
@@ -496,6 +503,35 @@ src/
 > **Folder:** `src/pie/bie/` (แยกจาก PIE core Layers)
 >
 > **Runtime Pattern:** BIE Hooks ถูกเรียกจากภายใน `runMemoryRetrieval()` + `rankContext()` + (optional) ระหว่าง `analysis → learning`
+
+### 🆕 Phase 4A S1 — Type & Interface Contracts (DELIVERED 2026-07-30)
+
+> S1 = Foundation Only. **No Business Logic, No Queries, No Migration.**
+> All contracts are additive; zero existing signatures changed (P4-8).
+> BIE not yet wired into the pipeline — `bieEnabled=false` (or omitted)
+> is the current effective behavior, identical to Pre-Phase-4.
+
+**Files Added (`src/pie/bie/`):**
+| File | Role |
+|------|------|
+| `types.ts` | 7 BIE row-type contracts + shared unions (single source of truth) |
+| `providers/embeddingProvider.ts` | `EmbeddingProvider` interface (no Gemini/Local impl — S3) |
+| `BrainIntelligenceRepository.ts` | SSOT repository interface for all `bie_*` tables (no impl — S4) |
+
+**Files Extended (Additive Only):**
+| File | Additions |
+|------|-----------|
+| `src/pie/types.ts` | `RetrievalSource.semanticScore?` / `.tagMatchScore?` / `.graphScore?` (optional); `PipelineOptions.bieEnabled?` (optional, default true) |
+| `src/lib/db.ts` | `KEYS.BIE_*` constants × 7 — Table DEFINITIONS only (`BIE_EMBEDDINGS`, `BIE_GRAPH_NODES`, `BIE_GRAPH_EDGES`, `BIE_IDENTITY`, `BIE_INSIGHTS`, `BIE_TIMELINE`, `BIE_PENDING_QUEUE`). No get/set methods yet (S4). |
+
+**Domain Types Declared (in `bie/types.ts`):**
+`EmbeddingRecord`, `GraphNode`, `GraphEdge`, `IdentityProfile`, `Insight`, `TimelineItem`, `PendingLearning` — each mirrors the CONFIRMED `bie_*` schema (DECISIONS.md). HITL invariant encoded structurally: `GraphEdge.applied`, `IdentityProfile.applied`, `Insight.applied` are required `boolean`; `PendingLearning` has no `applied` field (in-queue = not applied by definition).
+
+**Provider Contract Highlights (`EmbeddingProvider`):**
+- Async-only surface (`embed`, `batchEmbed`) — uniform for hybrid fallback (P4-5)
+- Typed outcome (`EmbeddingOutcome = ok | failure`) — no throws on quota/network
+- `isAvailable()` + `dimensions` + `id`/`displayName` — orchestrator probes before awaiting
+- Concrete `GeminiEmbeddingProvider` + `LocalBM25EmbeddingProvider` arrive in S3
 
 ### Component Overview
 

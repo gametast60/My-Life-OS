@@ -57,6 +57,22 @@ const KEYS = {
   BRAIN_EVIDENCE: "mylifeos_bt_evidence_v1",
   BRAIN_CONFIG: "mylifeos_bt_config_v1",
   BRAIN_MIGRATION_V1_DONE: "mylifeos_bt_migration_v1_done",
+  // ── BIE — Brain Intelligence Engine (Phase 4) ────────────────────
+  // Table DEFINITIONS only (S1). Namespaced `bie_*` so the entire BIE
+  // dataset can be wiped/backed-up independently of the Core Brain Tree.
+  // Per DECISIONS.md "BIE Storage Location" (CONFIRMED 2026-07-30):
+  // RoomDatabase is the sole persistent backend for BIE; localStorage
+  // is NOT used for BIE persistent data. These keys live in the same
+  // master snapshot as Core tables (single Export/Import).
+  //
+  // Query/migration/business logic land in later sub-phases (S4+).
+  BIE_EMBEDDINGS: "mylifeos_bie_embeddings_v1", // Persistent embedding cache (contentHash-keyed)
+  BIE_GRAPH_NODES: "mylifeos_bie_graph_nodes_v1", // Knowledge graph nodes (Phase 4B)
+  BIE_GRAPH_EDGES: "mylifeos_bie_graph_edges_v1", // Knowledge graph edges, applied=false until HITL (Phase 4B)
+  BIE_IDENTITY: "mylifeos_bie_identity_v1", // Identity profile singleton, applied=false until HITL (Phase 4D)
+  BIE_INSIGHTS: "mylifeos_bie_insights_v1", // Insights FIFO 100, applied=false until HITL (Phase 4D)
+  BIE_TIMELINE: "mylifeos_bie_timeline_v1", // Timeline cache (contentHash-invalidated, rebuildable)
+  BIE_PENDING_QUEUE: "mylifeos_bie_pending_queue_v1", // HITL pending structural suggestions (applied=false by definition)
 };
 
 // ── Default Brain Configuration ──────────────────────────────────
