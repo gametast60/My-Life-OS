@@ -14,6 +14,13 @@
    - `PROMPT.md` (per-step work order)
    - ไฟล์ Archive: `<NAME>_ARCHIVE.md` (4 คู่: AI_ARCHITECTURE, CHANGELOG, DECISIONS, KNOWN_ISSUES)
    ถ้าหาย: กู้คืนจาก Git หรือไฟล์ Archive ก่อน — **ห้ามเริ่มเขียนโค้ดก่อนได้**
+3. **SI-0.3: Archive File Read Discipline (กันโทเค็นบวม)**
+   - ไฟล์ที่ลงท้าย `_ARCHIVE.md` ทุกไฟล์ (AI_ARCHITECTURE_ARCHIVE, CHANGELOG_ARCHIVE, DECISIONS_ARCHIVE, KNOWN_ISSUES_ARCHIVE, ROADMAP_ARCHIVE) **ห้ามอ่านแบบ routine ทุก step** — อ่านเฉพาะเมื่องานปัจจุบันต้องการ historical context จริงๆ เช่น:
+     - Debug bug ที่อาจเกี่ยวกับ decision/implementation เก่า
+     - ต้องอ้าง ADR เก่าเพื่อเข้าใจ trade-off ของ constraint ปัจจุบัน
+     - ต้องยืนยันรายละเอียด step ที่ปิดไปนานแล้วเพื่อไม่ให้ทำซ้ำ
+   - ถ้าแค่ต้อง "ยืนยันว่า entry ถูกย้ายไปแล้วหรือยัง" ให้ใช้ grep/search แทนการ อ่านทั้งไฟล์ (ใช้ view พร้อม view_range หรือ search text แทน full read)
+   - ไฟล์หลัก (ไม่ใช่ archive) เช่น CHANGELOG.md, ROADMAP.md ก็ให้อ่านเท่าที่จำเป็น ต่องาน — เช่น CHANGELOG.md ปกติเช็คแค่ entry บนสุด ไม่ต้องอ่านทั้งไฟล์ เว้นแต่งานนั้นต้องการ full history จริงๆ
 
 ---
 

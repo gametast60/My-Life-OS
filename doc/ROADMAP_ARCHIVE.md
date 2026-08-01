@@ -105,6 +105,26 @@
 
 ---
 
+### ✅ Phase 4D — Identity Engine + Insight Generator + Life Timeline
+
+**Objective:**
+- Identity Summary (single 1-row BIE identity row with values/goals/motivations/personality/strengths/weaknesses/thinking pattern)
+- Insight Generator (6 types) for reflection, pattern, milestone, gap, conflict, and prediction signals
+- Life Timeline Month/Quarter/Year View with milestones and theme breakdown
+- Temporal compare and cache rebuild behavior for timeline contentHash invalidation
+
+**Delivered:**
+1. ✅ Identity engine and singleton persistence via `bie_identity`
+2. ✅ Insight generator and FIFO insight persistence via `bie_insights`
+3. ✅ Timeline builder and cache persistence via `bie_timeline`
+4. ✅ PIE memory-context enrichment path that can surface confirmed identity/insight/timeline context
+
+**Remaining for Next Phase:**
+- Productize identity/insight/timeline into user-visible review and confirmation flows
+- Close the learning loop with confirm/reject/edit/undo behavior
+
+---
+
 ### ⏳ Phase 4B — Knowledge Graph + Relationship Engine
 *ขึ้นก่อนจะทำได้ต่อเมื่อ 4A Delivered เสร็จ (Blocking Chain: 4A→4B→4C→4D)*
 
@@ -191,31 +211,120 @@
 ---
 
 
-### ⏳ Phase 5 — Full Intelligence Platform (UI + Services + BIE Fully Integrated)
+### ⏳ Phase 5 — BIE Productization + Human-in-the-Loop + Learning Loop Closure
 
 **Objective:**
-- BIE Full Features 4A-4D Integrated 100% with UI/UX
-- Confirm UIs (HITL): Identity/Graph/Insight/Timeline Edits
-- Learning Loop Closed: AI Propose → User Confirm → applied=true Persist → Next Retrieval Improved
-- Model Context Protocol (MCP) Integration (ถ้าจำเป็น)
-- AI Agent Tool Use (Local Browser Tooling: File/Calendar/Email/Task Optional Integrations)
+- Make existing BIE intelligence visible and usable through product-facing surfaces
+- Make review, confirmation, rejection, editing, and undo of AI-proposed knowledge explicit and safe
+- Close the feedback and learning loop so user actions feed back into BIE state and future retrieval context
 
-**Scope:**
-- UI Overhaul for BIE Integration + HITL Confirm Screens
-- Service Worker (KI-302) Background Reflect Periodic
-- MCP SDK Optional Local integrations (Calendar/Task/Email)
-- Cross-Device Sync Optional (Cloud Service Optional — Room Database sync)
+**Architecture Map:**
+```text
+User Interaction Layer
+  └─ Confirm / Review / Disable / Explore UIs
+         │
+         ▼
+Phase 5 Product Layer
+  ├─ Semantic Search / Discovery UI
+  ├─ Identity Review UI
+  ├─ Insight Center UI
+  ├─ Timeline Explorer UI
+  └─ Pending Queue / Confirm Flow
+         │
+         ▼
+PIE 9 Layers + PipelineContext
+         │
+         ▼
+RoomBrainIntelligenceRepository (BIE SSOT)
+         │
+         ▼
+Existing BIE Engines
+```
 
-**Deliverables:**
-1. ✨ BIE UI Suite: Semantic Search, Graph Explorer, Identity Dashboard, Insights Center, Life Timeline
-2. ✨ Confirm + Edit UIs Full Suite (HITL applied=true commits)
-3. ✨ Service Worker Background Reflect Jobs (KI-302)
-4. ✨ MCP Optional SDK Integration (Local Tools)
-5. ✨ Learning Loop Close Verification (End-to-End applied=true)
+**Reality Map:**
+```text
+4A Semantic Retrieval
+       ↓
+RoomBrainRepository + MemoryRetrieval enrichment
+       ↓
+PipelineContext
+       ↓
+RoomBrainIntelligenceRepository (pending queue + persistence)
+       ↓
+Phase 5 review / confirm / edit / undo experience
+```
+
+**Sub-phase Plan:**
+- 5A: BIE Discovery & Review Surface — semantic search and pending-review surfaces
+- 5B: Identity + Insight Productization — identity review, insight center, and confirmation flow
+- 5C: Timeline + Memory Context UX — timeline explorer and BIE context in retrieval experience
+- 5D: Closeout & Hardening — disable switch safety, regression, learning-loop validation, and handoff polish
+
+**Core Constraints:**
+- P5-0 UI/UX Unlock: UI/UX changes are allowed from Phase 5 onward when required to productize BIE capabilities
+- P5-1 HITL remains mandatory for structural changes
+- P5-2 Disable switch remains mandatory
+- P5-3 No silent replacement of legacy behavior
+- P5-4 Productization must follow PIE and BIE Repository SSOT
+- P5-5 User control must remain explicit
+
+**Step Breakdown (Initial Suggested Decomposition):**
+
+**S30 — Define Phase 5 Product Surface and Confirm UX Contract**
+- หน้าที่: Define the minimum BIE surfaces and the review/confirm contract
+- Input: Existing BIE engines, PIE memory retrieval integration, pending queue pattern
+- Output: Product map and UX contract
+- Dependencies: Existing semantic retrieval, identity, insight, timeline, and pending queue foundations
+- Acceptance Criteria: UI scope is explicit and HITL contract is clear
+- ไม่ทำ: New backend services or non-essential feature expansion
+- Footprint: Task / UI / AI / Testing
+
+**S31 — Build BIE Discovery & Review Surface**
+- หน้าที่: Create a user-facing discovery and review experience for semantic/context suggestions
+- Input: SemanticService / VectorIndex / HybridScorer outputs and pending queue
+- Output: Discovery view and review list for BIE proposals
+- Dependencies: S30
+- Acceptance Criteria: Users can review BIE proposals without breaking existing flow and bieEnabled=false remains safe
+- ไม่ทำ: Full graph editing workflow or autonomous actions
+- Footprint: Task / UI / AI / Testing
+
+**S32 — Productize Identity + Insight Flow**
+- หน้าที่: Surface identity profiles and insights through reviewable experiences
+- Input: Identity engine, insight generator, repository persistence, pending queue behavior
+- Output: Identity review experience and insight review experience
+- Dependencies: S31
+- Acceptance Criteria: Identity and insights are reviewable and do not silently apply
+- ไม่ทำ: Advanced long-term identity modeling beyond current engine capability
+- Footprint: Task / UI / AI / Testing
+
+**S33 — Productize Timeline + BIE Context in Retrieval Experience**
+- หน้าที่: Make timeline output and BIE context visible in the retrieval experience
+- Input: MemoryRetrieval enrichment logic, timeline builder, PIE context pipeline
+- Output: Timeline view and BIE context integration for retrieval
+- Dependencies: S32
+- Acceptance Criteria: Timeline/BIE context is readable and legacy behavior remains intact when disabled
+- ไม่ทำ: Full autonomous proactive behavior beyond current retrieval context
+- Footprint: Task / UI / AI / Testing
+
+**S34 — Closeout, Regression, and Handoff**
+- หน้าที่: Validate behavior, regression, and handoff readiness
+- Input: All Phase 5 surfaces and flows, build/lint status
+- Output: Handoff package and remaining-gap list
+- Dependencies: S33
+- Acceptance Criteria: System is consistent with the architecture and safe when disabled
+- ไม่ทำ: Rewriting roadmap or claiming later-phase completion
+- Footprint: Task / UI / AI / Testing
+
+**Definition of Done:**
+- BIE intelligence is visible to the user
+- It is reviewable, editable, confirmable, reversible, and persisted safely
+- It feeds future retrieval and improves AI context
+- Undo/safe rollback must restore the underlying intelligence state, not merely hide the item from the UI
 
 ---
 
 ### ⏳ Phase 6 — Personal Evolution Engine (AI ถาม → AI เรียนรู้)
+*Cross-reference: Phase 5 focuses on productizing the existing BIE foundation and closing the human feedback loop; Phase 6+ continues into proactive intelligence, knowledge-gap detection, curiosity, and identity evolution.*
 *Blocking Chain: Phase 5 Delivered → Phase 6 Start*
 
 **Objective:**

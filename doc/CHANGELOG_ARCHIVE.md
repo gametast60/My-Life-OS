@@ -1,324 +1,204 @@
-# ROADMAP_ARCHIVE.md — Closed/Delivered Phases + Future Planned Detail
+# CHANGELOG_ARCHIVE.md — Archived Changelog Entries
 
-> ไฟล์นี้เก็บ:
-> 1. **Past Delivered Phases Detail**: Phase 1, Phase 2, Phase 3 Full Detail (Objective/Completed/Remaining/Next Phase Text เต็ม)
-> 2. **Future Planned Phases Detail**: Phase 4B, 4C, 4D, Phase 5 Full Detail (Objective/Scope/Deliverables Full Text)
-> 3. **Intelligence Evolution Track Detail**: Phase 6 (Personal Evolution Engine), Phase 7 (Life Pattern Intelligence), Phase 8 (Second Brain) Full Detail (Objective/Core Components/Deliverables Full Text)
+> ⚠️ DATA GAP NOTICE (2026-08-01):
+> ไฟล์นี้เดิมควรเก็บ Changelog แบบละเอียดของ Phase 4A S1-S5 และ Phase 2
+> แต่เนื้อหาถูกวางผิดเป็นสำเนาซ้ำของ ROADMAP_ARCHIVE.md มาก่อนหน้านี้
+> ผลคือ Changelog ระดับ step ของ Phase 4A S1-S5 และ Phase 2 สูญหายถาวร
+> (ไม่ได้กู้คืนจาก Git — เป็นการตัดสินใจยอมรับ trade-off)
 >
-> **ไฟล์ ROADMAP หลัก /doc/ROADMAP.md เก็บเฉพาะ Status Sections ที่แก้บ่อย (Current Status Banner, 4A Work Order Toggle Table, 4A Scope, Progress Summary Table)**
+> หากต้องการ context ย้อนหลังของ step เหล่านั้น ให้ใช้แทน:
+> - AI_ARCHITECTURE_ARCHIVE.md (มี summary ระดับไฟล์/component ของ S1-S7)
+> - DECISIONS_ARCHIVE.md (มี ADR rationale เชิงลึกของ S4, S6)
+> - ROADMAP_ARCHIVE.md (มี milestone-level Objective/Delivered/Remaining ของ Phase 2 และ Phase 4B/4C/4D)
+>
+> ตั้งแต่บรรทัดนี้เป็นต้นไป ไฟล์นี้ใช้เก็บ Changelog entries ที่ย้ายมาจาก CHANGELOG.md ตามกฎ SI-3 (เริ่มเก็บใหม่จาก Phase 4A/4B/4C ที่ย้ายมาในงานนี้ — ดู entries ด้านล่าง)
 
 ---
 
-## 📜 Archived: Past Delivered Phases (Full Detail)
+## Compressed Summary Index
+
+- [Phase 4A — S9] Regression & Docs Gate — DELIVERED 2026-08-01. Verified: build/lint 0 errors, bieEnabled=false/true static traces confirmed, HYBRID_WEIGHT_SUM guard verified. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4A — S8] Tuning & Weight Calibration — DELIVERED 2026-08-01. Added named hybrid weights, synonym dictionary guards, and additive hybrid sort path. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4A — S7] Disable Switch Integration — DELIVERED 2026-08-01. Added bieEnabled threading guard preserving Pre-Phase-4 retrieval baseline on explicit false. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4A — S6] Wire Hooks into PIE Layers — DELIVERED 2026-08-01. Added BIE enrichment hooks with graceful fallback and preserved legacy sort order. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S16] Phase 4B Closeout & Regression Gate — DELIVERED 2026-08-01. Knowledge Graph + Relationship Engine delivered across S10-S16 with HITL invariants verified. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S15] Graph Context Enrichment & Inference Engine — DELIVERED 2026-08-01. Added transitive inference and graph-aware retrieval context formatting. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S14] Relationship Extraction Engine — DELIVERED 2026-08-01. Added relationship extraction and pending proposal routing. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S13] Graph Query & Neighbourhood Traversal — DELIVERED 2026-08-01. Added read-only graph traversal helpers. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S12] Graph Persistence & Repository Write Layer — DELIVERED 2026-08-01. Added real graph storage and confirm-safe write layer. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S11] Entity Resolution & Duplicate Tag Matcher — DELIVERED 2026-08-01. Added duplicate candidate detection and merge dry-run report support. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4B — S10] Knowledge Graph + Relationship Engine Kickoff — DELIVERED 2026-08-01. Added graph type contracts and pending-queue proposal scaffolding. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S22] Phase 4C Closeout & Regression Gate — DELIVERED 2026-08-01. Reflection phase closed out with full regression and HITL invariant checks. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S21] Background Reflect Job Runner — DELIVERED 2026-08-01. Added non-blocking reflection orchestrator with four-stage cycle. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S20] Brain Tree Decay Calculation Engine — DELIVERED 2026-08-01. Added decay engine and batch calculation helpers. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S19] Contradiction & Conflict Detector — DELIVERED 2026-08-01. Added conflict detection and pending-queue routing. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S18] Evidence Consolidation Engine — DELIVERED 2026-08-01. Added evidence consolidation and dangling-reference cleanup paths. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
+- [Phase 4C — S17] Reflection Type & Provider Contracts Kickoff — DELIVERED 2026-08-01. Added reflection contracts and module stubs. รายละเอียดเต็มอยู่ด้านล่างไฟล์นี้.
 
 ---
 
-### ✅ Phase 1 — Foundation + 9 AI Features
+## Full Details
 
-**Objective:**
-- โครงสร้างฐานระบบ React + TypeScript + Vite + Tailwind
-- ระบบ Storage (IndexedDB + RoomDatabase + localStorage Fallback)
-- 9 จุดเรียกใช้ AI ทำงานได้ผ่าน Provider API เดียว
-- Basic Role Persona 9 ตัว (Prompt สำหรับแต่ละบทบาท)
-- No Brain Tree / No PIE Architecture (แต่ถูกพัฒนาต่อในภายหลัง)
+### [Phase 4A — S9] Regression & Docs Gate
+**Status**: ✅ Complete (2026-08-01)
 
-**Delivered:**
-1. ✅ Foundation Stack: React 18 + TypeScript Strict + Vite 5 + Tailwind CSS 3
-2. ✅ Storage Abstraction: `RoomDatabase` IndexedDB (`idb` package) Schema 14 Tables
-   + Backup Snapshot Import/Export (Base64 ZIP)
-3. ✅ Brain Tree V1 Schema: Types(5) → Dimensions(13) → Tags(N) → Evidences(N)
-4. ✅ Journal Schema: Daily 5 Categories (Work/Finance/Health/Relationship/Goal)
-5. ✅ Character/Growth Schema: Level, EXP, Attribute, Role XP
-6. ✅ Native 9 Role Persona Prompts: Creator/Detective/Empath/Mentor/Philosopher/Strategist/Tactician/Voice/Youth/
-7. ✅ AI 7 Features 100% Functional (บางส่วนผ่าน Legacy Pipeline; ไม่ได้ PIE)
-8. ✅ Settings: API Provider (Gemini/OpenAI), API Key, Dark/Light Theme
-9. ✅ Exports: Brain Card CSV, Journal CSV, Brain Tree JSON Snapshot
+### Verified
+- ✅ `npm run build` Exit 0 (vite + esbuild; 2149 modules transformed, no TS errors).
+- ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ Static trace bieEnabled=false: S7 guard fires first and returns legacy before any S8/BIE code; zero semanticService/VectorIndex instantiation confirmed.
+- ✅ Static trace bieEnabled=true: `hybridRankItems()` runs and returns hybrid-sorted legacy results.
+- ✅ `hybridScorer.ts` `HYBRID_WEIGHT_SUM` guard verified.
+- ✅ `synonyms.ts` `validateSynonymDictionary()` exported; 50+ synonym pairs confirmed.
+- ✅ All 7 aiService facade methods UNTOUCHED (P4-8 compliant).
 
-**Remaining for Next Phase:**
-- AI Call Points Not Unified Routing (7 features call Provider API directly no pipeline)
-- Memory Retrieval Zero: Chat ดู Context เดียว ไม่ดึง Memory จาก Brain Tree/Journal เลย
-- Learning Zero: AI ไม่ได้เรียนรู้จากการสนทนา ลง Memory ใดๆ
-- Role/Intent Zero: Auto Role Selection หรือ Intent Classification ไม่มี
+### [Phase 4A — S8] Tuning & Weight Calibration
+**Status**: ✅ Complete (2026-08-01)
 
----
+### Added
+- 📦 `hybridScorer.ts`: named exported weights and `HYBRID_WEIGHT_SUM` guard.
+- 📚 `synonyms.ts`: synonym dictionary bootstrap and optional expansion helpers.
+- 🔀 `RoomBrainRepository.ts`: conditional hybrid sort enable path while preserving pre-4 behavior when disabled.
 
-### ✅ Phase 2 — Core PIE Architecture + Memory Retrieval
+### Verified
+- ✅ Build Exit 0 · Lint/tsc Exit 0 post-S8.
+- ✅ bieEnabled=false trace remains byte-identical to pre-Phase-4 baseline.
+- ✅ P4-8 additive-only compliance preserved.
 
-**Objective:**
-- สร้าง PIE Pipeline 9 Layers + Unified Context Object
-- Wired 7 AI Call Points 100% ผ่าน PIE
-- Memory Retrieval Hierarchical (Brain Tree + Journal + Legacy Cards Fallback)
-- Keyword Ranking 3 Factors (TF-IDF × Role Permission × Dimension Match)
-- Response Analyzer + Learning Engine (applied=false, Pending Queue localStorage)
-- Role Intent Classifier 8 Native Roles + Intent 12 ประเภท
-- Prompt Manager Native Role Prompt + Auto Persona Switch
-- Mode Router Legacy Mode → Role Map
+### [Phase 4A — S7] Disable Switch Integration (bieEnabled Threading Layer)
+**Status**: ✅ Complete (2026-08-01)
 
-**Delivered:**
-1. ✅ **PIE Core**: `PipelineContext` SSOT; PIPELINE_STAGES enum; 9 Layer interfaces functional `ctx in → ctx out`
-2. ✅ **Intent Classifier**: Native 8-Role Heuristic Classifier (keywords+patterns+weights) + 12 Intent Classifications
-3. ✅ **Memory Retrieval 3 Layers**: BrainTree Primary + Journal Primary + Legacy BrainCards Fallback (Threshold=5)
-4. ✅ **Keyword Ranking**: 3 Factors: Keyword Match TF-IDF × Role Permission Filter × Dimension Weight
-5. ✅ **Response Analyzer + Learning Engine**: `analyzeAIResponse()`, `runLearningEngine()`, `mylifeos_pie_pending_learning_v1` Queue, applied=false 100%
-6. ✅ **Prompt Manager Native Roles**: `getRolePrompt()`, `addPersonaContext()`, `buildFinalSystemPrompt()`
-7. ✅ **Mode Router Legacy**: MODE_PROMPTS → Native Role (Coach→Strategist, Therapist→Empath, Decision→Detective, Reflection→Mentor, Chat→Youth)
-8. ✅ **PipelineLogger Singleton**: FIFO 200, per-stage duration/ranking/retrieval stats
-9. ✅ **7 AI Call Points 100% PIE**: Chat 6 modes, Greeting, Daily Summary, Journal Analysis, Brain Card Suggest, Life Guide, Placement Suggest
+### Added
+- 🔌 Threaded `bieEnabled` through `PipelineContext`, repository signatures, and memory retrieval path.
+- 🛡️ Early-return guard before BIE module instantiation when `bieEnabled === false`.
 
-**Remaining for Next Phase:**
-- No Semantic Retrieval (Keyword Only) → Precision/Recall Issue
-- No Knowledge Graph (Tag-to-Tag Relationships)
-- No Identity Model / No Reflection Engine / No Insight Generator / No Life Timeline
-- Pending Confirm UI = Zero applied=false Items Stuck
-- Legacy MODE_PROMPTS Duplicate Native Roles
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Guard location ensures zero BIE constructor calls and zero embedding HTTP calls on disabled path.
+- ✅ Backward compatibility preserved for default/undefined and enabled modes.
 
----
+### [Phase 4A — S6] Wire Hooks into PIE Layers (Preserve Signatures)
+**Status**: ✅ Complete (2026-08-01)
 
-### ✅ Phase 3 — Clean Architecture: Repository SSOT + Legacy Prompt Merge
+### Added
+- 🔌 BIE enrichment hook in `RoomBrainRepository.getRelevantMemory()` with graceful fallback.
+- 🧩 Additive score assignments onto existing legacy result objects while preserving legacy sort order.
 
-**Objective:**
-- BrainRepository Interface + RoomBrainRepository Concrete Implementation (SSOT for Memory)
-- memoryRetrieval.ts ลบ Conversion Logic ซ้ำ (RoomBrainRepository SSOT)
-- MODE_PROMPTS Deletion → 9 Native Roles Single Source of Truth
-- aiService.ts Clean Up: Thin Facade ลด 630 → 550 lines
-- PIE Public Barrel Export (src/pie/index.ts)
-- Consistency: Pending Learning Queue / Settings / Role Prompt Policy Clear
-- 100% Regression Pass
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Any BIE throw falls back to the unmodified legacy result.
+- ✅ HITL invariant remains intact; no structural writes occur in this step.
 
-**Delivered:**
-1. ✅ **BrainRepository Interface + RoomBrainRepository Concrete**: 23 Methods Full Coverage (Brain Tree CRUD, Journal, Intent Permissions, Settings, Backup)
-2. ✅ **memoryRetrieval.ts 75% Deletion**: 272 → 67 lines; RoomBrainRepository.getRelevantMemory() = SSOT for conversion
-3. ✅ **RequestContextOverride Interface**: Views extraContext backward compat (Brain Cards / Recent Journals Passthrough)
-4. ✅ **MODE_PROMPTS → LEGACY_MODE_CONFIG**: Delete Legacy Prompt Record 7; 5 → Native Role Direct Map; 2 → customSystemPrompt inline Future Self/Secretary
-5. ✅ **aiService.ts Facade Clean**: Delete MODE_PROMPTS, Delete Dead Code, Optimize Mode → Role Configs (630→550, -80 lines)
-6. ✅ **PIE Barrel**: `src/pie/index.ts` export everything; external code single-line import
-7. ✅ **7 PIE Features 100% Regression**: Lint + Build 0 errors, All AI features route PIE correctly
+### [Phase 4B — S16] Phase 4B Closeout & Regression Gate
+**Status**: ✅ Complete (2026-08-01)
 
-**Remaining for Next Phase:**
-- No Semantic Retrieval: Keyword-Only 3-factor ranking → Phase 4A Add Semantic Embeddings + Hybrid Scoring
-- No Knowledge Graph: Tag-to-Tag / Person Relationships → Phase 4B Graph Edge Engine
-- No Identity/Insight/Timeline: → Phase 4C Reflection + 4D Identity/Insight/Timeline
-- Confirm UI Pending Queue Zero applied=false Pending Items not processed
+### Added
+- 🏆 Phase 4B delivered end-to-end across S10-S16.
+- 🧪 Full regression audit: lint/build exit 0.
+- 🔒 HITL invariants verified across graph modules and pending-queue routing.
 
----
+### [Phase 4B — S15] Graph Context Enrichment & Inference Engine
+**Status**: ✅ Complete (2026-08-01)
 
-## 🚀 Archived: Future Planned Phase Detail (4B/4C/4D + Phase 5)
+### Added
+- 🧠 Added transitive inference and graph-aware context enrichment for retrieval.
+- 📦 Exposed new graph inference exports through the BIE graph barrel.
 
----
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Read-only inference path preserves HITL invariants.
 
-### ⏳ Phase 4B — Knowledge Graph + Relationship Engine
-*ขึ้นก่อนจะทำได้ต่อเมื่อ 4A Delivered เสร็จ (Blocking Chain: 4A→4B→4C→4D)*
+### [Phase 4B — S14] Relationship Extraction Engine
+**Status**: ✅ Complete (2026-08-01)
 
-**Objective:**
-- Build Multi-relational Tag Knowledge Graph (supports/conflicts/derived/related/causes/opposes 6 ประเภท Edges)
-- Merge Redundant Duplicate Tags (Synonym + Semantic Matching)
-- Entity Resolution (Person, Organization, Fear, Life Lesson, Milestone Nodes)
-- Semantic Edge Proposals (Auto Suggest but HITL applied=false Pending Queue)
-- Graph Inference (Transitive Closure 2-hop): "A causes B" + "B conflicts C" → "A indirect conflicts C"
+### Added
+- 🔍 Added relationship extraction and pending-queue routing helpers.
+- 🔒 Candidate edges are always proposed as `applied: false` HITL items.
 
-**Scope:**
-- Add Provider Interfaces: GraphStore, EntityResolver, EdgeProposalGenerator
-- Implementations: `RoomDatabaseGraphStore` (bie_graph_nodes / bie_graph_edges)
-- Merge Flow: Detection → Dry-Run Diff Report → Confirm UI → applied=true Commit
-- Entity Ingestion: Scan Brain Tree/Journal/Evidence → Extract Person/Fear/Milestone → Graph Nodes
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Zero auto-applied writes to graph DB.
 
-**Deliverables:**
-1. ✨ Graph Schema 7 Node Kinds + 6 Edge Types + Transitive 2-hop Queries
-2. ✨ Merge Strategy: Synonym Match (S2 dict) + Semantic Similarity ≥ 0.82 → Dry-Run Diff Report
-3. ✨ Entity Resolution: Person/Fear/Lesson/Milestone/Experience Node Extractors
-4. ✨ Edge Proposal Generator: Automatic Proposal + HITL Pending Queue (applied=false)
-5. ✨ Graph Retrieval Layer: Rank Context + Similar Nodes (tag co-occurrence + semantic+edge weights)
-6. ✨ Knowledge Graph CRUD UI (Confirm / Reject / Edit Edges before applied=true)
+### [Phase 4B — S13] Graph Query & Neighbourhood Traversal
+**Status**: ✅ Complete (2026-08-01)
 
----
+### Added
+- 🔍 Added read-only graph traversal methods for neighbourhood and shortest path queries.
+- 🔀 Added additive repository query methods for graph nodes/edges.
 
-### ⏳ Phase 4C — Memory Intelligence + Reflection Engine
-*Blocking Chain: 4B Delivered → 4C Start*
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Zero DB write side effects.
 
-**Objective:**
-- Auto-Merge Duplicate Brain Tags (Periodic Background Reflect)
-- Resolve Conflicts: "I am introvert" + "I love hosting" → Auto Contradiction Detector → Propose Resolution
-- Evidence Consolidation + Cleanup: Old tagIds → New after Merge; No Dangling References
-- Reflection Engine (P4-11): Overnight Background Async: Consolidate → Conflict → Merge → Propose
-- Semantic-Similarity-Driven Outdated Tag Replacement (Threshold Tuned)
-- Brain Tree Decay Impl (KI-202): Time since last evidence → Exponential Decay Level Curve
+### [Phase 4B — S12] Graph Persistence & Repository Write Layer
+**Status**: ✅ Complete (2026-08-01)
 
-**Scope:**
-- Add Provider Interfaces: ReflectorEngine, ConflictDetector, EvidenceConsolidator, DecayEngine
-- Background Runner: Promise.allSettled / setTimeout 2min idle
-- Dry-Run Reports before Commit (applied=true 100% HITL Confirm)
+### Added
+- 🗄️ Added persistent graph node/edge storage and repository write implementations.
+- 🔒 Added confirm-safe graph edge application path with HITL invariant preserved.
 
-**Deliverables:**
-1. ✨ Consolidation Engine: Duplicate Tag Merge + Dangling Reference Fix + Rollback Safe
-2. ✨ Conflicts + Contradiction Detector (Evidence-based)
-3. ✨ Outdated Tag Replacement Engine (Semantic + Decay Thresholds)
-4. ✨ Decay Calculation Engine (Exponential Level Curve)
-5. ✨ HITL Reflect UI: Diff Reports + Confirm/Reject for Proposed Changes
-6. ✨ Background Reflect Job Runner (P4-11 Promise-based, Non-Blocking)
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Graph writes require explicit confirm path rather than direct apply.
 
----
+### [Phase 4B — S11] Entity Resolution & Duplicate Tag Matcher
+**Status**: ✅ Complete (2026-08-01)
 
-### ⏳ Phase 4D — Identity Engine + Insight Generator + Life Timeline
-*Blocking Chain: 4C Delivered → 4D Start*
+### Added
+- 🔍 Added duplicate candidate detection, merge report generation, and entity normalization helpers.
 
-**Objective:**
-- Identity Summary (Single 1-row BIE Identity: Values/Goals/Motivations/Personality/Strengths/Weaknesses/Thinking Pattern)
-- Insight Generator (6 Types): Trend / Anomaly / Progress / Milestone / Conflict Alert / Pattern Detection
-- Life Timeline Month/Quarter/Year View (Thematic Phases + Milestones + Top Tag Evolution)
-- Semantic Identity Similarity Matching (Who Am I Today vs 6 Months Ago)
-- Timeline Rebuild Cache Invalidation: Evidence Set contentHash → Rebuild Timeline Cache
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ Merge operations remain read-only until confirmed.
 
-**Scope:**
-- Provider Interfaces: IdentityEngine, InsightGenerator, TimelineBuilder
-- Timeline Cache = `bie_timeline` RoomDB (rebuildable; contentHash invalidation)
-- Identity = `bie_identity` singleton row applied=false until Confirm
+### [Phase 4B — S10] Knowledge Graph + Relationship Engine Kickoff
+**Status**: ✅ Complete (2026-08-01)
 
-**Deliverables:**
-1. ✨ Identity Summary + Identity Similarity Temporal Compare
-2. ✨ Insight Generator 6 Types FIFO 100 (`bie_insights`)
-3. ✨ Life Timeline (M/Q/Y View) + Thematic Breakdown
-4. ✨ Timeline + Identity Propose (Confirm UI) = applied=false pending queue
-5. ✨ Content Hash Cache Invalidation Policy for Timeline
+### Added
+- 📦 Added graph type contracts, repository stubs, and pending-queue proposal types.
+- 🔀 Added additive widening for knowledge graph contracts and repository signatures.
 
----
+### Verified
+- ✅ Build and lint exit 0.
+- ✅ HITL-friendly proposal types enforce `applied: false`.
 
-### ⏳ Phase 5 — Full Intelligence Platform (UI + Services + BIE Fully Integrated)
+### [Phase 4C — S22] Phase 4C Closeout & Regression Gate
+**Status**: ✅ Complete (2026-08-01)
 
-**Objective:**
-- BIE Full Features 4A-4D Integrated 100% with UI/UX
-- Confirm UIs (HITL): Identity/Graph/Insight/Timeline Edits
-- Learning Loop Closed: AI Propose → User Confirm → applied=true Persist → Next Retrieval Improved
-- Model Context Protocol (MCP) Integration (ถ้าจำเป็น)
-- AI Agent Tool Use (Local Browser Tooling: File/Calendar/Email/Task Optional Integrations)
+### Verified
+- ✅ `npm run lint` and `npm run build` exit 0.
+- ✅ Reflection proposals carry `applied: false` invariants across the full stack.
+- ✅ Phase 4C closed out successfully and handed off to Phase 4D.
 
-**Scope:**
-- UI Overhaul for BIE Integration + HITL Confirm Screens
-- Service Worker (KI-302) Background Reflect Periodic
-- MCP SDK Optional Local integrations (Calendar/Task/Email)
-- Cross-Device Sync Optional (Cloud Service Optional — Room Database sync)
+### [Phase 4C — S21] Background Reflect Job Runner (P4-11)
+**Status**: ✅ Complete (2026-08-01)
 
-**Deliverables:**
-1. ✨ BIE UI Suite: Semantic Search, Graph Explorer, Identity Dashboard, Insights Center, Life Timeline
-2. ✨ Confirm + Edit UIs Full Suite (HITL applied=true commits)
-3. ✨ Service Worker Background Reflect Jobs (KI-302)
-4. ✨ MCP Optional SDK Integration (Local Tools)
-5. ✨ Learning Loop Close Verification (End-to-End applied=true)
+### Added
+- 🔄 Added a non-blocking reflection cycle orchestrator with four-stage execution.
+- 🔒 Reflection proposals route into the pending queue with `applied: false` semantics.
 
----
+### [Phase 4C — S20] Brain Tree Decay Calculation Engine
+**Status**: ✅ Complete (2026-08-01)
 
-## 🚀 Archived: Intelligence Evolution Track Detail (Phase 6/7/8)
+### Added
+- 📉 Added decay configuration rules and batch/standalone calculation helpers.
 
-> Direction Shift หลัง Phase 5: จากพัฒนา "ฟีเจอร์" → พัฒนา "สติปัญญา (Intelligence)" ของ AI
-> Blocking Chain: 5 (Full Intel Platform) → 6 → 7 → 8
+### [Phase 4C — S19] Contradiction & Conflict Detector
+**Status**: ✅ Complete (2026-08-01)
 
----
+### Added
+- ⚡ Added conflict detection with pending-queue routing helpers.
+- 🔒 Generated conflict proposals enforce HITL-safe `applied: false` state.
 
-### ⏳ Phase 6 — Personal Evolution Engine
-*Blocking Chain: Phase 5 Delivered → Phase 6 Start*
+### [Phase 4C — S18] Evidence Consolidation Engine
+**Status**: ✅ Complete (2026-08-01)
 
-**Objective:**
-- เปลี่ยนรูปแบบจาก "User ถาม → AI ตอบ" เป็น "AI ถาม → AI เรียนรู้ → AI เข้าใจเจ้าของ"
-- AI เริ่มเก็บข้อมูลเจ้าของอย่างเป็นระบบ ผ่านคำถามที่เลือกเอง ไม่ใช่สุ่ม
-- ทุก Insight ต้องมี Evidence รองรับ ไม่ใช่การเดา (สอดคล้องหลัก HITL applied=false เดิม)
+### Added
+- 🧹 Added evidence consolidation helpers for tag reassignment and dangling-reference cleanup.
 
-**Core Components:**
-1. 🗣️ **Daily Self Interview**: AI ถาม 1-3 คำถาม/วัน (ความภูมิใจ, ความเสียใจ, บทเรียน, อารมณ์, ความเครียด, บุคคลที่มีอิทธิพล, พลังงาน, การตัดสินใจผิดพลาด)
-2. 📊 **Knowledge Gap Detector**: Progress Bar ต่อ Dimension (Identity/Goal/Career/Relationship/Fear ฯลฯ) แสดงว่ายังขาดข้อมูลด้านไหน
-3. 🔍 **Curiosity Engine**: จำเหตุการณ์ที่ผู้ใช้เล่าไว้ (เช่น "ทะเลาะกับหัวหน้า") แล้วย้อนถามติดตามผลในภายหลัง (เช่น อีก 3 วัน) เพื่อจำลองความอยากรู้แบบมนุษย์
-4. 🧬 **Identity Model**: สร้างโปรไฟล์จาก Evidence ครอบคลุม Core Values, Beliefs, Thinking Style, Decision Style, Stress Pattern, Motivation, Love Language, Communication Style, Learning Style, Risk Tolerance, Money Mindset, Leadership Style — ใช้ศัพท์ Identity ให้สอดคล้องกับ Phase 4D (Identity Singleton) ทั้งโปรเจกต์
-5. 📈 **Confidence Score**: ทุกข้อสรุปเกี่ยวกับผู้ใช้ต้องมี Confidence % + Evidence Count + Last Updated + Contradiction Flag + Source อ้างอิง
-6. 🧠 **Adaptive Question Engine** *(แกนกลางของ Phase 6)*: ตัวตัดสินใจว่า "วันนี้ AI ควรถามอะไร" โดยรวมสัญญาณจาก Knowledge Gap + Identity Confidence + Timeline + Recent Events + Reflection + Pattern (Phase 7) แล้วคำนวณว่าคำถามไหนจะเพิ่มความเข้าใจเจ้าของได้มากที่สุด — ไม่สุ่มถาม และไม่ถามซ้ำสิ่งที่ Confidence สูงอยู่แล้ว ทำให้ Daily Self Interview / Curiosity Engine ไม่ทำงานแยกกันแบบสุ่ม แต่ถูกสั่งงานจากเอนจินเดียวกัน
+### [Phase 4C — S17] Reflection Type & Provider Contracts Kickoff
+**Status**: ✅ Complete (2026-08-01)
 
-**Scope:**
-- Provider Interfaces: SelfInterviewEngine, KnowledgeGapDetector, CuriosityEngine, IdentityModelBuilder, AdaptiveQuestionEngine
-- Storage: คำถาม/คำตอบ Interview History, Identity Model Fields พร้อม Confidence Metadata, Question Selection Log (สำหรับ Adaptive Question Engine ใช้อ้างอิงว่าเคยถามอะไรไปแล้ว)
-- ต้องเชื่อมกับ BIE (Phase 4) เพื่อดึง/บันทึก Evidence ผ่าน Repository SSOT เดิม
-- Adaptive Question Engine เป็น Orchestrator เรียกใช้ Knowledge Gap Detector + Curiosity Engine + Identity Confidence Score เป็น Input ก่อนตัดสินใจเลือกคำถาม
+### Added
+- 📦 Added reflection type contracts, provider stubs, and module entry points.
+- 🔀 Added additive widening for reflection-related BIE pending kinds.
 
-**Deliverables:**
-1. ✨ Daily Self Interview Engine + Question Bank (Gap-Aware, Non-Random)
-2. ✨ Knowledge Gap Dashboard (Progress Bar ต่อ Dimension)
-3. ✨ Curiosity Engine: Follow-up Question Scheduler
-4. ✨ Identity Model Schema (12 Dimensions) + Builder from Evidence
-5. ✨ Confidence Score System (Confidence / Evidence Count / Last Updated / Contradiction / Source)
-6. ✨ Adaptive Question Engine: Signal Aggregator + Question Ranking/Selection Logic (Core Orchestrator ของ Phase 6)
-
----
-
-### ⏳ Phase 7 — Life Pattern Intelligence
-*Blocking Chain: Phase 6 Delivered → Phase 7 Start*
-
-**Objective:**
-- เมื่อ AI มีข้อมูลมากพอจาก Phase 6 ให้เริ่มค้นหา "Pattern" ของชีวิตผู้ใช้
-- เชื่อมโยงเหตุและผล (Cause & Effect) ระหว่างพฤติกรรม/สภาวะต่าง ๆ
-- เริ่มทำนายพฤติกรรม/ผลลัพธ์ล่วงหน้า และชี้ Blind Spot ที่ผู้ใช้อาจไม่รู้ตัว
-
-**Core Components:**
-1. 🔁 **Pattern Discovery Engine**: ค้นหา Pattern ที่เกิดซ้ำเองจากทุกแหล่งข้อมูล ไม่ใช่แค่ Habit — ครอบคลุม Journal, Goal, Reminder, Reflection, Check-in, AI Chat, Brain Tree (เช่น นอน<6ชม. → อารมณ์เสีย → กินของหวาน → ไม่ออกกำลังกาย)
-2. ⚙️ **Cause & Effect Engine**: สร้างสายโซ่เหตุ-ผล A→B→C จาก Evidence (เช่น ออกกำลังกาย → เขียน Journal → คิดบวก → ตัดสินใจดีขึ้น)
-3. 🔮 **Personal Prediction**: ทำนายผลลัพธ์ล่วงหน้าจาก Pattern ที่เจอ (เช่น "ถ้าไม่พักวันนี้ พรุ่งนี้มีโอกาสสูงที่จะไม่มีสมาธิ")
-4. 🕳️ **Blind Spot Detection**: ชี้จุดที่ผู้ใช้มักหลีกเลี่ยงโดยไม่รู้ตัว (เช่น หลีกเลี่ยงคุยเรื่องการเงินเวลาเครียดสูง)
-5. 📅 **Growth Report**: สรุปรายเดือน — สิ่งที่ดีขึ้น, นิสัยใหม่, Mindset ใหม่, Skill ใหม่, Identity ใหม่, Goal Progress
-
-**Scope:**
-- Provider Interfaces: PatternDiscoveryEngine, CauseEffectEngine, PredictionEngine, BlindSpotDetector, GrowthReportGenerator
-- Pattern Discovery Engine ต้องอ่านข้ามหลาย Source (Journal/Goal/Reminder/Reflection/Check-in/AI Chat/Brain Tree) ไม่จำกัดแค่ Habit/Behavior Log
-- ต้องอาศัย Identity Model + Confidence Score จาก Phase 6 เป็น Input หลัก
-- Background/Periodic Analysis คล้าย Reflection Engine (Phase 4C) แต่ทำงานระดับ Pattern ไม่ใช่ระดับ Tag
-
-**Deliverables:**
-1. ✨ Pattern Discovery Engine (Cross-Source Repeated Pattern Detection)
-2. ✨ Cause & Effect Chain Builder (A→B→C Evidence-based)
-3. ✨ Personal Prediction Engine (Confidence-scored Forecasts)
-4. ✨ Blind Spot Detector + Alert
-5. ✨ Monthly Growth Report Generator (HITL Review before Save)
-
----
-
-### ⏳ Phase 8 — Second Brain
-*Blocking Chain: Phase 7 Delivered → Phase 8 Start*
-
-**Objective:**
-- เป้าหมายสูงสุดของสาย Intelligence Evolution: AI ไม่ใช่แค่ "จำได้" แต่ "เข้าใจตัวคุณ" พร้อมหลักฐานอ้างอิงได้ทุกข้อสรุป
-- รวม Identity, Timeline, Insight และความสามารถ Proactive เข้าด้วยกันเป็นระบบเดียว
-
-**Core Components:**
-1. 🪪 **Identity Engine**: ตอบคำถาม "คุณเป็นคนแบบไหน" ได้ พร้อมอ้าง Evidence ประกอบ (ต่อยอดจาก Phase 4D Identity Singleton)
-2. 🗓️ **Life Timeline**: ย้อนดูเหตุการณ์ชีวิตแบบปีต่อปี (เช่น 2026: TOPIK, เปลี่ยนงาน, เริ่มลงทุน, เริ่มออกกำลังกาย → 2027: เริ่มเทรด → 2028: ลาออกจากงาน)
-3. 📖 **Personal Insight Engine**: สรุปบทเรียนชีวิตจาก Pattern สะสม (เช่น "ทุกครั้งที่เลือกพัฒนาตัวเองระยะยาว มักได้ผลตอบแทนคุ้มค่ากว่าทางลัด") — ใช้ศัพท์ Insight ให้สอดคล้องกับ Insight Generator เดิมใน Phase 4D; **Wisdom คือผลลัพธ์ระดับสูงที่ Engine นี้สร้างขึ้น ไม่ใช่ชื่อโมดูล**
-4. 🔔 **Proactive AI**: AI เริ่มบทสนทนาเอง — เตือนก่อนหมดไฟ, เตือนก่อนเครียด, เสนอเป้าหมายใหม่, แนะนำหนังสือ/คอร์ส, เตือนให้พัก, เตือนให้โทรหาคนสำคัญ, เตือนให้กลับไปทำเป้าหมายที่ละเลย
-
-**Scope:**
-- Provider Interfaces: IdentityEngineV2 (ต่อยอด 4D), TimelineBuilderV2, PersonalInsightEngine, ProactiveNotifier
-- ต้องรวม Output จาก Phase 6 (Identity Model) + Phase 7 (Pattern/Prediction) เป็น Input
-- Proactive AI ต้องผ่าน HITL เช่นเดิม — เสนอ ไม่ตัดสินใจแทนผู้ใช้
-
-**Deliverables:**
-1. ✨ Identity Engine V2 (Evidence-backed "Who Am I" Answering)
-2. ✨ Life Timeline (Year-over-Year View, Milestone Linked)
-3. ✨ Personal Insight Engine (Life Lesson / Wisdom Summarizer from Pattern History)
-4. ✨ Proactive AI Notifier (Energy/Stress/Goal/Relationship Reminders)
-5. ✨ Second Brain Integration Layer เชื่อม Identity + Timeline + Insight + Proactive เข้าด้วยกัน
-
----
-
-### 🌟 Phase 9 — Living Companion AI (Vision Only — Not Scoped)
-*ไม่ blocking กับ Phase 8, ไม่แตก Deliverables — ประกาศไว้เพื่อให้รู้ปลายทางของโปรเจกต์*
-
-> นี่คือ Vision ปลายทาง ไม่ใช่ Phase ที่พร้อมพัฒนา — จะแตก Objective/Scope/Deliverables อย่างเป็นทางการเมื่อ Phase 8 ใกล้เสร็จ
-
-**Vision:**
-AI ทำหน้าที่เหมือน "คู่คิดตลอดชีวิต" มากกว่าแชตบอต ครอบคลุม:
-- **Daily Conversation** — เริ่มบทสนทนาเองเมื่อเหมาะสม
-- **Long-term Companion** — อยู่เคียงข้างต่อเนื่องหลายปี ไม่ใช่แค่ session ต่อ session
-- **Life Advisor** — ช่วยวางแผนและติดตามเป้าหมายระยะยาว
-- **Decision Support** — ให้คำแนะนำโดยอ้างอิงประสบการณ์และค่านิยมของผู้ใช้เอง
-- **Memory Keeper** — จำเหตุการณ์สำคัญและเชื่อมโยงอดีตกับปัจจุบัน
-- **Emotional Intelligence** — สังเกตการเปลี่ยนแปลงของอารมณ์และเสนอการดูแลตัวเอง
-- **Continuous Growth** — ช่วยให้ผู้ใช้เห็นพัฒนาการของชีวิตเป็นปี ๆ ไปพร้อมกับ AI
-
-**หลักการที่ยึดต่อเนื่องแม้ถึง Phase 9:** AI มีหน้าที่เรียนรู้และเสนอข้อมูลพร้อมหลักฐาน (Evidence) — การตัดสินใจและยืนยันความรู้ยังเป็นของผู้ใช้เสมอ (Human-in-the-loop)
-
----
-
-> **Mobile + Cross-Platform** (React Native / PWA / Capacitor) ถูกนำออกจาก Roadmap หลักชั่วคราว (เดิมเคยเป็น Phase 6) — ยังไม่ระบุ Phase ใหม่ รอความชัดเจนก่อนเพิ่มกลับเข้ามา

@@ -13,12 +13,12 @@
 Phase 1: Foundation (PIE 7 Layers)          ✅ Complete
 Phase 2: Full Pipeline Integration          ✅ Complete
 Phase 3: Clean Architecture & Docs          ✅ Complete
-Phase 4: Brain Intelligence Engine (BIE)    🚧 In Progress
-   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1-S7 Complete (Types → Repository + Schema → Indexing & Scoring Logic → Wire Hook Baseline Enrichment → Disable Switch bieEnabled Threading)
-   ├─ 4B: Knowledge Graph + Relationship    ⏳ Planned
-   ├─ 4C: Reflection + Memory Intel         ⏳ Planned
-   └─ 4D: Identity + Insight + Timeline     ⏳ Planned
-Phase 5: Personal Intelligence              ⏳ Planned
+Phase 4: Brain Intelligence Engine (BIE)    ✅ Complete (S29 Gate 2026-08-01)
+   ├─ 4A: Semantic Retrieval + Hybrid       ✅ Complete — S1-S9 (Types → Repository → Scoring → BIE Hook → Disable Switch → Tuning → Doc Gate)
+   ├─ 4B: Knowledge Graph + Relationship    ✅ Complete — S10-S16 (Graph Nodes/Edges, Merge, Entity Resolution, Edge Proposals)
+   ├─ 4C: Memory Intelligence + Reflection  ✅ Complete — S17-S22 (Merge/Conflict/Decay/Evidence Consolidation, Async Reflect Jobs)
+   └─ 4D: Identity + Insight + Timeline     ✅ Complete — S23-S29 (Identity Singleton, 6-kind Insights, Timeline M/Q/Y, PIE Wiring, Master Gate)
+Phase 5: BIE Productization + HITL + Learning Loop Closure    ⏳ In Progress (5A Discovery/Review, 5B Identity/Insight, 5C Timeline/Context, 5D Closeout — Service Worker/MCP = P1 Optional)
 ```
 
 ---
@@ -428,6 +428,9 @@ src/
 │  ├─ vectorIndex.ts                             ← Dimension-Agnostic Linear Scan Cosine O(N)
 │  ├─ BrainIntelligenceRepository.ts             ← SSOT Repository Interface (S1: 7 areas, 28 methods)
 │  ├─ RoomBrainIntelligenceRepository.ts         ← S4 Implementation: Embeddings cache + HITL Pending Queue real storage; 5 areas = placeholders
+│  ├─ graph/                                     ← Phase 4B: entityResolver.ts / graphQueryService.ts / relationshipExtractor.ts / graphInferenceEngine.ts / edgeProposalQueue.ts / index.ts
+│  ├─ reflection/                                ← Phase 4C: evidenceConsolidator.ts / conflictDetector.ts / decayEngine.ts / reflectorEngine.ts / index.ts
+│  ├─ identity/                                  ← Phase 4D: identityEngine.ts / insightGenerator.ts / timelineBuilder.ts / types.ts / index.ts
 │  └─ providers/
 │     ├─ embeddingProvider.ts                    ← EmbeddingProvider Interface (S1)
 │     ├─ geminiEmbeddingProvider.ts              ← Primary: Gemini HTTP API (S3. 10s timeout, 768-dim)
