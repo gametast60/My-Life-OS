@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────
 // BIE — RoomBrainIntelligenceRepository
 // Phase 4A S4 — Repository Implementation (RoomDatabase/localStorage)
+// Phase 4B S12 — Graph Persistence (bie_graph_nodes + bie_graph_edges)
 // ─────────────────────────────────────────────────────────────────────
 //
 // Single Source of Truth (SSOT) repository for the BIE sidecar, mirroring
@@ -53,7 +54,8 @@ import type {
   TimelineItem,
   TimelinePeriodKind,
 } from "./types";
-import { proposeEdge as createGraphEdgeProposal, findDuplicateCandidates as findGraphDuplicates } from "./graph";
+import type { LifeDimension } from "../../types";
+import { proposeEdge as createGraphEdgeProposal, findDuplicateCandidates as findGraphDuplicates, createPendingEdgeItem } from "./graph";
 
 /**
  * FIFO capacity for the BIE pending queue. Matches the PIE-core pending
@@ -157,117 +159,169 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
   }
 
   // ────────────────────────────────────────────────────────────────
-  // 2. Knowledge Graph Nodes — bie_graph_nodes (Phase 4B — PLACEHOLDER)
+  // 2. Knowledge Graph Nodes — bie_graph_nodes (Phase 4B — REAL STORAGE)
   // ────────────────────────────────────────────────────────────────
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Return all graph nodes, optionally filtered by node kind.
-   * Current implementation: always returns `[]` until 4B ships.
+   * Return all graph nodes, optionally filtered by node kind and/or dimension.
    *
-   * @param filter.kind — Optional node-kind filter.
-   * @returns Empty array (GraphNode[] shape for downstream type safety).
+   * @param filter.kind      — Optional node-kind filter.
+   * @param filter.dimension — Optional dimension filter.
+   * @returns Snapshot of persisted GraphNode rows. Empty array on first run.
    */
-  getGraphNodes(filter?: { kind?: GraphNodeKind }): GraphNode[] {
-    void filter;
-    return [];
+  getGraphNodes(filter?: { kind?: GraphNodeKind; dimension?: LifeDimension }): GraphNode[] {
+    let all = RoomDatabase.getBieGraphNodes();
+    if (filter?.kind) {
+      all = all.filter((n) => n.kind === filter.kind);
+    }
+    if (filter?.dimension) {
+      all = all.filter((n) => n.dimension === filter.dimension);
+    }
+    return all;
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
+   * Helper: Get graph nodes belonging to a specific LifeDimension.
+   */
+  getGraphNodesByDimension(dimension: LifeDimension): GraphNode[] {
+    return this.getGraphNodes({ dimension });
+  }
+
+  /**
+   * Helper: Get graph nodes belonging to a specific GraphNodeKind.
+   */
+  getGraphNodesByKind(kind: GraphNodeKind): GraphNode[] {
+    return this.getGraphNodes({ kind });
+  }
+
+  /**
    * Fetch a single graph node by id.
    *
    * @param id — Node primary key.
-   * @returns `undefined` (GraphNode | undefined shape preserved).
+   * @returns The matching GraphNode, or `undefined` if not found.
    */
   getGraphNode(id: string): GraphNode | undefined {
-    void id;
-    return undefined;
+    return RoomDatabase.getBieGraphNodes().find((n) => n.id === id);
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Upsert a graph node. No-op in 4A; method signature exists so
-   * later sub-phases only need to fill in storage logic.
+   * Upsert a graph node into `bie_graph_nodes`.
+   * Nodes are non-structural (describe existing tags); no HITL required.
    *
-   * @param node — GraphNode payload.
+   * @param node — GraphNode payload. Keyed by id; existing rows are replaced.
    */
   saveGraphNode(node: GraphNode): void {
-    void node;
+    const all = RoomDatabase.getBieGraphNodes();
+    const idx = all.findIndex((n) => n.id === node.id);
+    if (idx === -1) {
+      all.push(node);
+    } else {
+      all[idx] = node;
+    }
+    RoomDatabase.saveBieGraphNodes(all);
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Delete a graph node. No-op in 4A.
+   * Remove a graph node by id. Also removes all edges connected to this node
+   * to preserve referential consistency.
    *
    * @param id — Node primary key.
    */
   deleteGraphNode(id: string): void {
-    void id;
+    const nodes = RoomDatabase.getBieGraphNodes();
+    const next = nodes.filter((n) => n.id !== id);
+    if (next.length !== nodes.length) {
+      RoomDatabase.saveBieGraphNodes(next);
+      // Cascade: drop edges connected to this node.
+      const edges = RoomDatabase.getBieGraphEdges();
+      const nextEdges = edges.filter((e) => e.fromId !== id && e.toId !== id);
+      if (nextEdges.length !== edges.length) {
+        RoomDatabase.saveBieGraphEdges(nextEdges);
+      }
+    }
   }
 
   // ────────────────────────────────────────────────────────────────
-  // 3. Knowledge Graph Edges — bie_graph_edges (Phase 4B — PLACEHOLDER)
+  // 3. Knowledge Graph Edges — bie_graph_edges (Phase 4B — REAL STORAGE)
   // ────────────────────────────────────────────────────────────────
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Fetch all graph edges, optionally filtered by type and/or applied
-   * status. Returns `[]` in 4A.
+   * Fetch all graph edges, optionally filtered by type and/or applied status.
    *
-   * @param filter.type       — Optional edge-type filter.
-   * @param filter.appliedOnly — When true, return only edges with
-   *                             `applied === true`; otherwise return
-   *                             all rows.
+   * @param filter.type        — Optional edge-type filter.
+   * @param filter.appliedOnly — When true, return only confirmed (applied=true) edges.
+   * @returns Snapshot of matching GraphEdge rows.
    */
   getGraphEdges(filter?: { type?: GraphEdgeType; appliedOnly?: boolean }): GraphEdge[] {
-    void filter;
-    return [];
+    let all = RoomDatabase.getBieGraphEdges();
+    if (filter?.type) {
+      all = all.filter((e) => e.type === filter.type);
+    }
+    if (filter?.appliedOnly) {
+      all = all.filter((e) => e.applied === true);
+    }
+    return all;
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
    * Low-level edge write. Per P4-12, AI-detected edges MUST go
    * through `appendPendingBieItem` first and reach this method only
    * from the Confirm UI (caller responsibility).
    *
+   * Upsert by id: replaces an existing edge if id matches.
+   *
    * @param edge — GraphEdge payload.
    */
   saveGraphEdge(edge: GraphEdge): void {
-    void edge;
+    const all = RoomDatabase.getBieGraphEdges();
+    const idx = all.findIndex((e) => e.id === edge.id);
+    if (idx === -1) {
+      all.push(edge);
+    } else {
+      all[idx] = edge;
+    }
+    RoomDatabase.saveBieGraphEdges(all);
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
    * Confirm UI exclusive: flip an edge's `applied` flag to true.
-   * No-op in 4A.
+   * Idempotent — no-op if edge id is not found.
    *
    * @param id — Edge primary key.
    */
   applyGraphEdge(id: string): void {
-    void id;
+    const all = RoomDatabase.getBieGraphEdges();
+    const idx = all.findIndex((e) => e.id === id);
+    if (idx !== -1 && !all[idx].applied) {
+      all[idx] = { ...all[idx], applied: true };
+      RoomDatabase.saveBieGraphEdges(all);
+    }
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Remove a graph edge (e.g. user rejected suggestion). No-op in 4A.
+   * Remove a graph edge (e.g. user rejected suggestion). Idempotent.
    *
    * @param id — Edge primary key.
    */
   deleteGraphEdge(id: string): void {
-    void id;
+    const all = RoomDatabase.getBieGraphEdges();
+    const next = all.filter((e) => e.id !== id);
+    if (next.length !== all.length) {
+      RoomDatabase.saveBieGraphEdges(next);
+    }
   }
 
   /**
-   * [Placeholder — Phase 4B storage planned]
-   * Fetch graph edges connected to a given node.
+   * Fetch all graph edges where the given node is the source OR target.
+   * Useful for building neighbourhood sub-graphs.
    *
    * @param nodeId — Target node primary key.
-   * @returns Empty array in S10.
+   * @returns All edges connected to nodeId.
    */
   getGraphEdgesByNode(nodeId: string): GraphEdge[] {
-    void nodeId;
-    return [];
+    return RoomDatabase.getBieGraphEdges().filter(
+      (e) => e.fromId === nodeId || e.toId === nodeId
+    );
   }
 
   /**
@@ -288,6 +342,31 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
    */
   findDuplicateCandidates(): EntityResolutionCandidate[] {
     return findGraphDuplicates([]);
+  }
+
+  /**
+   * S12 Step 4: HITL-safe helper that wraps duplicate candidates into
+   * pending-queue proposals (applied=false invariant P4-12).
+   * Converts each EntityResolutionCandidate into a PendingLearning
+   * "graph_merge" proposal and appends to the queue.
+   *
+   * @param candidates — Output of `findDuplicateCandidates`.
+   */
+  proposeDuplicateMerges(
+    candidates: EntityResolutionCandidate[]
+  ): void {
+    for (const candidate of candidates) {
+      const proposal = createGraphEdgeProposal(
+        candidate.sourceNodeId,
+        candidate.targetNodeId,
+        "related",
+        candidate.matchScore,
+        `[${candidate.similarityType}] ${candidate.reason}`
+      );
+      const pendingItem = createPendingEdgeItem(proposal);
+      // Override kind to graph_merge for HITL review queue distinction.
+      this.appendPendingBieItem({ ...pendingItem, kind: "graph_merge" });
+    }
   }
 
   // ────────────────────────────────────────────────────────────────

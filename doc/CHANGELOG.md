@@ -13,6 +13,37 @@
 
 ---
 
+## [Phase 4B — S13] — Graph Query & Neighbourhood Traversal
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🔍 `graphQueryService.ts`: `GraphQueryService` class with read-only traversal methods — `getNeighbourhood` (N-hop subgraph expansion), `findShortestPath` (BFS path finding), `getSubgraphByDimension`, and `getSubgraphByKind`.
+- 🔀 `BrainIntelligenceRepository` & `RoomBrainIntelligenceRepository`: Additive widening for `getGraphNodes` (supports `dimension` filter) + `getGraphNodesByDimension` and `getGraphNodesByKind` helpers.
+- 📦 `graph/index.ts`: Barrel export updated to expose `GraphQueryService` and query result types.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2154 modules). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL: 100% read-only traversal helpers, zero DB writes, zero auto-applied edges.
+- ✅ P4-8 Strict Widening: additive queries only, no existing exports removed.
+
+---
+
+## [Phase 4B — S12] — Graph Persistence & Repository Write Layer
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🗄️ `db.ts`: `getBieGraphNodes` / `saveBieGraphNodes` / `getBieGraphEdges` / `saveBieGraphEdges` static methods on `RoomDatabase` (backed by `BIE_GRAPH_NODES` + `BIE_GRAPH_EDGES` localStorage keys). Graph nodes/edges now included in Backup/Restore export-import payloads.
+- 🔀 `RoomBrainIntelligenceRepository`: All 7 graph placeholder stubs replaced with real storage implementations (`getGraphNodes`, `getGraphNode`, `saveGraphNode`, `deleteGraphNode` w/ cascade edge drop, `getGraphEdges`, `saveGraphEdge`, `applyGraphEdge`, `deleteGraphEdge`, `getGraphEdgesByNode`).
+- 🔒 `proposeDuplicateMerges(candidates)`: HITL-safe helper routes `findDuplicateCandidates` output → `proposeEdge` → `createPendingEdgeItem` → `appendPendingBieItem` (kind=`graph_merge`, applied=false P4-12 invariant preserved end-to-end).
+
+### Verified
+- ✅ `npm run build` Exit 0 (2153 modules). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL: no direct applied=true writes from AI paths; `applyGraphEdge` is Confirm-UI-exclusive.
+- ✅ P4-8 Strict Widening: no existing exports removed, 7 aiService facade UNTOUCHED.
+- [Doc Skip] AI_ARCHITECTURE.md — no new layer/diagram change; S12 fills in storage of the S10 planned `bie_graph_*` tables per existing arch spec.
+
+---
+
 ## [Phase 4B — S11] — Entity Resolution & Duplicate Tag Matcher
 **Status**: ✅ Complete (2026-08-01)
 

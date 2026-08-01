@@ -42,6 +42,8 @@ import type {
 // Embedding cache (bie_embeddings) — Phase 4A primary use
 // ─────────────────────────────────────────────────────────────────────
 
+import type { LifeDimension } from "../../types";
+
 export interface EmbeddingLookupParams {
   /** Optional nodeId filter. */
   id?: string;
@@ -63,7 +65,9 @@ export interface BrainIntelligenceRepository {
   deleteEmbedding(id: string): void;
 
   // ─── Knowledge Graph nodes (bie_graph_nodes) — Phase 4B ─────────
-  getGraphNodes(filter?: { kind?: GraphNodeKind }): GraphNode[];
+  getGraphNodes(filter?: { kind?: GraphNodeKind; dimension?: LifeDimension }): GraphNode[];
+  getGraphNodesByDimension?(dimension: LifeDimension): GraphNode[];
+  getGraphNodesByKind?(kind: GraphNodeKind): GraphNode[];
   getGraphNode(id: string): GraphNode | undefined;
   /** Upsert a node. Non-structural (no HITL) — nodes describe existing tags. */
   saveGraphNode(node: GraphNode): void;

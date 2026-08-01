@@ -27,6 +27,7 @@ import {
   EmbeddingRecord,
   PendingLearning,
 } from "../types";
+import type { GraphNode, GraphEdge } from "../pie/bie/types";
 import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
 // ── Storage Keys ─────────────────────────────────────────────────
@@ -254,6 +255,8 @@ export const DEFAULT_REMINDERS: ReminderItem[] = [];
 export const DEFAULT_PENDING_TASKS: PendingAITask[] = [];
 export const DEFAULT_BIE_EMBEDDINGS: EmbeddingRecord[] = [];
 export const DEFAULT_BIE_PENDING_QUEUE: PendingLearning[] = [];
+export const DEFAULT_BIE_GRAPH_NODES: GraphNode[] = [];
+export const DEFAULT_BIE_GRAPH_EDGES: GraphEdge[] = [];
 
 // ── RoomDatabase ──────────────────────────────────────────────────
 export class RoomDatabase {
@@ -948,6 +951,27 @@ export class RoomDatabase {
     this.set(KEYS.BIE_PENDING_QUEUE, list);
   }
 
+  // ── BIE: Knowledge Graph Nodes (bie_graph_nodes) ─────────────────
+  // Phase 4B: Persistent graph node storage. Non-structural (nodes
+  // describe existing tags); no HITL required for node upserts.
+  static getBieGraphNodes(): GraphNode[] {
+    return this.get<GraphNode[]>(KEYS.BIE_GRAPH_NODES, DEFAULT_BIE_GRAPH_NODES);
+  }
+  static saveBieGraphNodes(list: GraphNode[]) {
+    this.set(KEYS.BIE_GRAPH_NODES, list);
+  }
+
+  // ── BIE: Knowledge Graph Edges (bie_graph_edges) ─────────────────
+  // Phase 4B: Persistent graph edge storage. All AI-detected edges
+  // start with applied=false (P4-12 HITL). applyGraphEdge() flips
+  // the flag only from the Confirm UI.
+  static getBieGraphEdges(): GraphEdge[] {
+    return this.get<GraphEdge[]>(KEYS.BIE_GRAPH_EDGES, DEFAULT_BIE_GRAPH_EDGES);
+  }
+  static saveBieGraphEdges(list: GraphEdge[]) {
+    this.set(KEYS.BIE_GRAPH_EDGES, list);
+  }
+
   // ── Backup & Restore ─────────────────────────────────────────────
   static async exportBackupZip(): Promise<Blob> {
     const zip = new JSZip();
@@ -980,6 +1004,8 @@ export class RoomDatabase {
       brainConfig: this.getBrainConfig(),
       bieEmbeddings: this.getBieEmbeddings(),
       biePendingQueue: this.getBiePendingQueue(),
+      bieGraphNodes: this.getBieGraphNodes(),
+      bieGraphEdges: this.getBieGraphEdges(),
     };
     zip.file("backup.json", JSON.stringify(backupData, null, 2));
     return await zip.generateAsync({ type: "blob" });
@@ -1020,6 +1046,8 @@ export class RoomDatabase {
       if (data.brainConfig) this.saveBrainConfig(data.brainConfig);
       if (data.bieEmbeddings) this.saveBieEmbeddings(data.bieEmbeddings);
       if (data.biePendingQueue) this.saveBiePendingQueue(data.biePendingQueue);
+      if (data.bieGraphNodes) this.saveBieGraphNodes(data.bieGraphNodes);
+      if (data.bieGraphEdges) this.saveBieGraphEdges(data.bieGraphEdges);
 
       return true;
     } catch (e) {
