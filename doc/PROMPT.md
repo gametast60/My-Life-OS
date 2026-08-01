@@ -1,50 +1,46 @@
 # PROMPT.md — Current Step Work Order
 
-> **PHASE 4D — S27: Proposal Queue Integration**
+> **PHASE 4D — S28: PIE Memory Context Final Wiring**
 > **My Life OS — Brain Intelligence Engine (BIE)**
 
 ---
 
 ## 📌 สิ่งแรกที่ต้องทำ
 
-1. อ่าน `/doc/STATE.md` (current step = S27, constraints, allowed files)
+1. อ่าน `/doc/STATE.md` (current step = S28, constraints, allowed files)
 2. ปฏิบัติตาม `/doc/STANDING_INSTRUCTIONS.md` (ทุก workflow rule)
 
 ---
 
-## 🎯 PRIMARY DELIVERABLE (S27 = Proposal Queue Integration)
+## 🎯 PRIMARY DELIVERABLE (S28 = PIE Memory Context Final Wiring)
 
-- Wire Identity and Insight proposals to the pending queue as `identity_update` and `insight_proposal` kinds
-- Update `applyPendingBieItem(id)` in `RoomBrainIntelligenceRepository` to handle side effects:
-  - If `kind === "identity_update"`, save the profile payload to `bie_identity` with `applied: true` and clear item from queue.
-  - If `kind === "insight_proposal"`, save the insight payload to `bie_insights` with `applied: true` and clear item from queue.
-- Maintain P4-12 HITL invariant (all queue items must start as `applied: false`)
+- Enrich PIE retrieval context (`PipelineContext`) with Identity Profile summary & Timeline Insights
+- Only user-confirmed (`applied: true`) identity & insight data are injected into the prompt context (P4-12 HITL invariant)
+- Preserve `bieEnabled === false` zero-impact fallback path
 
 ---
 
 ## ⚙️ WORK ORDER — EXECUTE IN ORDER
 
-### S27 Step 1 of 4 — Read-only exploration:
-- Read `/doc/STATE.md` & `/doc/ROADMAP.md` → confirm S26 = ✅ Complete, S27 = THIS STEP
-- Read `/src/pie/bie/RoomBrainIntelligenceRepository.ts` → locate `applyPendingBieItem` and `appendPendingBieItem` methods
+### S28 Step 1 of 4 — Read-only exploration:
+- Read `/doc/STATE.md` & `/doc/ROADMAP.md` → confirm S27 = ✅ Complete, S28 = THIS STEP
+- Inspect PIE memory retrieval layer (`src/pie/layers/memoryRetrieval.ts`) to understand context enrichment hooks
 
-### S27 Step 2 of 4 — Implement Side Effects in applyPendingBieItem:
-- Update `applyPendingBieItem` to read the pending item by id.
-- Inspect the item's `kind`:
-  - If `"identity_update"`: extract the `IdentityProfile` payload, save it to `bie_identity` using `saveIdentityProfile()` with `applied: true`.
-  - If `"insight_proposal"`: extract the `InsightItem` payload, save it to `bie_insights` using `appendInsight()` with `applied: true`.
-- Remove the pending item from `bie_pending_queue`.
+### S28 Step 2 of 4 — Implement Memory Context Enrichment:
+- Retrieve applied `IdentityProfile` summary from repository if available.
+- Retrieve applied `Insight` items or timeline breakdown if available.
+- Inject formatted identity/timeline context into `PipelineContext.retrievedMemories` or persona system prompt context safely.
 
-### S27 Step 3 of 4 — Verify Queue Routing logic:
-- Ensure the types and properties map correctly from payload properties to target DB structures.
+### S28 Step 3 of 4 — Verification & Tests:
+- Verify that `bieEnabled: false` bypasses identity enrichment cleanly.
 
-### S27 Step 4 of 4 — Verification & Doc Closeout:
+### S28 Step 4 of 4 — Verification & Doc Closeout:
 - `npm run lint` & `npm run build` → must exit 0
-- `CHANGELOG.md`: append S27 closeout section at TOP (≤15 lines per SI-2)
-- `ROADMAP.md`: update Phase 4D row → In Progress S27 ✅ (5/7)
-- `STATE.md`: update Current Step → Phase 4D S28 (PIE Memory Context Final Wiring)
-- `PROMPT.md`: overwrite with S28 handoff
+- `CHANGELOG.md`: append S28 closeout section at TOP (≤15 lines per SI-2)
+- `ROADMAP.md`: update Phase 4D row → In Progress S28 ✅ (6/7)
+- `STATE.md`: update Current Step → Phase 4D S29 (Phase 4 Master Closeout & Gate)
+- `PROMPT.md`: overwrite with S29 handoff
 
 ---
 
-> **END OF S27 HANDOFF PROMPT.**
+> **END OF S28 HANDOFF PROMPT.**

@@ -13,6 +13,23 @@
 
 ---
 
+## [Phase 4D — S27] — Proposal Queue Integration
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `proposeIdentityUpdate()` / `proposeInsightProposal()` helper methods in `BrainIntelligenceRepository` interface and `RoomBrainIntelligenceRepository` class to post proposals into `bie_pending_queue` with enforced `applied: false` (P4-12 HITL invariant).
+
+### Changed
+- ⚙️ `/src/pie/bie/RoomBrainIntelligenceRepository.ts`: updated `applyPendingBieItem(id)` to execute structural side effects for `identity_update` (writes to `bie_identity` with `applied: true`), `insight_proposal` (writes to `bie_insights` with `applied: true`), and `graph_edge` (flips edge to `applied: true`).
+
+### Verified
+- ✅ `npm run lint` Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-8 Strict Widening: zero type/method removals; 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- ✅ P4-12 HITL: Queue items start with `applied: false` strictly; side effects occur only on explicit `applyPendingBieItem`.
+- [Doc Skip] AI_ARCHITECTURE.md — queue routing logic update only.
+
+---
+
 ## [Phase 4D — S26] — Life Timeline Builder (M/Q/Y View)
 **Status**: ✅ Complete (2026-08-01)
 

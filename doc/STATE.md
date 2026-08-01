@@ -7,15 +7,12 @@
 
 ## Current Step
 
-**Phase 4D — S27: Proposal Queue Integration**
+**Phase 4D — S28: PIE Memory Context Final Wiring**
 Deliverable:
-1. Wire `Identity` and `Insight` proposals to `bie_pending_queue` via `RoomBrainIntelligenceRepository` (as `identity_update` and `insight_proposal` kinds).
-2. All proposals must carry `applied: false` strictly (P4-12 HITL invariant).
-3. Update `applyPendingBieItem(id)` in `RoomBrainIntelligenceRepository` to handle structural side effects:
-   - For `"identity_update"`: save the pending profile to `bie_identity` with `applied: true`.
-   - For `"insight_proposal"`: save the pending insight to `bie_insights` with `applied: true`.
-4. Update `rejectPendingBieItem(id)` to simply discard the queue items.
-5. Handoff S27 → S28 via STATE.md + PROMPT.md
+1. Enrich PIE retrieval context (`PipelineContext`) with Identity Profile summary & Timeline Insights (Phase 4D final context integration).
+2. Wire BIE identity and insight retrieval to PIE Memory Retrieval Layer / Context Enricher cleanly.
+3. Preserve signature changes and zero-impact behavior when `bieEnabled === false`.
+4. Handoff S28 → S29 via STATE.md + PROMPT.md
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
@@ -25,44 +22,45 @@ Status Before Start:
 - ✅ Phase 4D S24 — Identity Engine (Singleton Row) ← **DONE**
 - ✅ Phase 4D S25 — Insight Generator (6 Kinds, FIFO 100) ← **DONE**
 - ✅ Phase 4D S26 — Life Timeline Builder (M/Q/Y View) ← **DONE**
-- ⏳ Phase 4D S27 — Proposal Queue Integration (THIS STEP)
+- ✅ Phase 4D S27 — Proposal Queue Integration ← **DONE**
+- ⏳ Phase 4D S28 — PIE Memory Context Final Wiring (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S27 scope only)
+## Active Hard Constraints (S28 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S27 is engine logic only — no UI components. |
-| P4-12 | HITL: all identity / insight proposals carry `applied: false` when in the pending queue. Flipped to `applied: true` ONLY when the user applies the pending item. |
+| P4-2 | Zero UX/UI change. S28 is pipeline context wiring only — no UI components. |
+| P4-12 | HITL: only user-confirmed (`applied: true`) identity & insights enrich PIE context. `applied: false` items MUST be excluded. |
 
 ---
 
-## Files Allowed / Forbidden (S27)
+## Files Allowed / Forbidden (S28)
 
 ✅ ALLOWED (engine logic only, NO UI):
-- `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (update `applyPendingBieItem` to execute real side effects for identity/insights)
-- `/doc/CHANGELOG.md` (append S27 closeout section)
-- `/doc/ROADMAP.md` (S27 Phase 4D status update)
-- `/doc/STATE.md` (update for S28 kickoff)
-- `/doc/PROMPT.md` (overwrite with S28 handoff)
+- `/src/pie/layers/memoryRetrieval.ts` or context enricher hooks in PIE
+- `/src/pie/types.ts` (additive widening if context interfaces need optional fields)
+- `/doc/CHANGELOG.md` (append S28 closeout section)
+- `/doc/ROADMAP.md` (S28 Phase 4D status update)
+- `/doc/STATE.md` (update for S29 kickoff)
+- `/doc/PROMPT.md` (overwrite with S29 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
 - `aiService.ts` 7 facade methods (P4-8)
-- Direct applied=true DB writes without HITL confirmation (P4-12)
 
 ---
 
 ## Readiness Checklist (before ANY code edit)
 
 - [ ] LS `/doc/` — all core docs exist
-- [ ] Read ROADMAP.md → confirm Phase 4D S26 = ✅ Complete; S27 = THIS STEP
-- [ ] Read CHANGELOG.md → confirm S26 entry exists at top
-- [ ] Read `/src/pie/bie/RoomBrainIntelligenceRepository.ts` → locate `applyPendingBieItem`
-- [ ] Understood: S27 = Proposal Queue Integration; zero UI changes.
-- [ ] After implementation → UPDATE DOCS + PROMPT.md for S28 kickoff
+- [ ] Read ROADMAP.md → confirm Phase 4D S27 = ✅ Complete; S28 = THIS STEP
+- [ ] Read CHANGELOG.md → confirm S27 entry exists at top
+- [ ] Read PIE memory retrieval layer to locate context enrichment entry points
+- [ ] Understood: S28 = PIE Memory Context Final Wiring; zero UI changes.
+- [ ] After implementation → UPDATE DOCS + PROMPT.md for S29 kickoff
 
 ---
 

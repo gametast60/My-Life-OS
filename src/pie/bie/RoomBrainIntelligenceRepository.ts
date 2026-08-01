@@ -697,9 +697,12 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
 
   /**
    * Confirm UI exclusive: resolve a pending item and apply the
-   * underlying change. In 4A the method simply drops the row from
-   * the queue; the 4B/4C/4D storage layers will override/extend the
-   * side effects of "apply" once real target tables exist.
+   * underlying change.
+   *
+   * Executes real side effects based on `item.kind`:
+   * - `identity_update`: saves payload to `bie_identity` with `applied: true`.
+   * - `insight_proposal` / `insight`: appends payload to `bie_insights` with `applied: true`.
+   * - `graph_edge`: applies edge in `bie_graph_edges` with `applied: true`.
    *
    * Contract: idempotent — calling apply on an already-absent id is
    * a harmless no-op.
@@ -708,8 +711,31 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
    */
   applyPendingBieItem(id: string): void {
     const current = RoomDatabase.getBiePendingQueue();
-    const next = current.filter((row) => row.id !== id);
-    if (next.length !== current.length) {
+    const item = current.find((row) => row.id === id);
+
+    if (item) {
+      // Execute side effects based on pending item kind
+      if (item.kind === "identity_update" && item.payload) {
+        const profile = item.payload as unknown as IdentityRow;
+        if (profile.id) {
+          this.saveIdentityProfile({ ...profile, applied: true });
+        }
+      } else if ((item.kind === "insight_proposal" || item.kind === "insight") && item.payload) {
+        const insight = item.payload as unknown as Insight;
+        if (insight.id) {
+          this.appendInsight({ ...insight, applied: true });
+        }
+      } else if (item.kind === "graph_edge" && item.payload) {
+        const edgeId = (item.payload.id as string) || (item.payload.edgeId as string);
+        if (edgeId) {
+          this.applyGraphEdge(edgeId);
+        } else if (item.payload.fromId && item.payload.toId) {
+          this.saveGraphEdge({ ...(item.payload as unknown as GraphEdge), applied: true });
+        }
+      }
+
+      // Remove item from pending queue
+      const next = current.filter((row) => row.id !== id);
       RoomDatabase.saveBiePendingQueue(next);
     }
   }
@@ -727,6 +753,44 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
     if (next.length !== current.length) {
       RoomDatabase.saveBiePendingQueue(next);
     }
+  }
+
+  /**
+   * Helper: Propose an identity update into the HITL pending queue (`applied: false` enforced).
+   */
+  proposeIdentityUpdate(
+    profile: IdentityProfile | IdentityRow,
+    reason = "AI-suggested identity update"
+  ): PendingLearning {
+    const item: PendingLearning = {
+      id: `bie-pend-id-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      kind: "identity_update",
+      payload: { ...profile, applied: false },
+      reason,
+      confidence: 0.85,
+      createdAt: Date.now(),
+    };
+    this.appendPendingBieItem(item);
+    return item;
+  }
+
+  /**
+   * Helper: Propose an insight into the HITL pending queue (`applied: false` enforced).
+   */
+  proposeInsightProposal(
+    insight: Insight,
+    reason = "AI-generated insight proposal"
+  ): PendingLearning {
+    const item: PendingLearning = {
+      id: `bie-pend-ins-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      kind: "insight_proposal",
+      payload: { ...insight, applied: false },
+      reason,
+      confidence: insight.confidence ?? 0.8,
+      createdAt: Date.now(),
+    };
+    this.appendPendingBieItem(item);
+    return item;
   }
 }
 

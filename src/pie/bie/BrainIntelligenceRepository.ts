@@ -139,4 +139,10 @@ export interface BrainIntelligenceRepository {
   applyPendingBieItem(id: string): void;
   /** Discard a pending item (user rejected). */
   rejectPendingBieItem(id: string): void;
+
+  // ─── Proposal Helpers — Phase 4D S27 ────────────────────────────
+  /** Helper: Propose an identity update into the HITL pending queue (applied=false enforced). */
+  proposeIdentityUpdate?(profile: IdentityProfile | IdentityRow, reason?: string): PendingLearning;
+  /** Helper: Propose an insight into the HITL pending queue (applied=false enforced). */
+  proposeInsightProposal?(insight: Insight, reason?: string): PendingLearning;
 }
