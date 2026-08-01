@@ -13,6 +13,19 @@
 
 ---
 
+## [Phase 4A — S9] — Regression & Docs Gate
+**Status**: ✅ Complete (2026-08-01)
+
+### Verified
+- ✅ `npm run build` Exit 0 (vite + esbuild; 2149 modules transformed, no TS errors).
+- ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ Static trace bieEnabled=false: S7 guard at `RoomBrainRepository.ts` L181 fires FIRST → returns `legacy` BEFORE any S8/BIE code; zero semanticService/VectorIndex instantiation confirmed.
+- ✅ Static trace bieEnabled=true: `hybridRankItems()` runs → `hybridSortedLegacy` returned sorted DESC at L371.
+- ✅ `hybridScorer.ts` HYBRID_WEIGHT_SUM IIFE verified throws on Σ≠1.0 drift.
+- ✅ `synonyms.ts` `validateSynonymDictionary()` exported; 50+ synonym pairs confirmed.
+- ✅ All 7 aiService facade methods UNTOUCHED (P4-8 compliant).
+- [Doc Skip] AI_ARCHITECTURE.md — S9 is doc+regression gate only; zero architecture change.
+
 ## [Phase 4A — S8] — Tuning & Weight Calibration
 **Status**: ✅ Complete (2026-08-01)
 

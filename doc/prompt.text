@@ -1,42 +1,53 @@
 ════════════════════════════════════════════════════════════════════
- PHASE 4A — S9: Regression & Docs Gate
+ PHASE 4B — S10: Knowledge Graph + Relationship Engine (Kickoff)
  My Life OS — Brain Intelligence Engine (BIE)
 ════════════════════════════════════════════════════════════════════
 
  สิ่งแรกที่ต้องทำ:
- 1. อ่าน /doc/STATE.md (current step = S9, constraints, allowed files)
+ 1. อ่าน /doc/STATE.md (current step = S10, constraints, allowed files)
  2. ปฏิบัติตาม /doc/STANDING_INSTRUCTIONS.md (ทุก workflow rule)
 
- PRIMARY DELIVERABLE (S9 = Final Regression & Doc Gate):
- - Regression: npm run build Exit 0 + npm run lint Exit 0
- - Static trace: bieEnabled=false → S7 guard at RoomBrainRepository.ts L181 fires,
-   ZERO semanticService/VectorIndex instantiation, output byte-identical Pre-4
- - Static trace: bieEnabled=true → hybridRankItems() runs, sorted hybridScore DESC returned
- - 7 aiService features trace (text/refine/analyze/suggest/insight/tag/learn)
-   × bieEnabled T/F → no UX breakage
- - Phase 4A closeout: CHANGELOG S9 section, ROADMAP 4A → ✅ Complete 100%,
-   STATE.md updated, prompt.text overwritten with 4B kickoff handoff
+ PRIMARY DELIVERABLE (S10 = KG Type + Schema Design):
+ - KG Node/Edge TypeScript interface contracts (additive widening of types.ts)
+ - Graph storage schema design: bie_graph_nodes + bie_graph_edges table shapes
+ - Entity resolution + duplicate detection stubs (no runtime logic yet)
+ - Edge proposal queue structure (applied=false HITL invariant, P4-12)
+ - Handoff S10 → S11 via STATE.md + prompt.text
 
  WORK ORDER — EXECUTE IN ORDER:
 
- S9 Step 1/4 — Build + Lint Validation:
-   npm run build = Exit 0 (must pass before proceeding)
-   npm run lint  = Exit 0 (must pass before proceeding)
+ S10 Step 1 of 5 — Read-only exploration:
+   Read src/pie/bie/types.ts → understand all existing BIE interfaces/types
+   Read /doc/ROADMAP_ARCHIVE.md → find Phase 4B Scope + Deliverables section
+   Read src/pie/bie/RoomBrainIntelligenceRepository.ts → understand existing 28-method shape
 
- S9 Step 2/4 — Static Trace (no code changes, read-only):
-   a) RoomBrainRepository.ts L180-185: confirm bieEnabled===false guard returns legacy FIRST
-   b) RoomBrainRepository.ts L296-375: confirm hybridSortedLegacy return path exists
-   c) hybridScorer.ts: confirm HYBRID_WEIGHT_SUM IIFE throws if sum ≠ 1.0
-   d) synonyms.ts: confirm validateSynonymDictionary() exported + dictionary has 50+ entries
+ S10 Step 2 of 5 — KG Type Contracts (additive, types.ts widening):
+   Define: GraphNodeType enum (Entity, Tag, Dimension, Evidence, Room, Insight)
+   Define: GraphEdgeType enum (6 edge kinds per ROADMAP 4B spec)
+   Define: BIEGraphNode interface + BIEGraphEdge interface
+   Define: GraphEdgeProposal interface (applied: false invariant)
+   Rule: ADDITIVE ONLY — zero removal of existing exported types
 
- S9 Step 3/4 — Doc Closeout (TARGETED EDITS per SI-4, ≤15 lines per SI-2):
-   CHANGELOG.md: append S9 section at TOP
-   ROADMAP.md: S9 row → ✅ Complete; 4A progress → ✅ Complete 100%; banner → Done
-   STATE.md: update Current Step → 4B kickoff (or "Phase 4A ✅ Complete")
+ S10 Step 3 of 5 — Storage Schema (no DB wiring yet, type-level only):
+   Define: BIEGraphNodeRow (DB row shape for bie_graph_nodes)
+   Define: BIEGraphEdgeRow (DB row shape for bie_graph_edges)
+   Document: schema rationale in inline JSDoc (column names, index plan)
 
- S9 Step 4/4 — Handoff Preparation:
-   Overwrite prompt.text with 4B kickoff handoff (minimal pointer format per SI-1)
-   4B = Knowledge Graph + Relationship Engine (next phase)
+ S10 Step 4 of 5 — Repository Method Stubs (RoomBrainIntelligenceRepository.ts additive):
+   Add stub signatures only (throw new Error("TODO S10") bodies):
+   - saveGraphNode / getGraphNode / deleteGraphNode
+   - saveGraphEdge / getGraphEdgesByNode / deleteGraphEdge
+   - proposeEdge (returns GraphEdgeProposal with applied=false)
+   - findDuplicateCandidates (entity resolution stub)
+   Rule: Additive widening only — existing 28 methods UNTOUCHED
 
- END OF S9 HANDOFF. REFER TO STATE.md + STANDING_INSTRUCTIONS.md FOR FULL CONTEXT.
+ S10 Step 5 of 5 — Doc Closeout + Handoff:
+   npm run build = Exit 0 (verify no TS errors from new types)
+   npm run lint  = Exit 0
+   CHANGELOG.md: append S10 section at TOP (≤15 lines per SI-2)
+   ROADMAP.md: S10 row → ✅ Complete (targeted cell edit per SI-4)
+   STATE.md: update Current Step → S11 kickoff
+   prompt.text: overwrite with S11 handoff (minimal pointer format per SI-1)
+
+ END OF S10 HANDOFF PROMPT.
 ════════════════════════════════════════════════════════════════════
