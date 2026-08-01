@@ -30,7 +30,7 @@
   ENGINEERING STYLE:  INFRASTRUCTURE-FIRST
   CONSTRAINTS:   P4-2 UX No Change   P4-8 Backward Compat
                  P4-12 HITL          P4-11 Async Reflect
-  PROGRESS:  ████░░░░░░░░░░░░░░░░░░░░░ 2/6 Steps S17–S18 (S18 ✅)
+  PROGRESS:  ████████░░░░░░░░░░░░░░░░░ 3/6 Steps S17–S19 (S19 ✅)
 ═══════════════════════════════════════════════════════════
 ```
 
@@ -76,7 +76,7 @@ Focus = Semantic Retrieval + Hybrid Search เท่านั้น (NOTHING OUT
 | 3 | Clean Arch: SSOT Repository + Legacy Cleanup | RoomBrainRepository SSOT, Memory Retrieval 75% Delete, MODE_PROMPTS→9 Roles, aiService 630→550, 100% Regression | 2026-07 | ✅ Complete | 100% |
 | **4A** | **Semantic Retrieval + Hybrid Search** | **Embedding Hybrid (Gemini+Local), Vector Index, 6-Factor Scoring, BIE Hook PIE, Disable Switch** | **2026-07** | **✅ Complete** | **100%** |
 | **4B** | **Knowledge Graph + Relationship** | **Graph Nodes/Edges 7 kinds + 6 edge types, Merge Duplicates, Entity Resolution, Edge Proposals (applied=false)** | **2026-08** | **✅ Complete** | **100%** |
-| **4C** | **Memory Intelligence + Reflection** | **Merge/Conflict/Decay/Evidence Consolidation Background Async Reflect Jobs (P4-11)** | **2026-08** | **⏳ In Progress (S18 ✅)** | **33%** |
+| **4C** | **Memory Intelligence + Reflection** | **Merge/Conflict/Decay/Evidence Consolidation Background Async Reflect Jobs (P4-11)** | **2026-08** | **⏳ In Progress (S19 ✅)** | **50%** |
 | 4D | Identity + Insight + Life Timeline | Identity 1-row singleton, 6-type Insight Generator, Timeline(M/Q/Y), Temporal Compare | Pre-requisite: 4C ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 5 | Full Intel Platform + UI Close | BIE UI Suite, HITL Confirm Screens, Service Worker (KI-302), Learning Loop Close + Optional MCP Integrations | Pre-requisite: 4A→4D ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 6 | Personal Evolution Engine | Daily Self Interview, Knowledge Gap Detector, Curiosity Engine, Identity Model, Confidence Score, Adaptive Question Engine | Pre-requisite: 5 ✅ | ⏳ Planned (Archived Detail) | 0% |

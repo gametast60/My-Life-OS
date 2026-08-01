@@ -13,6 +13,20 @@
 
 ---
 
+## [Phase 4C — S19] — Contradiction & Conflict Detector
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- ⚡ `/src/pie/bie/reflection/conflictDetector.ts`: `DefaultConflictDetector` implementation, seed dictionary (`KNOWN_OPPOSING_PAIRS`), and queue routing helpers (`createPendingConflictItem`, `routeConflictsToPendingQueue`, `detectConflicts`) to identify contradictory memory/tag evidence pairs.
+- 🔒 P4-12 HITL Invariant: All generated `ConflictItem` proposals strictly enforce `readonly applied: false` and route to `bie_pending_queue` (`kind: "reflection_conflict"`).
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL Compliance: Zero auto-applied DB writes; all proposals require user confirmation.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+
+---
+
 ## [Phase 4C — S18] — Evidence Consolidation Engine
 **Status**: ✅ Complete (2026-08-01)
 
