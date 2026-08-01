@@ -31,6 +31,7 @@ import type {
   GraphNode,
   GraphNodeKind,
   IdentityProfile,
+  IdentityRow,
   Insight,
   InsightKind,
   PendingLearning,
@@ -99,6 +100,17 @@ export interface BrainIntelligenceRepository {
   saveIdentity(profile: IdentityProfile): void;
   /** Mark the identity profile as User-confirmed. Confirm UI only. */
   applyIdentity(): void;
+  /**
+   * [Phase 4D S24] Fetch the identity singleton as a DB row (IdentityRow).
+   * Returns undefined until the first profile is built and persisted.
+   */
+  getIdentityProfile(): IdentityRow | undefined;
+  /**
+   * [Phase 4D S24] Persist an IdentityRow to bie_identity storage.
+   * AI callers MUST pass applied=false (P4-12 HITL invariant).
+   * Confirm UI may call with applied=true after user review.
+   */
+  saveIdentityProfile(profile: IdentityRow): void;
 
   // ─── Insights (bie_insights, FIFO 100) — Phase 4D ───────────────
   getInsights(filter?: { kind?: InsightKind; appliedOnly?: boolean }): Insight[];

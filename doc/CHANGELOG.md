@@ -13,6 +13,26 @@
 
 ---
 
+## [Phase 4D — S24] — Identity Engine (Singleton Row)
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `/src/pie/bie/identity/identityEngine.ts`: `IdentityEngine` interface + `DefaultIdentityEngine` concrete class. Builds 8-category `IdentityProfile` from `BrainEvidence` via dimension+keyword heuristic bucketing + recency-decayed scoring. `compareProfiles()` returns cosine similarity [0-1] between two profile snapshots (temporal identity compare). `applied: false` readonly literal enforced on all generated profiles (P4-12).
+- 🆕 `RoomDatabase.getBieIdentity()` / `saveBieIdentity()` static methods in `db.ts` (additive; uses `KEYS.BIE_IDENTITY`).
+
+### Changed
+- ⚙️ `/src/pie/bie/identity/index.ts`: re-export `identityEngine` added.
+- ⚙️ `/src/pie/bie/BrainIntelligenceRepository.ts` (additive): `IdentityRow` import + `getIdentityProfile()` / `saveIdentityProfile()` method signatures.
+- ⚙️ `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (additive): `getIdentity()` / `saveIdentity()` / `applyIdentity()` upgraded from placeholders to real `RoomDatabase.getBieIdentity/saveBieIdentity` storage; `getIdentityProfile()` / `saveIdentityProfile()` implemented.
+
+### Verified
+- ✅ `npm run lint` (tsc --noEmit) Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-8 Strict Widening: zero type/method removals; 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- ✅ P4-12 HITL: `IdentityProfile.applied` is readonly literal `false`; `applyIdentity()` only flips existing stored row to `true`.
+- [Doc Skip] AI_ARCHITECTURE.md — engine + storage layer only; no topology change to PIE pipeline or BIE dependency graph.
+
+---
+
 ## [Phase 4D — S23] — Identity Layer Kickoff: Type & Interface Contracts
 **Status**: ✅ Complete (2026-08-01)
 

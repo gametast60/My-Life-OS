@@ -27,7 +27,7 @@ import {
   EmbeddingRecord,
   PendingLearning,
 } from "../types";
-import type { GraphNode, GraphEdge } from "../pie/bie/types";
+import type { GraphNode, GraphEdge, IdentityRow } from "../pie/bie/types";
 import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
 // ── Storage Keys ─────────────────────────────────────────────────
@@ -970,6 +970,16 @@ export class RoomDatabase {
   }
   static saveBieGraphEdges(list: GraphEdge[]) {
     this.set(KEYS.BIE_GRAPH_EDGES, list);
+  }
+
+  // ── BIE: Identity Singleton (bie_identity) ────────────────────────
+  // Phase 4D: Singleton identity profile row (id="singleton").
+  // AI writes with applied=false (P4-12 HITL). Confirm UI flips to true.
+  static getBieIdentity(): IdentityRow | undefined {
+    return this.get<IdentityRow | undefined>(KEYS.BIE_IDENTITY, undefined);
+  }
+  static saveBieIdentity(row: IdentityRow) {
+    this.set(KEYS.BIE_IDENTITY, row);
   }
 
   // ── Backup & Restore ─────────────────────────────────────────────

@@ -48,6 +48,7 @@ import type {
   GraphNode,
   GraphNodeKind,
   IdentityProfile,
+  IdentityRow,
   Insight,
   InsightKind,
   PendingLearning,
@@ -370,37 +371,69 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
   }
 
   // ────────────────────────────────────────────────────────────────
-  // 4. Identity — bie_identity (Phase 4D — PLACEHOLDER)
+  // 4. Identity — bie_identity (Phase 4D — REAL STORAGE S24)
+  //    Singleton row (id="singleton"). AI writes applied=false (P4-12);
+  //    Confirm UI calls applyIdentity() to flip applied=true.
   // ────────────────────────────────────────────────────────────────
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Fetch the identity singleton (one row per user, id="singleton").
+   * Fetch the identity singleton from bie_identity storage.
+   * Returns undefined until the first profile has been built and persisted.
    *
-   * @returns `undefined` until 4D writes the first profile.
+   * @returns Stored IdentityProfile (applied may be true or false), or undefined.
    */
   getIdentity(): IdentityProfile | undefined {
-    return undefined;
+    const row = RoomDatabase.getBieIdentity();
+    if (!row) return undefined;
+    // Row has `applied: boolean`; cast to IdentityProfile which has `applied: false`
+    // only for freshly-built profiles. Safe cast — consumer checks applied flag.
+    return row as unknown as IdentityProfile;
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Overwrite the identity singleton. Per HITL, AI calls save with
-   * `applied = false`; the Confirm UI calls `applyIdentity()` later.
+   * Persist the identity singleton to bie_identity storage.
+   * Per P4-12 HITL, AI-generated profiles MUST pass `applied: false`.
+   * Only the Confirm UI may subsequently call `applyIdentity()`.
    *
-   * @param profile — Full identity profile payload.
+   * @param profile — IdentityProfile with applied=false (domain type enforces this).
    */
   saveIdentity(profile: IdentityProfile): void {
-    void profile;
+    // Domain type has applied: false (readonly literal); cast to IdentityRow for DB.
+    const row: IdentityRow = { ...profile, applied: false };
+    RoomDatabase.saveBieIdentity(row);
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Confirm UI exclusive: mark the identity row `applied = true`.
-   * No-op in 4A.
+   * Confirm UI exclusive: flip the identity singleton's applied flag to true.
+   * Idempotent — no-op if no identity row exists.
    */
   applyIdentity(): void {
-    // No-op.
+    const current = RoomDatabase.getBieIdentity();
+    if (current && !current.applied) {
+      RoomDatabase.saveBieIdentity({ ...current, applied: true });
+    }
+  }
+
+  /**
+   * [Phase 4D S24] Fetch the raw IdentityRow from bie_identity storage.
+   * Preferred over getIdentity() when the caller needs the mutable
+   * `applied: boolean` field (e.g. Confirm UI, temporal compare).
+   *
+   * @returns The stored IdentityRow, or undefined if none exists.
+   */
+  getIdentityProfile(): IdentityRow | undefined {
+    return RoomDatabase.getBieIdentity();
+  }
+
+  /**
+   * [Phase 4D S24] Persist an IdentityRow directly to bie_identity storage.
+   * AI callers MUST pass applied=false (P4-12 HITL invariant).
+   * Confirm UI may call with applied=true after user review.
+   *
+   * @param profile — IdentityRow to persist (keyed by id="singleton").
+   */
+  saveIdentityProfile(profile: IdentityRow): void {
+    RoomDatabase.saveBieIdentity(profile);
   }
 
   // ────────────────────────────────────────────────────────────────
