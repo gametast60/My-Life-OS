@@ -33,7 +33,16 @@ export interface IntentResult {
 }
 
 export interface RetrievalSource {
-  kind: "brain_card_legacy" | "journal" | "brain_tree_tag" | "brain_tree_dimension" | "brain_tree_type";
+  kind:
+    | "brain_card_legacy"
+    | "journal"
+    | "brain_tree_tag"
+    | "brain_tree_dimension"
+    | "brain_tree_type"
+    // ── BIE (Phase 4D S28) additive context kinds ────────────────────
+    | "bie_identity_summary"
+    | "bie_insight"
+    | "bie_timeline";
   id: string;
   title: string;
   content: string;
@@ -57,6 +66,15 @@ export interface RetrievalSource {
 export interface RetrievedMemory {
   sources: RetrievalSource[];
   queryFragments: string[];
+  /**
+   * Phase 4D S28 — structured metadata for BIE context enrichment.
+   * Present only when `bieEnabled !== false` and enrichment ran successfully.
+   */
+  bieEnrichment?: {
+    identityApplied: boolean;
+    insightCount: number;
+    timelineCount: number;
+  };
 }
 
 export interface RankedMemory {

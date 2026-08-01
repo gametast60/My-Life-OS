@@ -7,12 +7,11 @@
 
 ## Current Step
 
-**Phase 4D — S28: PIE Memory Context Final Wiring**
+**Phase 4D — S29: Phase 4 Master Closeout & Gate**
 Deliverable:
-1. Enrich PIE retrieval context (`PipelineContext`) with Identity Profile summary & Timeline Insights (Phase 4D final context integration).
-2. Wire BIE identity and insight retrieval to PIE Memory Retrieval Layer / Context Enricher cleanly.
-3. Preserve signature changes and zero-impact behavior when `bieEnabled === false`.
-4. Handoff S28 → S29 via STATE.md + PROMPT.md
+1. Master BIE regression gate: 7 AI features × (`bieEnabled` true/false) byte-for-byte integrity baseline.
+2. Full Phase 4A–4D lint/build 0 errors + doc closeout banner (Phase 4D → ✅ Complete).
+3. Handoff S29 → Phase 5 kickoff via STATE.md + PROMPT.md.
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
@@ -23,44 +22,45 @@ Status Before Start:
 - ✅ Phase 4D S25 — Insight Generator (6 Kinds, FIFO 100) ← **DONE**
 - ✅ Phase 4D S26 — Life Timeline Builder (M/Q/Y View) ← **DONE**
 - ✅ Phase 4D S27 — Proposal Queue Integration ← **DONE**
-- ⏳ Phase 4D S28 — PIE Memory Context Final Wiring (THIS STEP)
+- ✅ Phase 4D S28 — PIE Memory Context Final Wiring ← **DONE**
+- ⏳ Phase 4D S29 — Phase 4 Master Closeout & Gate (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S28 scope only)
+## Active Hard Constraints (S29 scope only)
 
 | ID | Constraint |
 |----|------------|
-| P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S28 is pipeline context wiring only — no UI components. |
-| P4-12 | HITL: only user-confirmed (`applied: true`) identity & insights enrich PIE context. `applied: false` items MUST be excluded. |
+| P4-8 | Strict Widening Only: no signature removals. 7 aiService.ts facade UNTOUCHED. |
+| P4-2 | Zero UX/UI change unless explicitly in Phase 5 scope — S29 is regression + doc gate only. |
+| P4-12 | HITL invariant must hold in regression: unconfirmed items never enrich context. |
+| P4-14 | `bieEnabled=false` must preserve Pre-Phase-4 keyword-only baseline 100%. |
 
 ---
 
-## Files Allowed / Forbidden (S28)
+## Files Allowed / Forbidden (S29)
 
-✅ ALLOWED (engine logic only, NO UI):
-- `/src/pie/layers/memoryRetrieval.ts` or context enricher hooks in PIE
-- `/src/pie/types.ts` (additive widening if context interfaces need optional fields)
-- `/doc/CHANGELOG.md` (append S28 closeout section)
-- `/doc/ROADMAP.md` (S28 Phase 4D status update)
-- `/doc/STATE.md` (update for S29 kickoff)
-- `/doc/PROMPT.md` (overwrite with S29 handoff)
+✅ ALLOWED (regression + doc closeout only):
+- `/doc/CHANGELOG.md` (append S29 closeout section)
+- `/doc/ROADMAP.md` (S29 status + Phase 4D banner → ✅ Complete)
+- `/doc/STATE.md` (update for Phase 5 kickoff)
+- `/doc/PROMPT.md` (overwrite with Phase 5 handoff)
+- `/doc/AI_ARCHITECTURE.md` (Phase 4 master closeout banner only, if arch state changed)
 
-❌ FORBIDDEN (no modification):
+❌ FORBIDDEN (no modification unless regression finds a bug):
 - ANY UI View / Settings / Chat component
 - `aiService.ts` 7 facade methods (P4-8)
+- Engine logic files (unless regression failure requires minimal fix)
 
 ---
 
 ## Readiness Checklist (before ANY code edit)
 
 - [ ] LS `/doc/` — all core docs exist
-- [ ] Read ROADMAP.md → confirm Phase 4D S27 = ✅ Complete; S28 = THIS STEP
-- [ ] Read CHANGELOG.md → confirm S27 entry exists at top
-- [ ] Read PIE memory retrieval layer to locate context enrichment entry points
-- [ ] Understood: S28 = PIE Memory Context Final Wiring; zero UI changes.
-- [ ] After implementation → UPDATE DOCS + PROMPT.md for S29 kickoff
+- [ ] Read ROADMAP.md → confirm Phase 4D S28 = ✅ Complete; S29 = THIS STEP
+- [ ] Read CHANGELOG.md → confirm S28 entry exists at top
+- [ ] Understood: S29 = Master regression gate + Phase 4 doc closeout; no new features.
+- [ ] After verification → UPDATE DOCS + PROMPT.md for Phase 5 kickoff
 
 ---
 

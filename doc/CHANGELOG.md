@@ -13,6 +13,24 @@
 
 ---
 
+## [Phase 4D — S28] — PIE Memory Context Final Wiring
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `enrichWithBieContext()` in `/src/pie/layers/memoryRetrieval.ts`: injects user-confirmed identity summary, applied insights (≤5), and timeline buckets (≤3) as additive `RetrievalSource` entries (`bie_identity_summary`, `bie_insight`, `bie_timeline`).
+- 🆕 `RetrievedMemory.bieEnrichment` optional metadata + three new `RetrievalSource.kind` values in `/src/pie/types.ts` (strict widening only).
+
+### Changed
+- ⚙️ `retrieveMemory()` prepends BIE context sources before legacy repo sources when `bieEnabled !== false`; `bieEnabled === false` bypasses enrichment entirely (P4-14 zero-impact).
+
+### Verified
+- ✅ `npm run lint` Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-12 HITL: only `applied: true` identity rows and insights injected; unconfirmed items excluded.
+- ✅ P4-8 Strict Widening: zero type/method removals; 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- [Doc Skip] AI_ARCHITECTURE.md — pipeline context wiring only; no layer diagram change.
+
+---
+
 ## [Phase 4D — S27] — Proposal Queue Integration
 **Status**: ✅ Complete (2026-08-01)
 
