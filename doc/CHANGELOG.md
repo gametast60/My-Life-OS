@@ -13,6 +13,20 @@
 
 ---
 
+## [Phase 4C — S17] — Reflection Type & Provider Contracts Kickoff
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 📦 `/src/pie/bie/reflection/`: Canonical type contracts (`EvidenceConsolidator`, `ConflictDetector`, `DecayEngine`, `ReflectorEngine`, `ConflictItem`, `DecayScore`, `EvidenceConsolidationReport`, `ReflectionCycleResult`) and module stubs (`evidenceConsolidator.ts`, `conflictDetector.ts`, `decayEngine.ts`, `reflectorEngine.ts`, `index.ts`).
+- 🔀 `/src/pie/bie/types.ts`: Additive widening for `BiePendingKind` (`reflection_conflict`, `reflection_merge`) and re-exports of reflection contracts.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL Invariant: `ConflictItem` strictly enforces `readonly applied: false`.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+
+---
+
 ## [Phase 4B — S16] — Phase 4B Closeout & Regression Gate
 **Status**: ✅ Complete (2026-08-01)
 

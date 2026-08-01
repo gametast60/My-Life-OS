@@ -93,7 +93,9 @@ export type BiePendingKind =
   | "graph_merge"
   | "identity_update"
   | "insight"
-  | "tag_confidence_boost";
+  | "tag_confidence_boost"
+  | "reflection_conflict"
+  | "reflection_merge";
 
 // ─────────────────────────────────────────────────────────────────────
 // 1. Embedding Record — bie_embeddings table row shape
@@ -270,4 +272,17 @@ export type {
   EntityResolutionCandidate,
   DuplicateDetectionResult,
 } from "./graph";
+
+export type {
+  EvidenceConsolidationReport,
+  ConflictSeverity,
+  ConflictItem,
+  DecayScore,
+  ReflectionCycleResult,
+  EvidenceConsolidator,
+  ConflictDetector,
+  DecayEngine,
+  ReflectorEngine,
+} from "./reflection";
+
 
