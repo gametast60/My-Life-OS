@@ -7,12 +7,12 @@
 
 ## Current Step
 
-**Phase 4C — S20: Brain Tree Decay Calculation Engine**
+**Phase 4C — S21: Background Reflect Job Runner (P4-11)**
 Deliverable:
-1. Implement `DecayEngine` logic in `/src/pie/bie/reflection/decayEngine.ts`
-2. Calculate time elapsed since last evidence using exponential decay curve calculation
-3. Generate structured `DecayScore` metrics without mutating active evidence records
-4. Handoff S20 → S21 via STATE.md + PROMPT.md
+1. Implement `ReflectorEngine` logic in `/src/pie/bie/reflection/reflectorEngine.ts`
+2. Orchestrate background reflection workflow (Consolidate → Conflict → Merge → Propose)
+3. Ensure non-blocking async background job runner (P4-11) routing proposals with `applied: false` HITL invariant
+4. Handoff S21 → S22 via STATE.md + PROMPT.md
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
@@ -20,47 +20,48 @@ Status Before Start:
 - ✅ Phase 4C S17 — Reflection Type & Provider Contracts Kickoff (COMPLETE)
 - ✅ Phase 4C S18 — Evidence Consolidation Engine (COMPLETE)
 - ✅ Phase 4C S19 — Contradiction & Conflict Detector (COMPLETE)
-- ⏳ Phase 4C S20 — Brain Tree Decay Calculation Engine (THIS STEP)
+- ✅ Phase 4C S20 — Brain Tree Decay Calculation Engine (COMPLETE)
+- ⏳ Phase 4C S21 — Background Reflect Job Runner (P4-11) (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S20 scope only)
+## Active Hard Constraints (S21 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S20 is decay calculation engine logic only — no UI components. |
-| P4-12 | HITL: decay score adjustments and proposals preserve HITL invariants. |
-| P4-11 | Async Reflect: non-blocking background operations. |
+| P4-2 | Zero UX/UI change. S21 is background reflect orchestrator logic only — no UI components. |
+| P4-12 | HITL: all reflection proposals strictly carry `applied: false` pending queue routing. |
+| P4-11 | Async Reflect: non-blocking background operations overnight or idle. |
 
 ---
 
-## Files Allowed / Forbidden (S20)
+## Files Allowed / Forbidden (S21)
 
-✅ ALLOWED (decay engine implementation, NO UI):
-- `/src/pie/bie/reflection/decayEngine.ts` (Exponential decay calculation logic)
+✅ ALLOWED (reflector engine orchestrator implementation, NO UI):
+- `/src/pie/bie/reflection/reflectorEngine.ts` (Background reflection job runner logic)
 - `/src/pie/bie/reflection/index.ts` (Reflection barrel export)
 - `/src/pie/bie/reflection/types.ts` (Additive type widening if needed)
-- `/doc/CHANGELOG.md` (append S20 closeout section)
-- `/doc/ROADMAP.md` (S20 status update)
-- `/doc/STATE.md` (update for S21 kickoff)
-- `/doc/PROMPT.md` (overwrite with S21 handoff)
+- `/doc/CHANGELOG.md` (append S21 closeout section)
+- `/doc/ROADMAP.md` (S21 status update)
+- `/doc/STATE.md` (update for S22 kickoff)
+- `/doc/PROMPT.md` (overwrite with S22 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
 - `aiService.ts` 7 facade methods (P4-8)
-- Direct mutation of core DB growth scores without confirmation
+- Direct applied=true DB writes (P4-12 HITL invariant)
 
 ---
 
 ## Readiness Checklist (before ANY code edit)
 
 - [ ] LS `/doc/` — 5 core docs + STATE.md + STANDING_INSTRUCTIONS.md exist
-- [ ] Read ROADMAP.md → confirm Phase 4A/4B = ✅ Complete, Phase 4C S17–S19 = ✅ Complete
-- [ ] Read CHANGELOG.md → confirm S19 entry exists at top
-- [ ] Read `/doc/ROADMAP_ARCHIVE.md` → understand Phase 4C Full Scope / S20 Deliverables
-- [ ] Understood: S20 = Brain Tree Decay Calculation Engine only; zero UI changes.
-- [ ] After implementation → UPDATE DOCS + PROMPT.md for S21 kickoff
+- [ ] Read ROADMAP.md → confirm Phase 4A/4B = ✅ Complete, Phase 4C S17–S20 = ✅ Complete
+- [ ] Read CHANGELOG.md → confirm S20 entry exists at top
+- [ ] Read `/doc/ROADMAP_ARCHIVE.md` → understand Phase 4C Full Scope / S21 Deliverables
+- [ ] Understood: S21 = Background Reflect Job Runner only; zero UI changes.
+- [ ] After implementation → UPDATE DOCS + PROMPT.md for S22 kickoff
 
 ---
 

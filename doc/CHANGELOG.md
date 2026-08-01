@@ -13,6 +13,19 @@
 
 ---
 
+## [Phase 4C — S20] — Brain Tree Decay Calculation Engine
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 📉 `/src/pie/bie/reflection/decayEngine.ts`: `DefaultDecayEngine` implementation, decay configuration rules (`DEFAULT_DECAY_CONFIG`: 30d half-life, 7d grace period), and batch/standalone calculation helpers (`calculateTagDecay`, `calculateBatchDecay`) for computing exponential growth score decay ($N(t) = N_0 \cdot e^{-\lambda t_{\text{effective}}}$).
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ Non-destructive metric computation: computes `DecayScore` without mutating core DB growth scores directly.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+
+---
+
 ## [Phase 4C — S19] — Contradiction & Conflict Detector
 **Status**: ✅ Complete (2026-08-01)
 
