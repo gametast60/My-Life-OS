@@ -104,11 +104,8 @@ Focus = Productize existing BIE foundations into user-visible and reviewable flo
 | **4B** | **Knowledge Graph + Relationship** | **Graph Nodes/Edges 7 kinds + 6 edge types, Merge Duplicates, Entity Resolution, Edge Proposals (applied=false)** | **2026-08** | **✅ Complete** | **100%** |
 | **4C** | **Memory Intelligence + Reflection** | **Merge/Conflict/Decay/Evidence Consolidation Background Async Reflect Jobs (P4-11)** | **2026-08** | **✅ Complete** | **100%** |
 | **4D** | **Identity + Insight + Life Timeline** | **Identity 1-row singleton, 6-type Insight Generator, Timeline(M/Q/Y), Temporal Compare** | **Pre-requisite: 4C ✅** | **✅ Complete** | **100%** |
-| **5A** | **BIE Discovery + Review Surface** | **Semantic discovery, pending review, confirm/reject/edit UX** | **Pre-requisite: 4D ✅** | **⏳ Planned** | **0%** |
-| **5B** | **Identity + Insight Productization** | **Identity review, insight center, confirmation and rollback flow** | **Pre-requisite: 5A ✅** | **⏳ Planned** | **0%** |
-| **5C** | **Timeline + Memory Context UX** | **Timeline exploration and BIE context in retrieval experience** | **Pre-requisite: 5B ✅** | **⏳ Planned** | **0%** |
-| **5D** | **Closeout + Hardening** | **Disable switch safety, regression, handoff, learning-loop validation** | **Pre-requisite: 5C ✅** | **⏳ Planned** | **0%** |
-| 6 | Personal Evolution Engine | Daily Self Interview, Knowledge Gap Detector, Curiosity Engine, Identity Model, Confidence Score, Adaptive Question Engine | Pre-requisite: 5 ✅ | ⏳ Planned (Archived Detail) | 0% |
+| **5** | **Productization & UX Contract** | **BIE Discovery, Identity Review, Insight Center, Timeline Explorer, Context Badge (S30–S34)** | **2026-08** | **✅ Complete** | **100%** |
+| 6 | Personal Evolution Engine | Daily Self Interview, Knowledge Gap Detector, Curiosity Engine, Identity Model, Confidence Score, Adaptive Question Engine | Pre-requisite: 5 ✅ | ⏳ Next / Pending | 0% |
 | 7 | Life Pattern Intelligence | Pattern Discovery Engine, Cause & Effect Engine, Personal Prediction, Blind Spot Detection, Monthly Growth Report | Pre-requisite: 6 ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 8 | Second Brain | Identity Engine, Life Timeline (M/Q/Y), Personal Insight Engine, Proactive AI | Pre-requisite: 7 ✅ | ⏳ Planned (Archived Detail) | 0% |
 

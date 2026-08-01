@@ -124,3 +124,319 @@
 ### ✅ ยกเว้นเมื่อ:
 - ไฟล์นั้นเสียหาย / Corrupted (เช่น เนื้อหาหายไปครึ่งหนึ่ง, ลำดับ section ผิดพลาดร้ายแรง)
 - มีคำสั่งชัดเจนจาก User ให้ Rewrite ทั้งไฟล์ (เช่น Task นี้ Restructure Documentation System)
+
+---
+
+## SI-5: Universal Handoff & State Transition Governance Rules
+
+### 1. Universal Step Transition Sequence
+เมื่อ Agent ได้รับ Work Order ในทุกๆ Session:
+1. อ่าน `PROMPT.md` (Current Mission / Work Order)
+2. อ่าน `STATE.md` (Current Project State, Constraints, Handoff)
+3. อ่านเฉพาะเอกสารและไฟล์ที่ Work Order อ้างถึง
+4. ตรวจ Codebase Reality
+5. ทำเฉพาะ Current Work Order ที่ระบุไว้ใน PROMPT.md
+6. Run required validation (`npm run lint`, `npm run build`, tests)
+7. เมื่อเสร็จ ให้ update `STATE.md`
+8. Update `PROMPT.md` ให้สะท้อน Next Work Order เฉพาะเมื่อเหมาะสม
+9. **ห้าม mark งานอนาคตเป็น Complete**
+10. **ห้ามข้าม Gate**
+
+### 2. State Transition Invariant
+- `CURRENT STEP → COMPLETE`
+- `NEXT STEP → NEXT / PENDING`
+- ตัวอย่าง: S32 Complete → S33 Next → S34 Next → Phase 5 Complete → Phase 6 Next / Pending
+- **ห้ามเด็ดขาด**: Phase 5 Complete → Phase 6 Complete (Phase 6 ต้อง Complete ต่อเมื่อ Phase 6 Master Gate ผ่านจริงเท่านั้น)
+
+### 3. Phase Completion Rule
+Phase N เป็น **COMPLETE** ได้ต่อเมื่อ:
+- ทุก required Step ของ Phase N complete 100%
+- Phase N Master Gate passed (lint + build + regressions)
+- Required validation passed
+- Handoff completed
+การที่ Phase N complete **ไม่ได้หมายความว่า Phase N+1 complete**
+
+### 4. Current Mission Rule
+- `PROMPT.md` ต้องทำหน้าที่เป็น **CURRENT MISSION / CURRENT WORK ORDER** เท่านั้น
+- Agent ต้องถือ Current Mission เป็น Source สำหรับงานที่ต้องทำใน Session ปัจจุบัน
+- **ห้ามตีความ** "Project Summary" หรือ "Completed History" เป็น Work Order ใหม่
+
+### 5. Phase Transition Rule
+เมื่อ Master Gate ของ Phase ปัจจุบันผ่าน:
+- **ห้ามเริ่ม Phase ถัดไปโดยอัตโนมัติ**
+- ให้เปลี่ยนสถานะเป็น: `CURRENT PHASE = Complete`, `NEXT PHASE = Pending / Planned`, `Implementation = NOT STARTED`
+- จากนั้นรอ Phase Transition / Kickoff Instruction ใหม่จาก User
+
+---
+
+## SI-6: Context Loading & Token Efficiency Governance
+
+### 1. REQUIRED CONTEXT — ต้องอ่านทุก Step
+ทุกครั้งที่เริ่ม Work Order ใหม่ ให้ Agent อ่าน:
+1. `/doc/PROMPT.md` — Current Mission / Current Work Order
+2. `/doc/STATE.md` — Current Project State / Current Step / Next Gate
+3. `/doc/STANDING_INSTRUCTIONS.md` — Universal Governance Rules
+
+สามไฟล์นี้คือ BASE CONTEXT
+
+### 2. CONDITIONAL CONTEXT — อ่านเฉพาะเมื่อจำเป็น
+#### `/doc/ROADMAP.md`
+อ่านเมื่อ:
+- ต้องตรวจ Phase / Step status
+- ต้องตรวจ dependency
+- ต้องตรวจ next phase / future phase
+- Current Work Order อ้างถึง Roadmap
+
+ไม่ต้องอ่านทุก Step หาก PROMPT.md + STATE.md มีข้อมูลเพียงพอสำหรับการทำงาน
+
+#### PHASE5_DESIGN_DRAFT.md
+อ่านเฉพาะเมื่อ:
+- Current Work Order อยู่ใน Phase 5
+- ต้องตรวจ Phase 5 architecture / constraint / design intent
+- Current Work Order อ้างถึง Design Draft
+
+ไม่ต้องอ่านหลัง Phase 5 จบ เว้นแต่ต้องตรวจ historical design decision
+
+#### PHASE5_TASK_BREAKDOWN_TEMPLATE.md
+อ่านเฉพาะเมื่อ:
+- Current Work Order อยู่ใน S30–S34
+- ต้องตรวจ acceptance criteria / dependency / sub-task ของ S นั้น
+
+ไม่ต้องอ่านทั้งไฟล์หาก Current Work Order ระบุ section ที่เกี่ยวข้อง ให้เปิดเฉพาะส่วนของ Current S เมื่อทำได้
+
+#### ROADMAP_ARCHIVE.md / *_ARCHIVE.md
+DEFAULT = DO NOT READ
+
+ให้อ่านเฉพาะเมื่อ:
+- Current Work Order ต้องการ historical decision
+- ต้องตรวจเหตุผลของ architecture ที่ไม่มีอยู่ใน Active Docs
+- ต้อง resolve ambiguity ที่ Active Docs ไม่สามารถตอบได้
+
+Archive ไม่ใช่ Current State และไม่ใช่ Current Work Order
+
+### 3. CODEBASE CONTEXT — อ่านเฉพาะ Touch Points
+หลังอ่าน Base Context แล้ว:
+- อย่า scan repository ทั้งหมดโดย default
+- ให้เริ่มจากไฟล์ที่ Current Work Order ระบุ
+- ตรวจ components / services / repositories ที่เป็น Touch Points
+- ตรวจ direct dependencies ที่จำเป็นต่อการเปลี่ยนแปลง
+- ตรวจ tests ที่เกี่ยวข้อง
+
+ค่อยขยาย scope เมื่อพบ dependency จริง
+
+ห้ามอ่าน source files จำนวนมากเพียงเพื่อ "ทำความเข้าใจทั้งโปรเจกต์" ถ้างานปัจจุบันไม่จำเป็น
+
+### 4. CURRENT MISSION IS THE SCOPE BOUNDARY
+PROMPT.md = Current Mission
+
+Agent ต้องทำเฉพาะ Current Work Order
+
+ห้าม:
+- ทำงานของ S ถัดไป
+- เริ่ม Phase ถัดไป
+- refactor ที่ไม่เกี่ยวข้อง
+- polish ที่ไม่เกี่ยวข้อง
+- แก้ documentation ที่ไม่จำเป็น
+- เพิ่ม feature นอก scope
+
+หากพบงานที่ควรทำในอนาคต: ให้รายงานเป็น Follow-up / Technical Debt และไม่ implement
+
+### 5. VALIDATION POLICY
+อย่าบังคับ `npm run lint` และ `npm run build` แบบไม่มีเงื่อนไขในทุกงาน
+
+ให้เลือก Validation ตามประเภทของ Work Order
+
+#### A. Source Code / UI / Config / Architecture-impacting Change
+อย่างน้อยต้อง run:
+- `npm run lint`
+- `npm run build`
+- tests ที่เกี่ยวข้องกับ touch points
+
+หาก Current Work Order ระบุ test suite เพิ่มเติม ต้องทำตามนั้นด้วย
+
+#### B. Logic / Data / Repository / AI / Retrieval Change
+ต้อง run:
+- `npm run lint`
+- `npm run build`
+- tests / regression ที่เกี่ยวข้อง
+
+ถ้ามี data contract หรือ state transition ต้อง validate behavior ที่เกี่ยวข้องด้วย
+
+#### C. UI-only Change
+ต้อง run:
+- `npm run lint`
+- `npm run build`
+- relevant UI / integration tests ถ้ามี
+
+#### D. Documentation-only / Planning / Audit
+ไม่ต้องบังคับ:
+- `npm run lint`
+- `npm run build`
+
+ให้ตรวจ:
+- consistency
+- correctness
+- state transition
+- references
+- scope compliance
+
+#### E. Phase / Master Gate / Closeout
+ต้องทำ Full Required Validation ตาม Acceptance Criteria ของ Phase / Master Gate
+
+หาก Gate กำหนด:
+- Regression
+- Build
+- Lint
+- E2E
+- Disable switch
+- HITL
+- Rollback
+
+ต้องทำครบตาม Gate
+
+### 6. VALIDATION IS NOT TOKEN OPTIMIZATION
+ห้ามข้าม validation ที่จำเป็นเพียงเพื่อลด Token
+
+เป้าหมายคือ:
+- ลดการอ่าน Context ที่ไม่จำเป็น
+
+ไม่ใช่:
+- ลดการตรวจสอบความถูกต้อง
+
+### 7. DOCUMENT UPDATE POLICY
+หลังงานเสร็จ:
+
+#### STATE.md
+อัปเดตเฉพาะ:
+- Current Step
+- Step Status
+- Phase Status
+- Next Step / Next Gate
+- Relevant Handoff Information
+
+ห้าม regenerate STATE.md ทั้งไฟล์โดยไม่จำเป็น
+
+#### PROMPT.md
+อัปเดตเฉพาะเมื่อ:
+- Current Work Order เปลี่ยน
+- Step เสร็จและมี Next Work Order ที่ได้รับอนุมัติแล้ว
+- Phase Transition เกิดขึ้น
+
+ห้ามเปลี่ยน PROMPT.md ให้กลายเป็น Project History
+
+#### ROADMAP.md
+แก้เฉพาะ targeted status lines / tables
+
+ห้าม regenerate ทั้งไฟล์
+
+#### CHANGELOG.md
+เพิ่มเฉพาะเมื่อ Standing Instructions หรือ Current Work Order กำหนดให้บันทึก
+
+### 8. STATE TRANSITION INVARIANT
+ใช้กฎ:
+- `CURRENT STEP → COMPLETE`
+- `NEXT STEP → NEXT / PENDING`
+
+ตัวอย่าง:
+- `S32 Complete → S33 Next`
+- `S33 Complete → S34 Next`
+- `S34 Complete → Phase 5 Complete`
+- `Phase 5 Complete → Phase 6 Pending / Next`
+- `Phase 6 Implementation → NOT STARTED`
+
+### 9. PHASE COMPLETION RULE
+Phase N สามารถเป็น COMPLETE ได้ต่อเมื่อ:
+- required steps ของ Phase N complete
+- Master Gate ของ Phase N passed
+- required validation passed
+- handoff completed ถ้ามี
+
+ห้าม mark Phase อนาคตเป็น Complete
+
+### 10. PHASE TRANSITION RULE
+เมื่อ Phase ปัจจุบัน Complete:
+- `CURRENT PHASE = Complete`
+- `NEXT PHASE = Pending / Planned`
+- `IMPLEMENTATION = NOT STARTED`
+
+ห้ามเริ่ม Phase ถัดไปโดยอัตโนมัติ
+
+ต้องรอ:
+- User / Architect Kickoff
+- Architecture Discovery
+- Design Gate
+
+ก่อน implementation
+
+### 11. DESIGN GATE RULE
+หาก Work Order เป็น:
+- Architecture change
+- New subsystem
+- New Phase
+- Major UI/UX change
+- New data model
+- New intelligence behavior
+
+ต้องหยุดที่ Design / Planning ก่อน implementation หาก Current Work Order กำหนด Design Gate
+
+Agent สามารถ:
+- audit
+- propose
+- analyze
+- recommend
+
+แต่ห้ามถือว่า proposal = approval
+
+### 12. TOKEN-EFFICIENT READING ORDER
+ใช้ลำดับนี้เสมอ:
+1. PROMPT.md
+2. STATE.md
+3. STANDING_INSTRUCTIONS.md
+4. Current Work Order referenced docs
+5. Relevant source files
+6. Direct dependencies only
+7. Tests
+8. Archive only if unresolved ambiguity remains
+
+ห้ามเริ่มจาก:
+- ROADMAP_ARCHIVE
+- อ่าน documentation ทั้ง `/doc/`
+
+### 13. STOP READING RULE
+เมื่อมีข้อมูลเพียงพอสำหรับการทำ Current Work Order แล้ว: STOP READING
+
+ไม่ต้องอ่านไฟล์เพิ่มเติมเพื่อ "ให้แน่ใจ" หากไม่มี dependency หรือคำถามที่ยังตอบไม่ได้
+
+หากพบข้อมูลขัดแย้ง: หยุดและรายงาน conflict ก่อนแก้เอง
+
+### 14. FINAL REPORT
+เมื่อเสร็จ ให้รายงานสั้น ๆ:
+
+#### Context Used
+- Required files ที่อ่าน
+- Conditional files ที่อ่าน
+- Source areas ที่ตรวจ
+
+#### Validation
+- lint: PASS / N/A
+- build: PASS / N/A
+- tests: PASS / N/A
+
+#### State Transition
+- Current Step
+- Completed Step
+- Next Step / Gate
+
+#### Files Changed
+เฉพาะไฟล์ที่แก้จริง
+
+ห้ามรายงาน documentation ทั้งหมด หากไม่ได้อ่านหรือแก้ไข
+
+### FINAL RULE
+เป้าหมายของ SI-6 คือ:
+- "อ่านให้น้อยที่สุดเท่าที่เพียงพอ แต่ทำงานและตรวจสอบให้ครบเท่าที่จำเป็น"
+
+Correctness > Token Saving
+
+แต่ Unnecessary Context Reading = ห้ามทำ
+

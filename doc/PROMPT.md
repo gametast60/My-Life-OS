@@ -1,41 +1,36 @@
-# PROMPT.md — Final Handoff Summary
+# PROMPT.md — Current Work Order
 
-> **🎉 PHASE 5: Productization & UX Contract — COMPLETE**
-> **My Life OS — Brain Intelligence Engine (BIE)**
-
----
-
-## 📌 Phase 5 Summary
-
-Phase 5 has successfully productized all underlying BIE engines (Semantic Vector Index, Knowledge Graph, Reflective Consolidation, Identity Engine, Insight Generator, and Timeline Builder) into 5 intuitive, beautiful, and HITL-safeguarded user product surfaces:
-
-1. **BIE Discovery & Pending Review Surface (`BieDiscoveryModal.tsx`)**:
-   - Allows users to search BIE knowledge semantically and review pending structural proposals (`bie_pending_queue`) with inline edit, confirm, reject, and undo controls.
-2. **Identity Review Surface (`IdentityReviewModal.tsx` / `IdentityProfileCard.tsx`)**:
-   - Presents the 8 canonical categories of user identity with confidence scores, AI summary, and HITL confirm/undo controls.
-3. **Insight Center Surface (`InsightCenterModal.tsx` / `InsightCard.tsx`)**:
-   - Presents generated insights across 6 categories (trend, anomaly, progress, milestone, conflict, pattern) with expandable evidence context and confirm/reject/undo controls.
-4. **Timeline Explorer Surface (`TimelineViewerModal.tsx`)**:
-   - Displays rebuildable monthly, quarterly, and yearly life timeline buckets with dimension theme progress bars and milestone events.
-5. **BIE Context Status Display (`BieContextStatusBadge.tsx`)**:
-   - Displays real-time retrieval context enrichment status inside `AICoachView` with quick-nav shortcuts to all review surfaces.
+> **CURRENT MISSION: Phase 6 Handoff & Transition Standby**
+> **My Life OS — Personal Intelligence Engine (PIE) & Brain Intelligence Engine (BIE)**
 
 ---
 
-## 🔒 Hard Constraints & Safeguards Honored
+## 📌 สิ่งแรกที่ต้องทำ (First Steps)
 
-- **P4-8**: 7 `aiService.ts` facade method signatures remain 100% untouched.
-- **P4-12 & P5-1**: HITL Invariant strictly enforced — unconfirmed items (`applied: false`) are NEVER injected into retrieval context or applied to target tables.
-- **P4-14**: `bieEnabled=false` preserves 100% Pre-Phase-4 keyword-only baseline across all 5 surfaces.
-- **P5-2**: Undo/Rollback Safety verified — undoing any action reverts `applied: false` state and immediately excludes the item from retrieval context.
-
----
-
-## 🏆 Master Gate Validation Results
-
-- **`npm run lint`**: Exit 0 (0 errors)
-- **`npm run build`**: Exit 0 (2165 modules transformed, 0 bundle errors)
+1. อ่าน `/doc/STATE.md` (Current Project State, Active Constraints, Handoff Info)
+2. ปฏิบัติตาม `/doc/STANDING_INSTRUCTIONS.md` ( Universal Step Transition & Governance Rules)
+3. ตรวจสอบ Codebase Reality & Verification Status (`npm run lint`, `npm run build`)
 
 ---
 
-> **ALL PHASES (Phase 1–5) ARE NOW FULLY SHIPPED AND OPERATIONAL.** 🎉
+## 🎯 CURRENT MISSION SUMMARY
+
+| ด้าน | รายละเอียด |
+|------|-----------|
+| **Current Phase** | Phase 5 — Productization & UX Contract (✅ COMPLETE — Master Gate Passed 2026-08-02) |
+| **Current Step** | Phase 6 Handoff / Kickoff Standby |
+| **Next Phase** | Phase 6 — Personal Evolution Engine (⏳ PENDING KICKOFF — Implementation NOT STARTED) |
+| **Acceptance Criteria** | 1. Documentation Protocol Repaired & Synced<br>2. Phase 1–5 Master Gate Verified (Lint + Build Exit 0)<br>3. Standby for User's Phase 6 Kickoff Instruction |
+| **เมื่อเสร็จแล้ว** | รอคำสั่งจาก User เพื่อเริ่มแตก Task Phase 6 (S35) |
+
+---
+
+## ⚙️ WORK ORDER STATUS & NEXT STEPS
+
+- [x] Phase 5 S30–S34 Product Surfaces & Master Gate Completed
+- [x] Documentation Protocol Repair Completed (`STATE.md`, `PROMPT.md`, `STANDING_INSTRUCTIONS.md`)
+- [ ] Await User Kickoff Work Order for Phase 6 (Personal Evolution Engine: Daily Self Interview, Knowledge Gap Detector, Curiosity Engine, Identity Model, Adaptive Question Engine)
+
+---
+
+> **END OF CURRENT MISSION PROMPT — STANDING BY FOR PHASE 6 KICKOFF.**
