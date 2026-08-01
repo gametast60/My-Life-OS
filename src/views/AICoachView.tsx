@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
+import { BieContextStatusBadge } from "../components/bie/BieContextStatusBadge";
 
 interface AICoachViewProps {
   settings: UserSettings;
@@ -40,6 +41,10 @@ interface AICoachViewProps {
   onOpenManageAPI?: () => void;
   onOpenLifeBrain?: () => void;
   onSuggestCard?: (card: Partial<BrainCard>) => void;
+  onOpenBieDiscovery?: () => void;
+  onOpenIdentityReview?: () => void;
+  onOpenInsightCenter?: () => void;
+  onOpenTimelineViewer?: () => void;
 }
 
 const MODES = [
@@ -66,13 +71,22 @@ export const AICoachView: React.FC<AICoachViewProps> = (props) => {
   return (
     <div className="space-y-6 pb-20 max-w-5xl mx-auto px-4">
       {/* Header */}
-      <div className="pt-2">
-        <h1 className="text-2xl font-extrabold tracking-tight text-[#EBF1EA]">
-          AI Coach
-        </h1>
-        <p className="text-xs text-[#869883] mt-1">
-          AI Assistant ส่วนตัว อ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัว
-        </p>
+      <div className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#EBF1EA]">
+            AI Coach
+          </h1>
+          <p className="text-xs text-[#869883] mt-1">
+            AI Assistant ส่วนตัว อ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัว
+          </p>
+        </div>
+        <BieContextStatusBadge
+          bieEnabled={true}
+          onOpenDiscovery={props.onOpenBieDiscovery}
+          onOpenIdentityReview={props.onOpenIdentityReview}
+          onOpenInsightCenter={props.onOpenInsightCenter}
+          onOpenTimelineViewer={props.onOpenTimelineViewer}
+        />
       </div>
 
       {/* Mode Grid Header */}

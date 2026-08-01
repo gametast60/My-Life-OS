@@ -708,35 +708,67 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
    * a harmless no-op.
    *
    * @param id — Pending item primary key.
+   * @param editedPayload — Optional user-edited payload override.
    */
-  applyPendingBieItem(id: string): void {
+  applyPendingBieItem(id: string, editedPayload?: Record<string, unknown>): void {
     const current = RoomDatabase.getBiePendingQueue();
     const item = current.find((row) => row.id === id);
 
     if (item) {
+      const payloadToUse = editedPayload || item.payload;
       // Execute side effects based on pending item kind
-      if (item.kind === "identity_update" && item.payload) {
-        const profile = item.payload as unknown as IdentityRow;
-        if (profile.id) {
+      if (item.kind === "identity_update" && payloadToUse) {
+        const profile = payloadToUse as unknown as IdentityRow;
+        if (profile.id || profile.summary) {
           this.saveIdentityProfile({ ...profile, applied: true });
         }
-      } else if ((item.kind === "insight_proposal" || item.kind === "insight") && item.payload) {
-        const insight = item.payload as unknown as Insight;
+      } else if ((item.kind === "insight_proposal" || item.kind === "insight") && payloadToUse) {
+        const insight = payloadToUse as unknown as Insight;
         if (insight.id) {
           this.appendInsight({ ...insight, applied: true });
         }
-      } else if (item.kind === "graph_edge" && item.payload) {
-        const edgeId = (item.payload.id as string) || (item.payload.edgeId as string);
+      } else if (item.kind === "graph_edge" && payloadToUse) {
+        const edgeId = (payloadToUse.id as string) || (payloadToUse.edgeId as string);
         if (edgeId) {
           this.applyGraphEdge(edgeId);
-        } else if (item.payload.fromId && item.payload.toId) {
-          this.saveGraphEdge({ ...(item.payload as unknown as GraphEdge), applied: true });
+        } else if (payloadToUse.fromId && payloadToUse.toId) {
+          this.saveGraphEdge({ ...(payloadToUse as unknown as GraphEdge), applied: true });
         }
       }
 
       // Remove item from pending queue
       const next = current.filter((row) => row.id !== id);
       RoomDatabase.saveBiePendingQueue(next);
+    }
+  }
+
+  /**
+   * Undo/Rollback exclusive: revert an applied BIE structural item back to
+   * unapplied state (applied: false) or delete if appropriate.
+   *
+   * @param kind — Target structural item kind ("identity", "insight", "graph_edge", etc.)
+   * @param targetId — Identifier of the applied record to undo
+   */
+  undoAppliedBieItem(kind: string, targetId: string): void {
+    if (kind === "identity_update" || kind === "identity") {
+      const identity = RoomDatabase.getBieIdentity();
+      if (identity) {
+        RoomDatabase.saveBieIdentity({ ...identity, applied: false });
+      }
+    } else if (kind === "insight_proposal" || kind === "insight") {
+      const rows = RoomDatabase.getBieInsights();
+      const idx = rows.findIndex((r) => r.id === targetId);
+      if (idx !== -1) {
+        rows[idx] = { ...rows[idx], applied: false };
+        RoomDatabase.saveBieInsights(rows);
+      }
+    } else if (kind === "graph_edge" || kind === "graph_merge") {
+      const edges = RoomDatabase.getBieGraphEdges();
+      const idx = edges.findIndex((e) => e.id === targetId);
+      if (idx !== -1) {
+        edges[idx] = { ...edges[idx], applied: false };
+        RoomDatabase.saveBieGraphEdges(edges);
+      }
     }
   }
 

@@ -197,23 +197,32 @@ Existing BIE Engines
 
 ---
 
-## F. Initial Suggested Decomposition (Draft Only)
+## F. Confirmed Decomposition (Post-S29 Audit — Updated S30)
 
-The actual architecture suggests a practical decomposition, but this is not a fixed execution plan. It is an initial suggested decomposition based on the repository state at the time of drafting.
+Following S29 Master Closeout (✅ 2026-08-01), the Phase 4 code audit confirms the sub-phase grouping below. The foundation engines are real but require productization — not from scratch but not trivially wrapping existing engines either.
 
-Possible grouping:
-- 5A: BIE Discovery & Review Surface — semantic search and pending-review surfaces
-- 5B: Identity + Insight Productization — identity review, insight center, and confirmation flow
-- 5C: Timeline + Memory Context UX — timeline explorer and BIE context integration in retrieval experience
-- 5D: Closeout & Hardening — disable switch, regression, and handoff polish
+Confirmed grouping (S30 audit-verified):
+- 5A (S31): BIE Discovery & Review Surface — semantic search and pending-review surfaces; maps to SemanticService + bie_pending_queue
+- 5B (S32): Identity + Insight Productization — identity review, insight center, and confirmation flow; maps to IdentityEngine + InsightGenerator + bie_identity + bie_insights
+- 5C (S33): Timeline + Memory Context UX — timeline explorer and BIE context integration in retrieval experience; maps to TimelineBuilder + enrichWithBieContext
+- 5D (S34): Closeout & Hardening — full regression, undo validation, disable-switch safety, handoff
 
-This decomposition may be revised after the final Phase 4 state is audited following S29.
+Surface → Engine/Repository mapping (post-S29 audit):
+| Phase 5 Surface | Engine/Service | Repository Method | Table |
+|---|---|---|---|
+| BIE Discovery / Semantic Search | SemanticService / HybridScorer | getSemanticMatches / hybridSearch | bie_embeddings |
+| Pending Queue Review Screen | — (queue reader) | getPendingBieItems | bie_pending_queue |
+| Identity Review UI | IdentityEngine | getBieIdentity / applyPendingBieItem | bie_identity |
+| Insight Center UI | InsightGenerator | getBieInsights / applyPendingBieItem | bie_insights |
+| Timeline Explorer UI (read-only) | TimelineBuilder | getBieTimeline | bie_timeline |
+
+Starting sequence: S31 (5A) can start immediately after S30 design gate approval.
 
 ---
 
-## G. Initial Suggested S-step Decomposition (Draft Only)
+## G. S-step Decomposition (Post-S29 Audit — S30 Active)
 
-The following S-steps are an initial suggested decomposition and not a fixed mandatory execution chain. They should be re-evaluated after S29 PASS and a fresh audit of the final Phase 4 state.
+The following S-steps are confirmed after S29 PASS and S30 audit. S30 is the current active step (⏳ 2026-08-02). S31 is next and begins immediately after S30 design gate approval. S32–S34 follow sequentially per dependency chain.
 
 ### S30 — Define Phase 5 Product Surface and Confirm UX Contract
 
@@ -596,20 +605,59 @@ This is an architecture direction rather than marketing language.
 
 ---
 
-## P. Design Freeze + Handoff Plan
-
-This workshop is complete as an audit and design artifact. No roadmap files were changed.
+## P. Design Status (Post-S29 — Updated S30 2026-08-02)
 
 Current Status:
-- Phase 4D S28: Completed
-- Phase 4D S29: Next / Pending
-- Phase 5: Design Prepared
-- Phase 5 Implementation: Not Started
+- Phase 4D S28: ✅ Complete (2026-08-01)
+- Phase 4D S29: ✅ Complete — Master Closeout PASS (2026-08-01)
+- Phase 5 S30: ⏳ In Progress — Product Surface Definition & UX Contract (2026-08-02)
+- Phase 5 Implementation (S31+): Not Started — awaiting S30 design gate approval
 
 Next Gate:
-- Phase 4D S29 Master Closeout → PASS
+- S30 Design Gate → then S31 implementation begins
 
-> Phase 5 implementation must not start before S29 Master Closeout passes.
->
-> 🛑 Design Workshop เสร็จสิ้น — พร้อม Handoff แล้ว แต่ยังไม่นำเข้า Roadmap จนกว่า S29 Master Closeout จะรันเสร็จ
-> ขั้นตอนถัดไป: กลับไปรัน S29 ก่อน แล้วค่อยใช้ “ส่วน B” ของ Prompt นี้เพื่ออัปเดต Roadmap
+> Phase 5 implementation (S31+) must not start before S30 Design Gate is approved.
+
+---
+
+## Q. HITL UX Contract (Defined S30 — 2026-08-02)
+
+> This is the explicit confirm/reject/edit/undo contract for all Phase 5 BIE surfaces. All surfaces (S31–S33) must implement this contract.
+
+### Contract Actions
+
+| Action | Trigger | State Transition | Structural Change | Reversible |
+|---|---|---|---|---|
+| **Confirm** | User taps "Confirm" on a pending BIE item | `pending → confirmed`; calls `applyPendingBieItem(id)` → `applied: true` | Yes — persists to target table (bie_identity / bie_insights / etc.) | Yes — via Undo within session or rollback endpoint |
+| **Reject** | User taps "Reject" on a pending BIE item | `pending → rejected`; item removed from pending queue | No — no structural change to knowledge state | N/A (no change to persist) |
+| **Edit** | User modifies proposed content before confirming | Content modified in-place in pending item; then user confirms → `applyPendingBieItem(id, editedContent)` | Yes — same as Confirm but with user-modified content | Yes — same undo path as Confirm |
+| **Undo** | User undoes a previously confirmed item | `applied: true → applied: false (or deleted)`; reverts target table record to pre-confirm state | Reversed — reverts structural change | Architecture requirement: undo must restore underlying intelligence state, not merely hide from UI |
+
+### Constraint Compliance
+- **P5-1 (HITL mandatory)**: Every BIE suggestion enters `bie_pending_queue` first. No suggestion auto-applies.
+- **P5-2 (Undo/rollback safety)**: Every Confirm action that affects identity, insight, tag merge, or relationship must support undo without data corruption.
+- **P4-12 (HITL invariant)**: Only `applied: true` items may enrich retrieval context. Pending items are invisible to retrieval.
+- **P4-14 (bieEnabled=false)**: When disabled, all pending queue UI is hidden/empty; no BIE items appear in retrieval.
+
+### Per-Surface Rollback Strategy
+| Surface | Undo Target | Rollback Method |
+|---|---|---|
+| Identity Review UI | `bie_identity` record | Set `applied: false`; if field was overwritten, restore previous value from pre-confirm snapshot or history field |
+| Insight Center UI | `bie_insights` record | Set `applied: false`; retrieval enrichment layer re-filters on next call |
+| Tag Merge (if implemented) | Tag table records | Restore pre-merge tag records; invalidate retrieval cache |
+| Relationship (if implemented) | bie_graph_edges | Delete or inactivate edge; invalidate graph traversal cache |
+| Pending Queue (Reject) | bie_pending_queue | Mark as rejected; no rollback needed (no structural change) |
+
+### Stale Pending Item Policy
+Items in `bie_pending_queue` that have not been acted on after a long period should be surfaced as "stale" (not auto-rejected). The exact stale threshold is deferred to S31 implementation detail.
+
+### Fields Required in Pending Queue UI
+Minimum fields the UI must display per pending item:
+- `id` — unique item identifier
+- `type` — BIE type (identity / insight / semantic / timeline)
+- `content` — proposed content (user-readable)
+- `status` — pending / confirmed / rejected
+- `score` — confidence/relevance score (optional but recommended)
+- `proposedAt` — timestamp of AI proposal
+- `confirmedAt` — timestamp of user confirm (if applicable)
+- `editedContent` — user-modified content (if user chose Edit before Confirm)

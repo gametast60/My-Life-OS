@@ -23,6 +23,10 @@ import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
 import { JournalPlacementBottomSheet } from "./components/JournalPlacementBottomSheet";
+import { BieDiscoveryModal } from "./components/bie/BieDiscoveryModal";
+import { IdentityReviewModal } from "./components/bie/IdentityReviewModal";
+import { InsightCenterModal } from "./components/bie/InsightCenterModal";
+import { TimelineViewerModal } from "./components/bie/TimelineViewerModal";
 
 import { RoomDatabase } from "./lib/db";
 import { PresetMood } from "./lib/db";
@@ -134,6 +138,11 @@ export default function App() {
   const [isAffirmationOpen, setIsAffirmationOpen] = useState(false);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
+  const [isBieDiscoveryOpen, setIsBieDiscoveryOpen] = useState(false);
+  const [isIdentityReviewOpen, setIsIdentityReviewOpen] = useState(false);
+  const [isInsightCenterOpen, setIsInsightCenterOpen] = useState(false);
+  const [isTimelineViewerOpen, setIsTimelineViewerOpen] = useState(false);
+
 
   const handleSavePresetTags = (tags: string[]) => {
     setPresetTags(tags);
@@ -744,8 +753,8 @@ export default function App() {
         onClearAllReminders={handleClearAllReminders}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenAIQuick={() => setCurrentTab("coach")}
         onOpenManageAPI={() => setIsManageAPIOpen(true)}
+        onOpenBieDiscovery={() => setIsBieDiscoveryOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-20 pb-12">
@@ -810,6 +819,10 @@ export default function App() {
             onOpenManageAPI={() => setIsManageAPIOpen(true)}
             onOpenLifeBrain={() => setCurrentTab("journey")}
             onSuggestCard={(card) => setSuggestedCard(card)}
+            onOpenBieDiscovery={() => setIsBieDiscoveryOpen(true)}
+            onOpenIdentityReview={() => setIsIdentityReviewOpen(true)}
+            onOpenInsightCenter={() => setIsInsightCenterOpen(true)}
+            onOpenTimelineViewer={() => setIsTimelineViewerOpen(true)}
           />
         )}
 
@@ -968,6 +981,32 @@ export default function App() {
         onClose={() => setIsCheckinOpen(false)}
         onSaveCheckin={handleSaveCheckin}
         settings={settings}
+      />
+
+      <BieDiscoveryModal
+        isOpen={isBieDiscoveryOpen}
+        onClose={() => setIsBieDiscoveryOpen(false)}
+        bieEnabled={true}
+        onOpenIdentityReview={() => setIsIdentityReviewOpen(true)}
+        onOpenInsightCenter={() => setIsInsightCenterOpen(true)}
+      />
+
+      <IdentityReviewModal
+        isOpen={isIdentityReviewOpen}
+        onClose={() => setIsIdentityReviewOpen(false)}
+        bieEnabled={true}
+      />
+
+      <InsightCenterModal
+        isOpen={isInsightCenterOpen}
+        onClose={() => setIsInsightCenterOpen(false)}
+        bieEnabled={true}
+      />
+
+      <TimelineViewerModal
+        isOpen={isTimelineViewerOpen}
+        onClose={() => setIsTimelineViewerOpen(false)}
+        bieEnabled={true}
       />
     </div>
   );

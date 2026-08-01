@@ -1,6 +1,6 @@
 import React from "react";
 import { UserSettings, ReminderItem } from "../types";
-import { Search, Settings, Key } from "lucide-react";
+import { Search, Settings, Key, Brain } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 
 interface HeaderProps {
@@ -15,6 +15,7 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onOpenAIQuick?: () => void;
   onOpenManageAPI?: () => void;
+  onOpenBieDiscovery?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenAIQuick,
   onOpenManageAPI,
+  onOpenBieDiscovery,
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-30 bg-[#0A0E0A]/90 backdrop-blur-md border-b border-[#6B9361]/15 px-4 md:px-8 py-3">
@@ -42,6 +44,17 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          {onOpenBieDiscovery && (
+            <button
+              onClick={onOpenBieDiscovery}
+              className="p-2 rounded-xl text-[#869883] hover:text-emerald-300 hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-semibold"
+              title="BIE Discovery & Review"
+            >
+              <Brain size={16} className="text-emerald-400" />
+              <span className="hidden sm:inline">BIE Review</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenSearch}
             className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all"
