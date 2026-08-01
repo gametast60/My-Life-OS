@@ -13,6 +13,21 @@
 
 ---
 
+## [Phase 4B — S14] — Relationship Extraction Engine
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🔍 `relationshipExtractor.ts`: `extractRelationshipCandidates` (evidence co-occurrence analysis & semantic affinity mapping across 6 canonical edge types: `supports`, `conflicts`, `causes`, `derived_from`, `related`, `opposes`) and `routeProposalsToPendingQueue` helper.
+- 🔒 `edgeProposalQueue.ts`: Integration with `proposeEdge` and `createPendingEdgeItem` guaranteeing `applied: false` HITL invariant for all extracted candidate edges.
+- 📦 `graph/index.ts`: Barrel export updated to expose relationship extractor module.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2155 modules). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL: all extracted candidate edges route to `bie_pending_queue` as proposals (`applied: false`), zero auto-applied writes to graph DB.
+- ✅ P4-8 Strict Widening: additive extraction engine, no existing exports removed.
+
+---
+
 ## [Phase 4B — S13] — Graph Query & Neighbourhood Traversal
 **Status**: ✅ Complete (2026-08-01)
 

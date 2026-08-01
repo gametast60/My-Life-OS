@@ -7,3 +7,4 @@ export * from "./types";
 export * from "./entityResolver";
 export * from "./edgeProposalQueue";
 export * from "./graphQueryService";
+export * from "./relationshipExtractor";
