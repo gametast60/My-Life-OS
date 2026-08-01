@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────
 // BIE — HybridScorer (6-Factor Weighted Rank Formula)
 // Phase 4A S5 — Σ (factor_i × weight_i)
+// Phase 4A S8 — Named exported weight constants, Σ=1.0 guard, threshold
 // ─────────────────────────────────────────────────────────────────────
 //
 // Six-factor scoring (bootstrap weights, SUM = 1.0 EXACT):
@@ -38,28 +39,95 @@ import { bm25Tokenize, levenshteinDistance } from "./utils";
 import { expandSynonyms } from "./synonyms";
 
 // ─────────────────────────────────────────────────────────────────────
-// Bootstrap weight constants (S8 will sweep, DO NOT tune here).
-// SUM MUST equal 1.0 exactly (checked by a trivial assert at module
-// bottom — the line is a static verification without runtime effect).
+// S8: Named exported weight constants (Σ=1.0 exact).
+// These replace the private S5 literals. S8 sweeps these values;
+// downstream callers (tests, tuning scripts) import by name.
+// HYBRID_WEIGHT_SUM is a runtime guard — if it ever drifts from 1.0
+// the call site of scoreItem() will produce an obvious NaN sentinel.
 // ─────────────────────────────────────────────────────────────────────
 
 /** Keyword (BM25/Jaccard + levenshtein fuzzy) factor weight. */
-const KW_WEIGHT = 0.2;
+export const HYBRID_WEIGHT_KEYWORD = 0.2;
 
 /** Semantic cosine-similarity factor weight (from vectorIndex). */
-const SEM_WEIGHT = 0.3;
+export const HYBRID_WEIGHT_SEMANTIC = 0.3;
 
 /** Tag overlap + synonym expansion factor weight. */
-const TAG_WEIGHT = 0.15;
+export const HYBRID_WEIGHT_TAG = 0.15;
 
 /** LifeDimension filter match flag (0 or 1) factor weight. */
-const DIM_WEIGHT = 0.1;
+export const HYBRID_WEIGHT_DIMENSION = 0.1;
 
 /** 30-day half-life exponential-decay recency factor weight. */
-const RECENCY_WEIGHT = 0.1;
+export const HYBRID_WEIGHT_RECENCY = 0.1;
 
 /** Source/evidence confidence (0-1 raw value) factor weight. */
-const CONF_WEIGHT = 0.15;
+export const HYBRID_WEIGHT_CONFIDENCE = 0.15;
+
+/**
+ * Bundle object of all 6 weights (read-only). Useful for serialisation
+ * and grid-search tooling in S8 tuning scripts.
+ */
+export const HYBRID_WEIGHTS: Readonly<{
+  keyword: number;
+  semantic: number;
+  tag: number;
+  dimension: number;
+  recency: number;
+  confidence: number;
+}> = {
+  keyword: HYBRID_WEIGHT_KEYWORD,
+  semantic: HYBRID_WEIGHT_SEMANTIC,
+  tag: HYBRID_WEIGHT_TAG,
+  dimension: HYBRID_WEIGHT_DIMENSION,
+  recency: HYBRID_WEIGHT_RECENCY,
+  confidence: HYBRID_WEIGHT_CONFIDENCE,
+};
+
+/**
+ * Runtime Σ=1.0 guard. Any floating-point deviation beyond 1e-9 is a
+ * programmer error (weights edited without re-checking the sum).
+ * Exported so tests can assert the invariant directly.
+ */
+export const HYBRID_WEIGHT_SUM: number = (() => {
+  const sum =
+    HYBRID_WEIGHT_KEYWORD +
+    HYBRID_WEIGHT_SEMANTIC +
+    HYBRID_WEIGHT_TAG +
+    HYBRID_WEIGHT_DIMENSION +
+    HYBRID_WEIGHT_RECENCY +
+    HYBRID_WEIGHT_CONFIDENCE;
+  if (Math.abs(sum - 1.0) > 1e-9) {
+    // Developer error: weights must sum to exactly 1.0.
+    throw new Error(
+      `[HybridScorer] HYBRID_WEIGHTS do not sum to 1.0 (got ${sum}). ` +
+        "Fix the weight constants before shipping."
+    );
+  }
+  return sum;
+})();
+
+/**
+ * Minimum semantic cosine score a candidate must exceed to be
+ * considered "semantically relevant". Candidates below this threshold
+ * still receive a semanticScore (it is used in the weighted sum) but
+ * callers may use this constant to flag borderline matches in UI or
+ * logging.
+ *
+ * Default: 0.60. S8 tuning may lower/raise this per evidence sweep.
+ */
+export const DEFAULT_SEMANTIC_RELEVANCE_THRESHOLD = 0.60;
+
+// ─────────────────────────────────────────────────────────────────────
+// Internal aliases for backward-compat within this file only.
+// scoreItem() and rankItems() reference these so no magic literals remain.
+// ─────────────────────────────────────────────────────────────────────
+const KW_WEIGHT = HYBRID_WEIGHT_KEYWORD;
+const SEM_WEIGHT = HYBRID_WEIGHT_SEMANTIC;
+const TAG_WEIGHT = HYBRID_WEIGHT_TAG;
+const DIM_WEIGHT = HYBRID_WEIGHT_DIMENSION;
+const RECENCY_WEIGHT = HYBRID_WEIGHT_RECENCY;
+const CONF_WEIGHT = HYBRID_WEIGHT_CONFIDENCE;
 
 // ─────────────────────────────────────────────────────────────────────
 // Local-only DTOs (not in S1 — these are scoring-specific transport

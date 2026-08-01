@@ -7,12 +7,12 @@
 
 ## Current Step
 
-**Phase 4A — S8: Tuning & Weight Calibration**
+**Phase 4A — S9: Regression & Docs Gate**
 Deliverable:
-1. HybridScorer weights → Named exported constants (Σ=1.0 exact)
-2. User-visible hybrid sort enable WHEN bieEnabled=true; bieEnabled=false → legacy byte-identical
-3. Synonym dictionary bootstrap validation + core pair expansion
-4. Semantic relevance score threshold clamp export
+1. Full regression pass: Build + Lint (Exit 0) + static trace both bieEnabled paths
+2. 7 aiService features × (bieEnabled T/F) trace verification
+3. Phase 4A documentation closeout (CHANGELOG, ROADMAP, STATE toggle 4A → ✅)
+4. Handoff S9 → (4B Kickoff) via STATE.md + prompt.text
 
 Status Before Start:
 - ✅ Phase 4A S1 — Type & Interface Contracts
@@ -22,34 +22,35 @@ Status Before Start:
 - ✅ Phase 4A S5 — Indexing & Scoring Logic
 - ✅ Phase 4A S6 — Wire Hooks into PIE Layers
 - ✅ Phase 4A S7 — Disable Switch Integration
-- ⏳ Phase 4A S8 — Tuning & Weight Calibration (THIS STEP)
-- ⏳ Phase 4A S9 — Regression & Docs Gate
+- ✅ Phase 4A S8 — Tuning & Weight Calibration
+- ⏳ Phase 4A S9 — Regression & Docs Gate (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S8 scope only)
+## Active Hard Constraints (S9 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S8 allows user-visible sort-order change ONLY when bieEnabled=true. bieEnabled=false → byte-identical Pre-4. |
-| P4-14 | bieEnabled=false path integrity: ZERO semanticService/VectorIndex runs, ZERO embedding HTTP/cache calls, RetrievalSource[] = byte-identical pre-phase-4 (NO .semanticScore / .tagMatchScore / .graphScore mutation). |
-| P4-3 | HITL: applied=false structural invariant preserved even if untested by S8 scope. |
+| P4-2 | Zero UX/UI change. S9 is doc+regression gate ONLY — no new functional code. |
+| P4-14 | bieEnabled=false path integrity: must pass static trace before phase closeout. |
+| P4-3 | HITL: applied=false structural invariant preserved (unchanged). |
 
 ---
 
-## Files Allowed / Forbidden (S8)
+## Files Allowed / Forbidden (S9)
 
-✅ ALLOWED (3 files MAX):
-- `src/pie/bie/hybridScorer.ts`
-- `src/pie/repository/RoomBrainRepository.ts`
-- `src/pie/bie/synonyms.ts`
+✅ ALLOWED (doc files + zero functional source changes):
+- `/doc/CHANGELOG.md` (append S9 closeout section)
+- `/doc/ROADMAP.md` (S9 → ✅, 4A → ✅ Complete 100%)
+- `/doc/STATE.md` (this file — update for 4B kickoff)
+- `/doc/prompt.text` (overwrite with S10 / 4B handoff)
+- `/doc/AI_ARCHITECTURE.md` (if architecture summary needs final update)
 
 ❌ FORBIDDEN (no modification):
+- ANY source file under `src/` (S9 = regression+doc gate only)
 - S5 core modules: semanticService.ts, vectorIndex.ts, providers/*
-- Global schemas: src/types.ts, src/lib/db.ts
-- PIE pipeline & layers (pie/pipeline.ts, pie/layers/*)
-- 7 aiService.ts public facade functions
+- hybridScorer.ts, synonyms.ts, RoomBrainRepository.ts (S8 delivered; S9 read-only)
 - All UI Views / Settings / Chat components
 
 ---
@@ -59,12 +60,12 @@ Status Before Start:
 - [ ] LS `/doc/` — 5 core docs + STATE.md + STANDING_INSTRUCTIONS.md exist
 - [ ] `npm run build` = Exit 0 (baseline recorded)
 - [ ] `npm run lint` = Exit 0 (baseline recorded)
-- [ ] Read hybridScorer.ts → located 6 inline weight literals
-- [ ] Read RoomBrainRepository.ts L160-300 → pinned S8 sort-mod site
-- [ ] Read synonyms.ts → identified missing 15 core Thai/Eng pairs
-- [ ] Static trace: bieEnabled=false short-circuits via S7 guard BEFORE any S8 code block reached
-- [ ] Understood: 3 files modified only. No other files.
-- [ ] After code+validation → UPDATE DOCS PER STANDING INSTRUCTIONS
+- [ ] Read ROADMAP.md → confirm S8 = ✅, S9 = ⏳
+- [ ] Read CHANGELOG.md → confirm S8 entry exists at top
+- [ ] Static trace: bieEnabled=false → S7 guard fires at RoomBrainRepository.ts L181 (confirmed S8)
+- [ ] Static trace: bieEnabled=true → hybrid sorted return path runs (confirmed S8)
+- [ ] Understood: S9 = doc+regression ONLY; zero functional source code changes.
+- [ ] After validation+docs → UPDATE DOCS + prompt.text for 4B kickoff
 
 ---
 

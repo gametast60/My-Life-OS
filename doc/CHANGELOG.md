@@ -13,7 +13,22 @@
 
 ---
 
+## [Phase 4A — S8] — Tuning & Weight Calibration
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 📦 `hybridScorer.ts`: 6 private weight literals → Named exported constants (`HYBRID_WEIGHT_KEYWORD/SEMANTIC/TAG/DIMENSION/RECENCY/CONFIDENCE`), `HYBRID_WEIGHTS` bundle object, runtime `HYBRID_WEIGHT_SUM` Σ=1.0 guard (throws on drift), `DEFAULT_SEMANTIC_RELEVANCE_THRESHOLD=0.60` export.
+- 📚 `synonyms.ts`: 15+ new core Thai/Eng synonym pairs (happiness, motivation, discipline, mindfulness, growth, conflict, loneliness, courage, purpose, value, communication, habit, reflection, time, success, feedback + mirrors). `validateSynonymDictionary()` bootstrap guard. `expandSynonyms(term, opts?)` widened with optional `{caseInsensitive, stripTones}` (additive — zero breaking change).
+- 🔀 `RoomBrainRepository.ts`: Conditional hybrid sort enable — `bieEnabled=true` → return array sorted hybridScore DESC; `bieEnabled=false` → S7 guard at L181 fires BEFORE S8 code, byte-identical Pre-4.
+
+### Verified
+- ✅ Build Exit 0 · Lint/tsc Exit 0 post-S8.
+- ✅ bieEnabled=false static trace: S7 guard fires at L181 BEFORE any S8 block — ZERO semanticService/VectorIndex instantiation.
+- ✅ P4-8 Additive-only: 3 files modified; 0 files outside ALLOWED list; aiService.ts 7 facade UNTOUCHED.
+- [Doc Skip] AI_ARCHITECTURE.md — S8 tuning weights + threshold only; no architecture change (layer diagram, data flow, folder structure unchanged).
+
 ## [Phase 4A — S7] — Disable Switch Integration (bieEnabled Threading Layer)
+
 **Status**: ✅ Complete (2026-08-01)
 
 > Infrastructure-First Step 7 of 9. P4-14 Future-Proof Disable Switch — full opt-out

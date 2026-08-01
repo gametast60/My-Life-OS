@@ -1,63 +1,42 @@
-═══════════════════════════════════════════════════════════════════
- PHASE 4A — S8: Tuning & Weight Calibration
+════════════════════════════════════════════════════════════════════
+ PHASE 4A — S9: Regression & Docs Gate
  My Life OS — Brain Intelligence Engine (BIE)
-═══════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════
 
- FUTURE HANDOFF FORMAT (NEW MINIMAL — Token Efficient):
- ┌─────────────────────────────────────────────────────────────┐
- │  1. READ FIRST:  /doc/STATE.md              (Current Step, │
- │     Constraints, Files Allowed/Forbidden, Pointers)         │
- │  2. THEN READ:  /doc/STANDING_INSTRUCTIONS.md  (SI-0..SI-4  │
- │     Workflow Rules: Update-only-changed, Targeted Edit,     │
- │     Archive thresholds, prompt handoff format)              │
- │  3. DO NOT paste Standing Instructions into this file —     │
- │     REFERENCE BY FILE PATH ONLY (SI-2 Mandate)              │
- └─────────────────────────────────────────────────────────────┘
+ สิ่งแรกที่ต้องทำ:
+ 1. อ่าน /doc/STATE.md (current step = S9, constraints, allowed files)
+ 2. ปฏิบัติตาม /doc/STANDING_INSTRUCTIONS.md (ทุก workflow rule)
 
- PRIMARY DELIVERABLE (S8 = Infrastructure-First Step 8 of 9):
- 1. HybridScorer Weights → Named Exported Constants (Σ=1.0 exact)
- 2. User-visible Hybrid Sort Re-enable WHEN bieEnabled=true
-    (S6 PRESERVED 100% legacy order; S8 = DEFAULT to hybridScore DESC
-     when BIE is ON; bieEnabled=false → legacy byte-identical Pre-4)
- 3. Synonym Dictionary Bootstrap Validation + Core Pair Expansion
- 4. Semantic Relevance Score Threshold Tuning (default clamp point)
+ PRIMARY DELIVERABLE (S9 = Final Regression & Doc Gate):
+ - Regression: npm run build Exit 0 + npm run lint Exit 0
+ - Static trace: bieEnabled=false → S7 guard at RoomBrainRepository.ts L181 fires,
+   ZERO semanticService/VectorIndex instantiation, output byte-identical Pre-4
+ - Static trace: bieEnabled=true → hybridRankItems() runs, sorted hybridScore DESC returned
+ - 7 aiService features trace (text/refine/analyze/suggest/insight/tag/learn)
+   × bieEnabled T/F → no UX breakage
+ - Phase 4A closeout: CHANGELOG S9 section, ROADMAP 4A → ✅ Complete 100%,
+   STATE.md updated, prompt.text overwritten with 4B kickoff handoff
 
- S8 WORK ORDER — EXECUTE IN ORDER. DO NOT SKIP VALIDATION.
- (For full Work Order with Step 1-5 details, see /doc/STATE.md lines
-  Work Order Section; or refer to backup of prior prompt.text if
-  sub-step granularity is required. STATE.md is the HOT SOURCE OF
-  TRUTH for current step constraints.)
+ WORK ORDER — EXECUTE IN ORDER:
 
-  Step 1/5: READ-ONLY exploration
-    a) Read STATE.md + STANDING_INSTRUCTIONS.md FIRST (mandatory)
-    b) Read hybridScorer.ts → locate 6 inline weight literals
-    c) Read RoomBrainRepository.ts (hook body) → mark S8 sort-mod site
-    d) Read synonyms.ts → count pairs, identify 10+ missing core pairs
-    e) Read /doc/DECISIONS.md → confirm S8 sort-enable aligned
-    f) Baseline: npm run build + npm run lint (Exit 0 expected)
+ S9 Step 1/4 — Build + Lint Validation:
+   npm run build = Exit 0 (must pass before proceeding)
+   npm run lint  = Exit 0 (must pass before proceeding)
 
-  Step 2/5: hybridScorer.ts — Named Weight Constants + Σ=1.0 Guard
-    + DEFAULT_SEMANTIC_RELEVANCE_THRESHOLD=0.60 export
-    (see STATE.md / prior handoff for exact HYBRID_WEIGHTS structure)
+ S9 Step 2/4 — Static Trace (no code changes, read-only):
+   a) RoomBrainRepository.ts L180-185: confirm bieEnabled===false guard returns legacy FIRST
+   b) RoomBrainRepository.ts L296-375: confirm hybridSortedLegacy return path exists
+   c) hybridScorer.ts: confirm HYBRID_WEIGHT_SUM IIFE throws if sum ≠ 1.0
+   d) synonyms.ts: confirm validateSynonymDictionary() exported + dictionary has 50+ entries
 
-  Step 3/5: RoomBrainRepository.ts — CONDITIONAL HYBRID SORT ENABLE
-    if effectiveBieEnabledForSort → hybrid sorted array return
-    else → BYTE-IDENTICAL PRE-PHASE-4 LEGACY ORDER return branch
-    (no refactors allowed in the else branch)
+ S9 Step 3/4 — Doc Closeout (TARGETED EDITS per SI-4, ≤15 lines per SI-2):
+   CHANGELOG.md: append S9 section at TOP
+   ROADMAP.md: S9 row → ✅ Complete; 4A progress → ✅ Complete 100%; banner → Done
+   STATE.md: update Current Step → 4B kickoff (or "Phase 4A ✅ Complete")
 
-  Step 4/5: synonyms.ts — Bootstrap Validation + 15+ missing core pairs
-    + expandSynonyms signature widened optional opts caseInsensitive/stripTones
+ S9 Step 4/4 — Handoff Preparation:
+   Overwrite prompt.text with 4B kickoff handoff (minimal pointer format per SI-1)
+   4B = Knowledge Graph + Relationship Engine (next phase)
 
-  Step 5/5: Validation Gate + Doc Updates
-    a) npm run build 0, npm run lint 0
-    b) bieEnabled=false static trace: S7 guard fires BEFORE S8 code
-    c) bieEnabled=true trace: hybrid sort path runs
-    d) Doc Updates — SEE /doc/STANDING_INSTRUCTIONS.md SI-2 for
-       "update only what changed" policy (CHANGELOG <=15 lines,
-       ROADMAP targeted line, AI_ARCH only if arch changed etc.)
-    e) After completion → OVERWRITE this file for NEXT STEP (S9)
-       using the SAME minimal pointer-based handoff format above.
-
- END OF S8 HANDOFF (MINIMAL FORMAT). REFER TO STATE.md + STANDING.md
- FOR FULL CONTEXT. DO NOT PASTE STANDING INSTRUCTIONS BACK INTO THIS FILE.
-═══════════════════════════════════════════════════════════════════
+ END OF S9 HANDOFF. REFER TO STATE.md + STANDING_INSTRUCTIONS.md FOR FULL CONTEXT.
+════════════════════════════════════════════════════════════════════

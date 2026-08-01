@@ -295,24 +295,80 @@ export class RoomBrainRepository implements BrainRepository {
 
       const ranked = hybridRankItems(scorableItems, hybridCtx, legacy.length);
 
+      // S8: Attach semanticScore / tagMatchScore to each legacy source by
+      // original insertion index (scorableItems[i] ↔ legacy[i]) so scores
+      // are correct regardless of hybrid sort order.
+      // ranked[] is already sorted DESC by hybridScore; its elements carry
+      // the scorableItem fields but NOT the legacy RetrievalSource ref.
+      // We build a Map<original-index → ranked-row> keyed by embeddingId
+      // with index fallback to attach scores back to the correct source.
+
+      // Build embeddingId → ranked-row lookup for O(1) score attachment.
+      const embeddingIdToRankedRow = new Map<
+        string,
+        { semanticScore: number; tagMatchScore: number }
+      >();
+      // Also keep a parallel array: rankedIndexMap[rankPos] = legacyIndex
+      // so we can reconstruct hybrid-sorted RetrievalSource array.
+      const hybridSortedLegacy: RetrievalSource[] = new Array(legacy.length);
+
+      for (let ri = 0; ri < ranked.length; ri++) {
+        const r = ranked[ri];
+        if (r.embeddingId) {
+          embeddingIdToRankedRow.set(r.embeddingId, {
+            semanticScore: Number.isFinite(r.semanticScore)
+              ? Math.max(0, Math.min(1, r.semanticScore))
+              : 0,
+            tagMatchScore: Number.isFinite(r.tagMatchScore)
+              ? Math.max(0, Math.min(1, r.tagMatchScore))
+              : 0,
+          });
+        }
+      }
+
+      // Attach scores to legacy sources (by original index).
       for (let i = 0; i < legacy.length; i++) {
         const src = legacy[i];
-        const rankedRow = ranked[i];
-        if (rankedRow) {
-          src.semanticScore = Number.isFinite(rankedRow.semanticScore)
-            ? Math.max(0, Math.min(1, rankedRow.semanticScore))
-            : 0;
-          src.tagMatchScore = Number.isFinite(rankedRow.tagMatchScore)
-            ? Math.max(0, Math.min(1, rankedRow.tagMatchScore))
-            : 0;
-        } else {
-          src.semanticScore = 0;
-          src.tagMatchScore = 0;
-        }
+        const embId = scorableItems[i]?.embeddingId;
+        const scores = embId ? embeddingIdToRankedRow.get(embId) : undefined;
+        src.semanticScore = scores?.semanticScore ?? 0;
+        src.tagMatchScore = scores?.tagMatchScore ?? 0;
         src.graphScore = 0;
       }
 
-      return legacy;
+      // S8: Build hybrid-sorted output array by reconstructing legacy
+      // RetrievalSource references in the same DESC order as ranked[].
+      // This reorders user-visible results by the 6-factor hybrid score
+      // when bieEnabled=true (P4-2 compliant: bieEnabled=false path has
+      // already returned above via the S7 guard at line 181).
+      const legacyIndexByEmbId = new Map<string, number>();
+      const noEmbedLegacyIndices: number[] = [];
+      for (let i = 0; i < legacy.length; i++) {
+        const embId = scorableItems[i]?.embeddingId;
+        if (embId) {
+          legacyIndexByEmbId.set(embId, i);
+        } else {
+          noEmbedLegacyIndices.push(i);
+        }
+      }
+
+      let hybridPos = 0;
+      for (let ri = 0; ri < ranked.length; ri++) {
+        const r = ranked[ri];
+        const legacyIdx = r.embeddingId
+          ? legacyIndexByEmbId.get(r.embeddingId)
+          : undefined;
+        if (legacyIdx !== undefined) {
+          hybridSortedLegacy[hybridPos++] = legacy[legacyIdx];
+        }
+      }
+      // Append any items that had no embedding (rare) at the end.
+      for (const idx of noEmbedLegacyIndices) {
+        hybridSortedLegacy[hybridPos++] = legacy[idx];
+      }
+
+      // Return hybrid-sorted array (bieEnabled=true path).
+      return hybridSortedLegacy.slice(0, hybridPos);
     } catch (e: any) {
       console.warn("[BIE S6 hook skipped:", e?.message ?? String(e), "]");
       return legacy;

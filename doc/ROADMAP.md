@@ -30,7 +30,7 @@
   ENGINEERING STYLE:  INFRASTRUCTURE-FIRST
   CONSTRAINTS:   P4-2 UX No Change   P4-8 Backward Compat
                  P4-12 HITL          P4-14 Disable Switch
-  PROGRESS:  ████████████████░░░░ 8/9 Steps = ~89%
+  PROGRESS:  ████████████████████░░░ 8/9 Steps ✅ → S9 next
 ═══════════════════════════════════════════════════════════
 ```
 
@@ -47,7 +47,7 @@
 | S5 | Indexing + Scoring Logic | SemanticService cache-first orchestrator + VectorIndex linear cosine + HybridScorer 6-factor Σ=1.0 | ✅ Complete 2026-08-01 |
 | S6 | Wire Hooks into PIE Layers + Graceful Skip | Promise wrap retrieval/ranking async; Option Y query-cosine semantic lookup; Preserve legacy keyword sort order | ✅ Complete 2026-08-01 |
 | S7 | bieEnabled=false Pre-Phase-4 Integrity Baseline Thread | 7 features zero impact; Arrays byte-for-byte identical | ✅ Complete 2026-08-02 |
-| **S8** | **Tuning + Weight Calibration** | 6-factor weights [0.2-0.3-0.15-0.1-0.1-0.15] Σ=1 Sweep, Synonym Seed Bootstrap Expansion, Optional hybrid sort enable path, Keyword BM25 Precision/Recall Threshold, Lint/Build/L7 Regressions | ⏳ In Progress (CURRENT STEP) |
+| **S8** | **Tuning + Weight Calibration** | 6-factor weights [0.2-0.3-0.15-0.1-0.1-0.15] Σ=1 Sweep, Synonym Seed Bootstrap Expansion, Optional hybrid sort enable path, Keyword BM25 Precision/Recall Threshold, Lint/Build/L7 Regressions | ✅ Complete 2026-08-01 |
 | S9 | Phase 4A Closeout Banner + Doc + Regressions | Banner + Doc Tidy + 7 features × (bieEnabled T/F) + Lint/Build 0 errors | ⏳ Pending (หลัง S8 เสร็จ) |
 
 **Blocking Chain Note:** 4A → 4B (Knowledge Graph Build) → 4C (Memory Intelligence) → 4D (Identity/Insight/Timeline) → Phase 5 (Full Integration)
@@ -74,7 +74,7 @@ Focus = Semantic Retrieval + Hybrid Search เท่านั้น (NOTHING OUT
 | 1 | Foundation + 9 AI Features | โครงสร้างฐานระบบ, Storage, Basic AI 9 จุด, Brain Tree V1, Persona 9 | 2026-06 | ✅ Complete | 100% |
 | 2 | Core PIE Arch + Memory Retrieval | PIE 9 Layers, 7 AI 100% PIE, Keyword 3-Factor Ranking, Learning applied=false Queue | 2026-07 | ✅ Complete | 100% |
 | 3 | Clean Arch: SSOT Repository + Legacy Cleanup | RoomBrainRepository SSOT, Memory Retrieval 75% Delete, MODE_PROMPTS→9 Roles, aiService 630→550, 100% Regression | 2026-07 | ✅ Complete | 100% |
-| **4A** | **Semantic Retrieval + Hybrid Search** | **Embedding Hybrid (Gemini+Local), Vector Index, 6-Factor Scoring, BIE Hook PIE, Disable Switch** | **2026-07** | **🚧 In Progress (S8 Tuning)** | **89% (8/9 steps)** |
+| **4A** | **Semantic Retrieval + Hybrid Search** | **Embedding Hybrid (Gemini+Local), Vector Index, 6-Factor Scoring, BIE Hook PIE, Disable Switch** | **2026-07** | **🚧 In Progress (S9 Regression Gate)** | **89% (8/9 steps)** |
 | 4B | Knowledge Graph + Relationship | Graph Nodes/Edges 7 kinds + 6 edge types, Merge Duplicates, Entity Resolution, Edge Proposals (applied=false) | Pre-requisite: 4A ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 4C | Memory Intelligence + Reflection | Merge/Conflict/Decay/Evidence Consolidation Background Async Reflect Jobs (P4-11) | Pre-requisite: 4B ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 4D | Identity + Insight + Life Timeline | Identity 1-row singleton, 6-type Insight Generator, Timeline(M/Q/Y), Temporal Compare | Pre-requisite: 4C ✅ | ⏳ Planned (Archived Detail) | 0% |
