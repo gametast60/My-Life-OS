@@ -8,3 +8,4 @@
 export * from "./types";
 export * from "./identityEngine";
 export * from "./insightGenerator";
+export * from "./timelineBuilder";

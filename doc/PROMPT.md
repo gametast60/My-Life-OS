@@ -1,56 +1,50 @@
 # PROMPT.md — Current Step Work Order
 
-> **PHASE 4D — S26: Life Timeline Builder (M/Q/Y View)**
+> **PHASE 4D — S27: Proposal Queue Integration**
 > **My Life OS — Brain Intelligence Engine (BIE)**
 
 ---
 
 ## 📌 สิ่งแรกที่ต้องทำ
 
-1. อ่าน `/doc/STATE.md` (current step = S26, constraints, allowed files)
+1. อ่าน `/doc/STATE.md` (current step = S27, constraints, allowed files)
 2. ปฏิบัติตาม `/doc/STANDING_INSTRUCTIONS.md` (ทุก workflow rule)
 
 ---
 
-## 🎯 PRIMARY DELIVERABLE (S26 = Life Timeline Builder — M/Q/Y View)
+## 🎯 PRIMARY DELIVERABLE (S27 = Proposal Queue Integration)
 
-- `TimelineBuilder` provider interface + `DefaultTimelineBuilder` concrete class
-- Scan `BrainEvidence` → bucket into Month / Quarter / Year periods
-- For each period: compute `themeBreakdown` (dimension % share), collect `milestones`, compute `contentHash` (SHA-1 of contributing evidence IDs)
-- Wire real `bie_timeline` storage in `RoomBrainIntelligenceRepository` (rebuildable cache — no HITL, no applied flag)
-- `contentHash` invalidation: caller checks stored hash vs computed hash → rebuild on mismatch
+- Wire Identity and Insight proposals to the pending queue as `identity_update` and `insight_proposal` kinds
+- Update `applyPendingBieItem(id)` in `RoomBrainIntelligenceRepository` to handle side effects:
+  - If `kind === "identity_update"`, save the profile payload to `bie_identity` with `applied: true` and clear item from queue.
+  - If `kind === "insight_proposal"`, save the insight payload to `bie_insights` with `applied: true` and clear item from queue.
+- Maintain P4-12 HITL invariant (all queue items must start as `applied: false`)
 
 ---
 
 ## ⚙️ WORK ORDER — EXECUTE IN ORDER
 
-### S26 Step 1 of 4 — Read-only exploration:
-- Read `/doc/STATE.md` & `/doc/ROADMAP.md` → confirm S25 = ✅ Complete, S26 = THIS STEP
-- Read `/src/pie/bie/identity/types.ts` → understand `TimelineEntry`, `TimelineRow`, `TimelineGranularity`, `TimelineThemeBreakdown`, `TimelineMilestoneEntry`
-- Read `/src/pie/bie/RoomBrainIntelligenceRepository.ts` → locate timeline placeholder methods
-- Read `/src/lib/db.ts` → check `getBieTimeline`/`saveBieTimeline` exist; add if missing (use `KEYS.BIE_TIMELINE`)
+### S27 Step 1 of 4 — Read-only exploration:
+- Read `/doc/STATE.md` & `/doc/ROADMAP.md` → confirm S26 = ✅ Complete, S27 = THIS STEP
+- Read `/src/pie/bie/RoomBrainIntelligenceRepository.ts` → locate `applyPendingBieItem` and `appendPendingBieItem` methods
 
-### S26 Step 2 of 4 — Implement TimelineBuilder:
+### S27 Step 2 of 4 — Implement Side Effects in applyPendingBieItem:
+- Update `applyPendingBieItem` to read the pending item by id.
+- Inspect the item's `kind`:
+  - If `"identity_update"`: extract the `IdentityProfile` payload, save it to `bie_identity` using `saveIdentityProfile()` with `applied: true`.
+  - If `"insight_proposal"`: extract the `InsightItem` payload, save it to `bie_insights` using `appendInsight()` with `applied: true`.
+- Remove the pending item from `bie_pending_queue`.
 
-Create `/src/pie/bie/identity/timelineBuilder.ts` with:
-- `TimelineBuilderContext`: `{ evidences, tags, dimensions, granularity, nowMs? }`
-- `TimelineBuilder` interface: `buildTimeline(context): Promise<TimelineEntry[]>`
-- `DefaultTimelineBuilder`: bucket evidence by `occurredAt` into M/Q/Y period keys → per-period dimension share → top milestones → SHA-1 contentHash
-- Use `contentHash()` from `../utils` for hashing
+### S27 Step 3 of 4 — Verify Queue Routing logic:
+- Ensure the types and properties map correctly from payload properties to target DB structures.
 
-Update `/src/pie/bie/identity/index.ts` to re-export timelineBuilder.
-
-### S26 Step 3 of 4 — Wire bie_timeline storage:
-- In `db.ts` (additive): add `getBieTimeline()` / `saveBieTimeline()` static methods if not present (stores `TimelineRow[]`)
-- In `RoomBrainIntelligenceRepository.ts`: upgrade `getTimelineItems()` / `getTimelineItem()` / `saveTimelineItem()` / `clearTimeline()` from placeholders to real storage
-
-### S26 Step 4 of 4 — Verification & Doc Closeout:
+### S27 Step 4 of 4 — Verification & Doc Closeout:
 - `npm run lint` & `npm run build` → must exit 0
-- `CHANGELOG.md`: append S26 closeout section at TOP (≤15 lines per SI-2)
-- `ROADMAP.md`: update Phase 4D row → In Progress S26 ✅ (4/7)
-- `STATE.md`: update Current Step → Phase 4D S27 (Proposal Queue Integration)
-- `PROMPT.md`: overwrite with S27 handoff
+- `CHANGELOG.md`: append S27 closeout section at TOP (≤15 lines per SI-2)
+- `ROADMAP.md`: update Phase 4D row → In Progress S27 ✅ (5/7)
+- `STATE.md`: update Current Step → Phase 4D S28 (PIE Memory Context Final Wiring)
+- `PROMPT.md`: overwrite with S28 handoff
 
 ---
 
-> **END OF S26 HANDOFF PROMPT.**
+> **END OF S27 HANDOFF PROMPT.**

@@ -13,6 +13,25 @@
 
 ---
 
+## [Phase 4D — S26] — Life Timeline Builder (M/Q/Y View)
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `/src/pie/bie/identity/timelineBuilder.ts`: `TimelineBuilder` interface + `DefaultTimelineBuilder` class to group evidence by period key according to granularity (Month / Quarter / Year), compute thematic breakdowns with dimension shares, and extract milestones using keyword checks on previews. Uses sorted evidence IDs content hashing for cache invalidation.
+- 🆕 `RoomDatabase.getBieTimeline()` / `saveBieTimeline()` static methods in `db.ts` (additive; uses `KEYS.BIE_TIMELINE` storing `TimelineRow[]`).
+
+### Changed
+- ⚙️ `/src/pie/bie/identity/index.ts`: re-export `timelineBuilder` added.
+- ⚙️ `/src/lib/db.ts` import: `TimelineRow` added to imports from `bie/types`.
+- ⚙️ `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (additive): `TimelineRow` import; upgraded timeline cache methods `getTimelineItems()`, `getTimelineItem()`, `saveTimelineItem()`, and `clearTimeline()` from placeholders to real cache storage.
+
+### Verified
+- ✅ `npm run lint` Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-8 Strict Widening: zero type/method removals; 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- [Doc Skip] AI_ARCHITECTURE.md — timeline is a cache store only; no pipeline/graph structure changes.
+
+---
+
 ## [Phase 4D — S25] — Insight Generator (6 Kinds, FIFO 100)
 **Status**: ✅ Complete (2026-08-01)
 

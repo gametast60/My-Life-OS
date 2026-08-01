@@ -55,6 +55,7 @@ import type {
   PendingLearning,
   TimelineItem,
   TimelinePeriodKind,
+  TimelineRow,
 } from "./types";
 import type { LifeDimension } from "../../types";
 import { proposeEdge as createGraphEdgeProposal, findDuplicateCandidates as findGraphDuplicates, createPendingEdgeItem } from "./graph";
@@ -536,51 +537,109 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
   }
 
   // ────────────────────────────────────────────────────────────────
-  // 6. Timeline — bie_timeline (Phase 4D — PLACEHOLDER, rebuildable cache)
+  // 6. Timeline — bie_timeline (Phase 4D — REAL STORAGE S26)
+  //    Rebuildable timeline cache buckets (contentHash-keyed).
+  //    No HITL needed since this is a pure cache.
   // ────────────────────────────────────────────────────────────────
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * List cached timeline buckets. Optional period-kind granularity
-   * filter. Returns `[]` in 4A.
+   * List cached timeline buckets. Optional period-kind granularity filter.
    *
    * @param filter.periodKind — "month" | "quarter" | "year".
+   * @returns Snapshot of timeline entries matching the granularity filter.
    */
   getTimelineItems(filter?: { periodKind?: TimelinePeriodKind }): TimelineItem[] {
-    void filter;
-    return [];
+    let list = RoomDatabase.getBieTimeline();
+    if (filter?.periodKind) {
+      list = list.filter((item) => item.granularity === filter.periodKind);
+    }
+    // Cast/Map safely to TimelineItem
+    return list.map((item) => ({
+      periodKey: item.periodKey,
+      periodKind: item.granularity as TimelinePeriodKind,
+      themeBreakdown: item.themeBreakdown.map((t) => ({
+        dimension: t.dimension,
+        percent: t.percent,
+        tagIds: t.tagIds,
+      })),
+      milestones: item.milestones.map((m) => ({
+        id: m.id,
+        label: m.label,
+        occurredAt: m.occurredAt,
+        dimension: m.dimension,
+      })),
+      generatedAt: item.generatedAt,
+      contentHash: item.contentHash,
+    }));
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
    * Fetch one timeline bucket by periodKey (e.g. "2026-Q2").
    *
    * @param periodKey — Bucket primary key.
-   * @returns `undefined` (type-safe shape) until 4D writes cache rows.
+   * @returns The matching TimelineItem, or undefined if not found.
    */
   getTimelineItem(periodKey: string): TimelineItem | undefined {
-    void periodKey;
-    return undefined;
+    const list = RoomDatabase.getBieTimeline();
+    const item = list.find((r) => r.periodKey === periodKey);
+    if (!item) return undefined;
+    return {
+      periodKey: item.periodKey,
+      periodKind: item.granularity as TimelinePeriodKind,
+      themeBreakdown: item.themeBreakdown.map((t) => ({
+        dimension: t.dimension,
+        percent: t.percent,
+        tagIds: t.tagIds,
+      })),
+      milestones: item.milestones.map((m) => ({
+        id: m.id,
+        label: m.label,
+        occurredAt: m.occurredAt,
+        dimension: m.dimension,
+      })),
+      generatedAt: item.generatedAt,
+      contentHash: item.contentHash,
+    };
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Upsert one rebuildable timeline cache bucket. contentHash on the
-   * item controls invalidation. No-op in 4A.
+   * Upsert one timeline cache bucket.
    *
    * @param item — Timeline cache row.
    */
   saveTimelineItem(item: TimelineItem): void {
-    void item;
+    const list = RoomDatabase.getBieTimeline();
+    const row: TimelineRow = {
+      periodKey: item.periodKey,
+      granularity: item.periodKind as any,
+      themeBreakdown: item.themeBreakdown.map((t) => ({
+        dimension: t.dimension,
+        percent: t.percent,
+        tagIds: t.tagIds,
+      })),
+      milestones: item.milestones.map((m) => ({
+        id: m.id,
+        label: m.label,
+        occurredAt: m.occurredAt,
+        dimension: m.dimension,
+      })),
+      generatedAt: item.generatedAt,
+      contentHash: item.contentHash,
+    };
+    const idx = list.findIndex((r) => r.periodKey === item.periodKey);
+    if (idx === -1) {
+      list.push(row);
+    } else {
+      list[idx] = row;
+    }
+    RoomDatabase.saveBieTimeline(list);
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Wipe the entire timeline cache; forces a rebuild from current
-   * evidence on the next read. No-op in 4A.
+   * Wipe the entire timeline cache to force rebuild.
    */
   clearTimeline(): void {
-    // No-op.
+    RoomDatabase.saveBieTimeline([]);
   }
 
   // ────────────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ import {
   EmbeddingRecord,
   PendingLearning,
 } from "../types";
-import type { GraphNode, GraphEdge, IdentityRow, InsightRow } from "../pie/bie/types";
+import type { GraphNode, GraphEdge, IdentityRow, InsightRow, TimelineRow } from "../pie/bie/types";
 import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
 // ── Storage Keys ─────────────────────────────────────────────────
@@ -990,6 +990,16 @@ export class RoomDatabase {
   }
   static saveBieInsights(list: InsightRow[]) {
     this.set(KEYS.BIE_INSIGHTS, list);
+  }
+
+  // ── BIE: Timeline Cache (bie_timeline) ───────────────────────────
+  // Phase 4D: Rebuildable timeline cache buckets (contentHash-keyed).
+  // No HITL needed since it is a pure cache.
+  static getBieTimeline(): TimelineRow[] {
+    return this.get<TimelineRow[]>(KEYS.BIE_TIMELINE, []);
+  }
+  static saveBieTimeline(list: TimelineRow[]) {
+    this.set(KEYS.BIE_TIMELINE, list);
   }
 
   // ── Backup & Restore ─────────────────────────────────────────────
