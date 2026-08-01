@@ -13,6 +13,35 @@
 
 ---
 
+## [Phase 4B — S16] — Phase 4B Closeout & Regression Gate
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🏆 Phase 4B Knowledge Graph & Relationship Engine delivered in full across 7 sub-steps (S10–S16).
+- 🧪 Full regression audit: `npm run lint` & `npm run build` exit 0 (2156 modules transformed).
+- 🔒 P4-12 HITL Invariants verified across all Knowledge Graph modules: all proposed edges & duplicate merges route to `bie_pending_queue` (`applied: false`).
+
+### Verified
+- ✅ `npm run build` Exit 0. ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- ✅ Documentation updated: ROADMAP.md banner set to Phase 4B Complete (100%), handoff to Phase 4C.
+
+---
+
+## [Phase 4B — S15] — Graph Context Enrichment & Inference Engine
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🧠 `graphInferenceEngine.ts`: `inferTransitiveRelationships` (2-hop transitive inference paths A → B → C using composition matrix for `causes`, `conflicts`, `supports`, `derived_from`, `opposes`, `related`) and `enrichContextWithGraph` (formats 1-hop & 2-hop graph relations into structured text for PIE memory retrieval).
+- 📦 `graph/index.ts`: Barrel export updated to expose graph inference & context enrichment module.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL: 100% read-only inference & context formatting, zero DB writes, zero auto-applied edges.
+- ✅ P4-8 Strict Widening: additive inference module, no existing exports removed.
+
+---
+
 ## [Phase 4B — S14] — Relationship Extraction Engine
 **Status**: ✅ Complete (2026-08-01)
 
