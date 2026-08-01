@@ -92,6 +92,7 @@ export type BiePendingKind =
   | "graph_edge"
   | "graph_merge"
   | "identity_update"
+  | "insight_proposal"
   | "insight"
   | "tag_confidence_boost"
   | "reflection_conflict"
@@ -285,4 +286,17 @@ export type {
   ReflectorEngine,
 } from "./reflection";
 
-
+// ─── Identity Layer (Phase 4D canonical) ─────────────────────────────
+export type {
+  InsightType,
+  TimelineGranularity,
+  IdentityEntry as IdentityEntryV2,
+  IdentityProfile as IdentityProfileV2,
+  IdentityRow,
+  InsightItem,
+  InsightRow,
+  TimelineThemeBreakdown,
+  TimelineMilestoneEntry,
+  TimelineEntry,
+  TimelineRow,
+} from "./identity";

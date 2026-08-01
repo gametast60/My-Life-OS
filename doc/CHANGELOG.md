@@ -13,6 +13,24 @@
 
 ---
 
+## [Phase 4D — S23] — Identity Layer Kickoff: Type & Interface Contracts
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `/src/pie/bie/identity/types.ts`: `IdentityProfile` singleton (8-category), `IdentityRow` DB shape, `InsightItem` (6-type: reflection/pattern/milestone/gap/conflict/prediction), `InsightRow`, `TimelineEntry` (month/quarter/year granularity), `TimelineRow`, `TimelineThemeBreakdown`, `TimelineMilestoneEntry`. `applied: false` readonly literal on all HITL domain types (P4-12).
+- 🆕 `/src/pie/bie/identity/index.ts`: barrel export (`export * from "./types"`).
+
+### Changed
+- ⚙️ `/src/pie/bie/types.ts` (additive widening): re-export all identity types from `./identity`; widened `BiePendingKind` union — added `"insight_proposal"`.
+
+### Verified
+- ✅ `npm run lint` (tsc --noEmit) Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-8 Strict Widening: zero type removals; 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- ✅ P4-12 HITL: `applied: false` readonly literal on `IdentityProfile` and `InsightItem` domain types.
+- [Doc Skip] AI_ARCHITECTURE.md — S23 is type contracts only, no architectural topology change.
+
+---
+
 ## [Phase 4C — S22] — Phase 4C Closeout & Regression Gate
 **Status**: ✅ Complete (2026-08-01)
 
