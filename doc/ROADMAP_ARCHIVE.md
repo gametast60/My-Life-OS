@@ -121,13 +121,16 @@
 - Merge Flow: Detection → Dry-Run Diff Report → Confirm UI → applied=true Commit
 - Entity Ingestion: Scan Brain Tree/Journal/Evidence → Extract Person/Fear/Milestone → Graph Nodes
 
-**Deliverables:**
-1. ✨ Graph Schema 7 Node Kinds + 6 Edge Types + Transitive 2-hop Queries
-2. ✨ Merge Strategy: Synonym Match (S2 dict) + Semantic Similarity ≥ 0.82 → Dry-Run Diff Report
-3. ✨ Entity Resolution: Person/Fear/Lesson/Milestone/Experience Node Extractors
-4. ✨ Edge Proposal Generator: Automatic Proposal + HITL Pending Queue (applied=false)
-5. ✨ Graph Retrieval Layer: Rank Context + Similar Nodes (tag co-occurrence + semantic+edge weights)
-6. ✨ Knowledge Graph CRUD UI (Confirm / Reject / Edit Edges before applied=true)
+**Deliverables & Step Breakdown (S10–S16):**
+| Step | ชื่องาน | Scope สั้น | Status |
+|------|---------|------------|--------|
+| S10 | Type + Schema Contracts Kickoff | KG Node/Edge interfaces, DB row schemas, resolution/proposal stubs | ✅ Complete 2026-08-01 |
+| S11 | Entity Resolution & Duplicate Tag Matcher | Synonym Dict + Cosine (≥0.82) matching & dry-run merge diff report | ⏳ In Progress |
+| S12 | Entity Extraction Engine | Extract Person, Fear, Lesson, Milestone nodes from Brain Tree/Journal | ⏳ Planned |
+| S13 | Graph Edge Engine (6 Types) | 6 relationship types + Auto Edge Proposal Generator (`applied=false`) | ⏳ Planned |
+| S14 | Graph Inference Engine (2-Hop Transitive) | Transitive closure 2-hop graph queries ("A causes B, B conflicts C → A indirect conflicts C") | ⏳ Planned |
+| S15 | Graph Context Enrichment Hook | Rank context + similar nodes with tag co-occurrence & graph edge weights | ⏳ Planned |
+| S16 | Phase 4B Closeout & Regression Gate | Build, Lint, 100% test pass & docs update | ⏳ Planned |
 
 ---
 
@@ -147,13 +150,15 @@
 - Background Runner: Promise.allSettled / setTimeout 2min idle
 - Dry-Run Reports before Commit (applied=true 100% HITL Confirm)
 
-**Deliverables:**
-1. ✨ Consolidation Engine: Duplicate Tag Merge + Dangling Reference Fix + Rollback Safe
-2. ✨ Conflicts + Contradiction Detector (Evidence-based)
-3. ✨ Outdated Tag Replacement Engine (Semantic + Decay Thresholds)
-4. ✨ Decay Calculation Engine (Exponential Level Curve)
-5. ✨ HITL Reflect UI: Diff Reports + Confirm/Reject for Proposed Changes
-6. ✨ Background Reflect Job Runner (P4-11 Promise-based, Non-Blocking)
+**Deliverables & Step Breakdown (S17–S22):**
+| Step | ชื่องาน | Scope สั้น | Status |
+|------|---------|------------|--------|
+| S17 | Reflection Type & Provider Contracts | ReflectorEngine, ConflictDetector, DecayEngine interfaces & stubs | ⏳ Planned |
+| S18 | Evidence Consolidation Engine | Clean up dangling references, reassign evidence IDs post tag merge | ⏳ Planned |
+| S19 | Contradiction & Conflict Detector | Evidence-based contradiction detection & resolution proposal (`applied=false`) | ⏳ Planned |
+| S20 | Brain Tree Decay Calculation Engine | Time since last evidence exponential decay curve calculation | ⏳ Planned |
+| S21 | Background Reflect Job Runner (P4-11) | Non-blocking async background reflect job runner (Consolidate → Conflict → Merge) | ⏳ Planned |
+| S22 | Phase 4C Closeout & Regression Gate | Build, Lint, 100% test pass & docs update | ⏳ Planned |
 
 ---
 
@@ -172,14 +177,19 @@
 - Timeline Cache = `bie_timeline` RoomDB (rebuildable; contentHash invalidation)
 - Identity = `bie_identity` singleton row applied=false until Confirm
 
-**Deliverables:**
-1. ✨ Identity Summary + Identity Similarity Temporal Compare
-2. ✨ Insight Generator 6 Types FIFO 100 (`bie_insights`)
-3. ✨ Life Timeline (M/Q/Y View) + Thematic Breakdown
-4. ✨ Timeline + Identity Propose (Confirm UI) = applied=false pending queue
-5. ✨ Content Hash Cache Invalidation Policy for Timeline
+**Deliverables & Step Breakdown (S23–S29):**
+| Step | ชื่องาน | Scope สั้น | Status |
+|------|---------|------------|--------|
+| S23 | Identity/Insight/Timeline Type Contracts | 8-category Identity, 6-kind Insight, M/Q/Y Timeline interfaces | ⏳ Planned |
+| S24 | Identity Engine (Singleton Row) | Dynamic 8-category identity profile & temporal similarity compare | ⏳ Planned |
+| S25 | Insight Generator (6 Kinds, FIFO 100) | 6 insight types generator with FIFO 100 queue (`bie_insights`) | ⏳ Planned |
+| S26 | Life Timeline Builder (M/Q/Y View) | Rebuildable timeline cache with contentHash invalidation | ⏳ Planned |
+| S27 | Proposal Queue Integration | Wire Identity & Insight proposals to HITL pending queue (`applied=false`) | ⏳ Planned |
+| S28 | PIE Memory Context Final Wiring | Enrich PIE retrieval context with identity & timeline insights | ⏳ Planned |
+| S29 | Phase 4 Master Closeout & Gate | Master BIE regression test, 0 errors build/lint & handoff to Phase 5 | ⏳ Planned |
 
 ---
+
 
 ### ⏳ Phase 5 — Full Intelligence Platform (UI + Services + BIE Fully Integrated)
 
@@ -205,5 +215,82 @@
 
 ---
 
-### ⏳ Phase 6 — Mobile + Cross-Platform (Postpone: Future Work)
-- React Native / PWA Installable / Capacitor Mobile (ยังไม่ระบุรายละเอียด)
+### ⏳ Phase 6 — Personal Evolution Engine (AI ถาม → AI เรียนรู้)
+*Blocking Chain: Phase 5 Delivered → Phase 6 Start*
+
+**Objective:**
+- เปลี่ยนบทบาท AI จากผู้ตอบคำถามแบบ Reactive เป็นผู้เรียนรู้และเสนอแนะเชิงรุก (Proactive Learning Engine)
+- ค้นหาช่องว่างความรู้ (Knowledge Gap Detector) จาก Brain Tree และ Journal เพื่อตั้งคำถามที่ตรงจุด (Adaptive Question Engine)
+- พัฒนาระบบ Curiosity Engine เพื่อเลือกจังหวะเวลาและความถี่ในการถามอย่างเหมาะสม ไม่รบกวนผู้ใช้
+- คำนวณค่า Confidence Score ของข้อมูลแต่ละ Tag/Evidence และนำมาประเมิน Identity Model เบื้องต้น
+
+**Scope:**
+- Provider Interfaces: KnowledgeGapDetector, CuriosityEngine, AdaptiveQuestionEngine, IdentityEvaluator
+- Storage Extensions: `bie_curiosity_queue` (คำถามหรือหัวข้อที่ AI สงสัยและเตรียมถาม), `bie_confidence_scores`
+- HITL Policy: ทุกคำตอบของผู้ใช้จะถูกเสนอเข้า Pending Queue (`applied=false`) ก่อนให้ผู้ใช้ยืนยันบันทึกเป็น Evidence หรือ Tag ใหม่
+
+**Deliverables:**
+1. ✨ Knowledge Gap Detector: ตรวจจับ Tag ที่มี Evidence น้อย หรือขาดข้อมูลมิติสำคัญ (Missing Dimension Context)
+2. ✨ Curiosity Engine: อัลกอริทึมเลือกจังหวะการถามแบบพอดี (Question Frequency & Contextual Triggering)
+3. ✨ Adaptive Question Engine: สร้างคำถามเชิงสะท้อนคิด (Reflective Prompt Generation) ตาม Role Persona
+4. ✨ Identity Model Baseline: การประเมินน้ำหนักความเชื่อมั่นของข้อมูลส่วนบุคคล (Confidence-Weighted Personal Data)
+5. ✨ Daily Self Interview UI: หน้าจอสัมภาษณ์/ถามตอบประจำวันที่ AI เป็นผู้ชวนคุยเพื่อเก็บความรู้เพิ่ม
+
+---
+
+### ⏳ Phase 7 — Life Pattern Intelligence (AI เห็น Pattern ชีวิต)
+*Blocking Chain: Phase 6 Delivered → Phase 7 Start*
+
+**Objective:**
+- ค้นหารูปแบบความสัมพันธ์ระยะยาวและวงจรพฤติกรรมของผู้ใช้ (Pattern Discovery Engine)
+- วิเคราะห์ความสัมพันธ์เชิงสาเหตุและผลกระทบ (Cause & Effect Engine) เช่น "การนอนน้อยส่งผลต่อความเครียดในวันถัดไป"
+- ค้นหาจุดบอดทางความคิดหรือพฤติกรรม (Blind Spot Detection) ที่ผู้ใช้อาจมองไม่เห็นตัวเอง
+- ระบบทำนายแนวโน้มส่วนบุคคล (Personal Prediction Engine) และออกรายงานสรุปการเติบโตประจำเดือน (Monthly Growth Report)
+
+**Scope:**
+- Provider Interfaces: PatternDiscoveryEngine, CauseEffectEngine, PersonalPredictor, BlindSpotDetector
+- Storage Extensions: `bie_life_patterns`, `bie_cause_effects`, `bie_growth_reports`
+- HITL Policy: ข้อสรุป Pattern และ Cause-Effect จะปรากฏเป็น Report ให้ผู้ใช้ review และกด Confirm/Dismiss (`applied=false`)
+
+**Deliverables:**
+1. ✨ Pattern Discovery Engine: ตรวจจับวงจรพฤติกรรม (Behavioral Loops & Trend Correlations)
+2. ✨ Cause & Effect Engine: วิเคราะห์กราฟความสัมพันธ์เชิงสาเหตุข้ามมิติชีวิต (Cross-Dimension Causality)
+3. ✨ Blind Spot Detection System: การเตือนจุดบอดทางความคิด/อารมณ์ที่เกิดซ้ำโดยผู้ใช้ไม่รู้ตัว
+4. ✨ Personal Prediction Engine: การคาดการณ์แนวโน้มอารมณ์/พลังงาน/ความสำเร็จของเป้าหมาย
+5. ✨ Monthly Growth Report Generator & UI: สรุปพัฒนาการและการเปลี่ยนแปลงของชีวิตประจำเดือน
+
+---
+
+### ⏳ Phase 8 — Second Brain (AI เข้าใจ "ตัวคุณ")
+*Blocking Chain: Phase 7 Delivered → Phase 8 Start*
+
+**Objective:**
+- หลอมรวม BIE ทุกมิติกลายเป็น Second Brain ที่เข้าใจบริบท บุคลิก ค่านิยม และเป้าหมายชีวิตของผู้ใช้แบบ 360 องศา
+- Identity Engine สมบูรณ์แบบ (Dynamic Self Identity & Values Map)
+- Life Timeline (M/Q/Y View) แสดงเส้นทางการเติบโตของชีวิตในแต่ละช่วงเวลา
+- Personal Insight Engine ที่สามารถให้คำแนะนำที่เหมาะกับสไตล์การคิดและบุคลิกของผู้ใช้เฉพาะบุคคล
+- Proactive AI Companion ที่พร้อมช่วยวางแผน คอยเตือน และสะท้อนความคิดเคียงข้างผู้ใช้ตลอดเวลา
+
+**Scope:**
+- Full Integration: PIE 9 Layers + Knowledge Graph + Reflection Engine + Pattern Intelligence + Identity Engine
+- Storage Extensions: Real-time Identity Cache & Temporal Similarity Matrix
+- HITL Policy: คงหลักประกันความถูกต้อง 100% — AI ทำหน้าที่เป็นกระจกเงาและผู้เสนอแนวทาง ผู้ใช้ยังคงเป็นผู้ถือสิทธิ์ตัดสินใจบันทึก/ปรับปรุงข้อมูลชีวิตตนเองเสมอ (`applied=false`)
+
+**Deliverables:**
+1. ✨ Dynamic Identity Engine: แผนผังระบุตัวตน ค่านิยม จุดแข็ง และเป้าหมายชีวิตฉบับเต็ม
+2. ✨ Life Timeline Dashboard (Month/Quarter/Year): แสดงพัฒนาการของชีวิตและเหตุการณ์สำคัญรายช่วงเวลา
+3. ✨ Personal Insight Engine V2: ระบบแจ้งเตือนอินไซต์เชิงลึกที่ปรับแต่งตาม Persona และลักษณะผู้ใช้
+4. ✨ Proactive AI Orchestrator: ระบบ AI เสนอแนะการวางแผนชีวิตล่วงหน้าและการบริหารพลังงานประจำวัน
+5. ✨ Second Brain Master Dashboard: หน้าจอศูนย์กลางควบคุมและสำรวจสติปัญญาชีวิตทั้งหมด
+
+---
+
+### ⏳ Phase 9 — Living Companion AI (Vision Declaration)
+*Future Vision: ยังไม่แตก Deliverables จนกว่า Phase 8 จะเสร็จสิ้น*
+- AI Companion ที่เรียนรู้ ถอดแบบความคิด และเติบโตไปพร้อมกับผู้ใช้ตลอดช่วงชีวิต (Lifelong Co-evolution)
+
+---
+
+### ⏳ Postponed / Future Extensions
+- **Mobile & Cross-Platform Engine**: React Native / PWA Installable / Capacitor Mobile (พิจารณาอีกครั้งเมื่อ Core Intelligence สมบูรณ์)
+

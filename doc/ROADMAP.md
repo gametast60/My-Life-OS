@@ -79,4 +79,31 @@ Focus = Semantic Retrieval + Hybrid Search เท่านั้น (NOTHING OUT
 | 4C | Memory Intelligence + Reflection | Merge/Conflict/Decay/Evidence Consolidation Background Async Reflect Jobs (P4-11) | Pre-requisite: 4B ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 4D | Identity + Insight + Life Timeline | Identity 1-row singleton, 6-type Insight Generator, Timeline(M/Q/Y), Temporal Compare | Pre-requisite: 4C ✅ | ⏳ Planned (Archived Detail) | 0% |
 | 5 | Full Intel Platform + UI Close | BIE UI Suite, HITL Confirm Screens, Service Worker (KI-302), Learning Loop Close + Optional MCP Integrations | Pre-requisite: 4A→4D ✅ | ⏳ Planned (Archived Detail) | 0% |
-| 6 | Mobile + Cross Platform (Future) | React Native / PWA / Capacitor | TBD | ⏳ Postponed | 0% |
+| 6 | Personal Evolution Engine | Daily Self Interview, Knowledge Gap Detector, Curiosity Engine, Identity Model, Confidence Score, Adaptive Question Engine | Pre-requisite: 5 ✅ | ⏳ Planned (Archived Detail) | 0% |
+| 7 | Life Pattern Intelligence | Pattern Discovery Engine, Cause & Effect Engine, Personal Prediction, Blind Spot Detection, Monthly Growth Report | Pre-requisite: 6 ✅ | ⏳ Planned (Archived Detail) | 0% |
+| 8 | Second Brain | Identity Engine, Life Timeline (M/Q/Y), Personal Insight Engine, Proactive AI | Pre-requisite: 7 ✅ | ⏳ Planned (Archived Detail) | 0% |
+
+> หมายเหตุ: Mobile + Cross Platform (เดิม Phase 6) ถูกนำออกจาก Roadmap ชั่วคราวตามคำขอ ยังไม่กำหนด Phase ใหม่ — จะเพิ่มกลับเข้ามาเมื่อมีความชัดเจน
+
+---
+
+## 🧭 Post-Phase-5 Direction: "Feature" → "Intelligence Evolution"
+
+หลัง Phase 5 (BIE Fully Integrated) ทิศทางของโปรเจกต์เปลี่ยนจากการเพิ่ม **ฟีเจอร์** ไปเป็นการพัฒนา **สติปัญญา (Intelligence)** ของ AI เอง — full detail ของ Phase 6-8 อยู่ที่ `/doc/ROADMAP_ARCHIVE.md`
+
+```
+Phase 6                    Phase 7                     Phase 8
+Personal Evolution   →     Life Pattern            →   Second Brain
+Engine                     Intelligence
+──────────────             ──────────────               ──────────────
+AI ถาม → AI เรียนรู้        AI เห็น Pattern ชีวิต         AI เข้าใจ "ตัวคุณ"
+Knowledge Gap Detector     Pattern Discovery Engine     Identity Engine
+Curiosity Engine           Cause-Effect Engine          Life Timeline
+Identity Model             Personal Prediction          Personal Insight Engine
+Confidence Score           Blind Spot Detection         Proactive AI
+Adaptive Question Engine   Monthly Growth Report
+```
+
+> **Vision ปลายทาง (ยังไม่ Scope):** Phase 9 — Living Companion AI ถูกบันทึกไว้ใน `/doc/ROADMAP_ARCHIVE.md` เป็น Vision Declaration เท่านั้น (ยังไม่แตก Deliverables จนกว่า Phase 8 จะใกล้เสร็จ)
+
+**หลักการยึดเดิมทุก Phase:** AI มีหน้าที่เรียนรู้และเสนอข้อมูลพร้อมหลักฐาน (Evidence) — การตัดสินใจและยืนยันความรู้ยังเป็นของผู้ใช้เสมอ (HITL applied=false จนกว่าจะ Confirm)

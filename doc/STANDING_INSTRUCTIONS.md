@@ -11,41 +11,43 @@
 2. LS `/doc/` folder — ต้องมีไฟล์เหล่านี้อยู่:
    - `STATE.md`, `STANDING_INSTRUCTIONS.md` (ไฟล์นี้)
    - `AI_ARCHITECTURE.md`, `ROADMAP.md`, `CHANGELOG.md`, `DECISIONS.md`, `KNOWN_ISSUES.md`
-   - `prompt.text` (per-step work order)
+   - `PROMPT.md` (per-step work order)
    - ไฟล์ Archive: `<NAME>_ARCHIVE.md` (4 คู่: AI_ARCHITECTURE, CHANGELOG, DECISIONS, KNOWN_ISSUES)
    ถ้าหาย: กู้คืนจาก Git หรือไฟล์ Archive ก่อน — **ห้ามเริ่มเขียนโค้ดก่อนได้**
 
 ---
 
-## SI-1: Code Handoff / prompt.text Handoff Format (หลัง Step เสร็จ)
+## SI-1: Code Handoff / PROMPT.md Handoff Format (หลัง Step เสร็จ)
 
 เมื่อ Step N เสร็จ แล้วต้องเตรียม Handoff ให้ Step N+1:
 1. Update `/doc/STATE.md` — Toggle: step ปัจจุบัน → ✅, step ถัดไป → ⏳ + update deliverable/constraints/allowed-files สำหรับ step ถัดไป
-2. Overwrite `/doc/prompt.text` ด้วย **รูปแบบ minimal ใหม่** (ห้าม copy STANDING INSTRUCTIONS 83 บรรทัดซ้ำ):
-   ```
-   ════════════════════════════════════════════════
-   PHASE 4A — S<next>: <Short Title>
-   My Life OS — Brain Intelligence Engine (BIE)
-   ════════════════════════════════════════════════
+2. Overwrite `/doc/PROMPT.md` ด้วย **รูปแบบ minimal ใหม่** (ห้าม copy STANDING INSTRUCTIONS 83 บรรทัดซ้ำ):
+   ```markdown
+   # PROMPT.md — Current Step Work Order
 
-   สิ่งแรกที่ต้องทำ:
+   > **PHASE 4B — S<next>: <Short Title>**
+   > **My Life OS — Brain Intelligence Engine (BIE)**
+
+   ---
+
+   ## 📌 สิ่งแรกที่ต้องทำ
+
    1. อ่าน /doc/STATE.md (current step, constraints, allowed files)
    2. ปฏิบัติตาม /doc/STANDING_INSTRUCTIONS.md (ทุก workflow rule)
 
-   PRIMARY DELIVERABLE (S<NEXT>):
+   ## 🎯 PRIMARY DELIVERABLE (S<NEXT>):
    - Item 1
    - Item 2
    - Item 3
 
-   WORK ORDER — EXECUTE IN ORDER:
+   ## ⚙️ WORK ORDER — EXECUTE IN ORDER:
    S<next> Step 1 of 5 — Read-only exploration: ...
    S<next> Step 2 of 5 — ...
    ...
 
    END OF HANDOFF PROMPT.
-   ════════════════════════════════════════════════
    ```
-3. **ห้าม paste STANDING INSTRUCTIONS ลงใน prompt.text อีกต่อไป** — ใช้แค่ pointer ไป STATE.md + STANDING_INSTRUCTIONS.md เท่านั้น
+3. **ห้าม paste STANDING INSTRUCTIONS ลงใน PROMPT.md อีกต่อไป** — ใช้แค่ pointer ไป STATE.md + STANDING_INSTRUCTIONS.md เท่านั้น
 
 ---
 

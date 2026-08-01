@@ -13,7 +13,7 @@ Deliverable:
 2. Generate dry-run duplicate merge diff report (`DuplicateDetectionResult`)
 3. Support entity normalization & node resolution logic in `entityResolver.ts`
 4. Preserve P4-12 HITL invariant (dry-run report only, applied=false pending queue proposals)
-5. Handoff S11 → S12 via STATE.md + prompt.text
+5. Handoff S11 → S12 via STATE.md + PROMPT.md
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
@@ -42,7 +42,7 @@ Status Before Start:
 - `/doc/CHANGELOG.md` (append S11 closeout section)
 - `/doc/ROADMAP.md` (S11 status update)
 - `/doc/STATE.md` (update for S12 kickoff)
-- `/doc/prompt.text` (overwrite with S12 handoff)
+- `/doc/PROMPT.md` (overwrite with S12 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
@@ -59,7 +59,7 @@ Status Before Start:
 - [ ] Read `/doc/ROADMAP_ARCHIVE.md` → confirm 4B Full Scope/Deliverables section (KG design reference)
 - [ ] Read `src/pie/bie/types.ts` → understand existing BIE type contracts before widening
 - [ ] Understood: S10 = type+schema design ONLY; zero UI changes; no removal of existing exports.
-- [ ] After implementation → UPDATE DOCS + prompt.text for S11 kickoff
+- [ ] After implementation → UPDATE DOCS + PROMPT.md for S11 kickoff
 
 
 ---
@@ -76,4 +76,4 @@ Status Before Start:
 | Architecture Decisions (Active) | `/doc/DECISIONS.md` |
 | Archived Decisions | `/doc/DECISIONS_ARCHIVE.md` |
 | Known Issues (Active) | `/doc/KNOWN_ISSUES.md` |
-| Per-Step Work Order (Current Step Detail) | `/doc/prompt.text` |
+| Per-Step Work Order (Current Step Detail) | `/doc/PROMPT.md` |
