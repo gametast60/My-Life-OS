@@ -13,6 +13,31 @@
 
 ---
 
+## [Phase 4C — S22] — Phase 4C Closeout & Regression Gate
+**Status**: ✅ Complete (2026-08-01)
+
+### Verified
+- ✅ `npm run lint` (tsc --noEmit) Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-12 HITL Audit: All reflection proposals (`ConflictItem`, `graph_merge`) carry `applied: false` invariant across `conflictDetector.ts`, `reflectorEngine.ts`, `types.ts`, `edgeProposalQueue.ts`, `relationshipExtractor.ts`.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+- ✅ Phase 4C: **PHASE COMPLETE** (6/6 steps S17–S22). Handoff → Phase 4D.
+
+---
+
+## [Phase 4C — S21] — Background Reflect Job Runner (P4-11)
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🔄 `/src/pie/bie/reflection/reflectorEngine.ts`: `DefaultReflectorEngine` implementation and `runBackgroundReflectionCycle` orchestrator running non-blocking 4-stage reflection cycles (Stage 1 Consolidate → Stage 2 Conflict → Stage 3 Merge → Stage 4 Decay).
+- 🔒 P4-12 HITL Invariant: All reflection proposals (duplicate tag merges & evidence contradictions) route to `bie_pending_queue` (`kind: "graph_merge"` / `"reflection_conflict"`) strictly with `applied: false`.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ Non-blocking P4-11 Background Reflect: async execution with graceful fallback; zero main thread UI blocking.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+
+---
+
 ## [Phase 4C — S20] — Brain Tree Decay Calculation Engine
 **Status**: ✅ Complete (2026-08-01)
 

@@ -7,45 +7,42 @@
 
 ## Current Step
 
-**Phase 4C — S21: Background Reflect Job Runner (P4-11)**
+**Phase 4D — S23: Identity Layer Kickoff — Type & Interface Contracts**
 Deliverable:
-1. Implement `ReflectorEngine` logic in `/src/pie/bie/reflection/reflectorEngine.ts`
-2. Orchestrate background reflection workflow (Consolidate → Conflict → Merge → Propose)
-3. Ensure non-blocking async background job runner (P4-11) routing proposals with `applied: false` HITL invariant
-4. Handoff S21 → S22 via STATE.md + PROMPT.md
+1. Define `Identity` singleton interface + DB schema row (`IdentityRow`) in `/src/pie/bie/identity/types.ts`
+2. Define `InsightItem` 6-type enum (`reflection` | `pattern` | `milestone` | `gap` | `conflict` | `prediction`) + `InsightRow`
+3. Define `TimelineEntry` (month/quarter/year granularity) + `TimelineRow`
+4. Additive widening to `src/pie/bie/types.ts`: re-export identity types; widen `BiePendingKind` with `"identity_update"` | `"insight_proposal"`
+5. Handoff S23 → S24 via STATE.md + PROMPT.md
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
 - ✅ Phase 4B S10–S16 ← **PHASE 4B COMPLETE**
-- ✅ Phase 4C S17 — Reflection Type & Provider Contracts Kickoff (COMPLETE)
-- ✅ Phase 4C S18 — Evidence Consolidation Engine (COMPLETE)
-- ✅ Phase 4C S19 — Contradiction & Conflict Detector (COMPLETE)
-- ✅ Phase 4C S20 — Brain Tree Decay Calculation Engine (COMPLETE)
-- ⏳ Phase 4C S21 — Background Reflect Job Runner (P4-11) (THIS STEP)
+- ✅ Phase 4C S17–S22 ← **PHASE 4C COMPLETE**
+- ⏳ Phase 4D S23 — Identity Layer Kickoff: Type & Interface Contracts (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S21 scope only)
+## Active Hard Constraints (S23 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S21 is background reflect orchestrator logic only — no UI components. |
-| P4-12 | HITL: all reflection proposals strictly carry `applied: false` pending queue routing. |
-| P4-11 | Async Reflect: non-blocking background operations overnight or idle. |
+| P4-2 | Zero UX/UI change. S23 is type contracts only — no UI components. |
+| P4-12 | HITL: all identity update / insight proposals carry `applied: false`. |
 
 ---
 
-## Files Allowed / Forbidden (S21)
+## Files Allowed / Forbidden (S23)
 
-✅ ALLOWED (reflector engine orchestrator implementation, NO UI):
-- `/src/pie/bie/reflection/reflectorEngine.ts` (Background reflection job runner logic)
-- `/src/pie/bie/reflection/index.ts` (Reflection barrel export)
-- `/src/pie/bie/reflection/types.ts` (Additive type widening if needed)
-- `/doc/CHANGELOG.md` (append S21 closeout section)
-- `/doc/ROADMAP.md` (S21 status update)
-- `/doc/STATE.md` (update for S22 kickoff)
-- `/doc/PROMPT.md` (overwrite with S22 handoff)
+✅ ALLOWED (type contracts only, NO UI):
+- `/src/pie/bie/identity/types.ts` (NEW — Identity singleton, InsightItem, TimelineEntry types + DB row shapes)
+- `/src/pie/bie/identity/index.ts` (NEW — identity barrel export)
+- `/src/pie/bie/types.ts` (additive widening: re-export identity types; widen `BiePendingKind`)
+- `/doc/CHANGELOG.md` (append S23 closeout section)
+- `/doc/ROADMAP.md` (S23 Phase 4D status update)
+- `/doc/STATE.md` (update for S24 kickoff)
+- `/doc/PROMPT.md` (overwrite with S24 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
@@ -57,11 +54,11 @@ Status Before Start:
 ## Readiness Checklist (before ANY code edit)
 
 - [ ] LS `/doc/` — 5 core docs + STATE.md + STANDING_INSTRUCTIONS.md exist
-- [ ] Read ROADMAP.md → confirm Phase 4A/4B = ✅ Complete, Phase 4C S17–S20 = ✅ Complete
-- [ ] Read CHANGELOG.md → confirm S20 entry exists at top
-- [ ] Read `/doc/ROADMAP_ARCHIVE.md` → understand Phase 4C Full Scope / S21 Deliverables
-- [ ] Understood: S21 = Background Reflect Job Runner only; zero UI changes.
-- [ ] After implementation → UPDATE DOCS + PROMPT.md for S22 kickoff
+- [ ] Read ROADMAP.md → confirm Phase 4A/4B/4C = ✅ Complete; Phase 4D S23 = THIS STEP
+- [ ] Read CHANGELOG.md → confirm S22 entry exists at top
+- [ ] Read `/doc/ROADMAP_ARCHIVE.md` → understand Phase 4D full deliverable scope (Identity/Insight/Timeline)
+- [ ] Understood: S23 = Type & Interface Contracts only; zero UI changes.
+- [ ] After implementation → UPDATE DOCS + PROMPT.md for S24 kickoff
 
 ---
 
