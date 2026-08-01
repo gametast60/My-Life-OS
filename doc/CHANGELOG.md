@@ -13,6 +13,19 @@
 
 ---
 
+## [Phase 4C — S18] — Evidence Consolidation Engine
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🧹 `/src/pie/bie/reflection/evidenceConsolidator.ts`: `DefaultEvidenceConsolidator` implementation and standalone helpers (`consolidateTagReferences`, `consolidateEvidences`) for tag ID reassignment (source tag → target tag), dangling reference cleanup, tag deduplication, and non-destructive report generation (`EvidenceConsolidationReport`).
+
+### Verified
+- ✅ `npm run build` Exit 0 (2156 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ Non-destructive evidence chain integrity: immutably produces consolidated evidence array while updating tag IDs.
+- ✅ P4-8 Strict Widening: 7 `aiService.ts` facade methods UNTOUCHED; zero UI changes.
+
+---
+
 ## [Phase 4C — S17] — Reflection Type & Provider Contracts Kickoff
 **Status**: ✅ Complete (2026-08-01)
 
