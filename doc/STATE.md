@@ -7,60 +7,63 @@
 
 ## Current Step
 
-**Phase 4B — S11: Entity Resolution & Duplicate Tag Matcher**
+**Phase 4B — S12: Graph Persistence & Repository Write Layer**
 Deliverable:
-1. Implement duplicate tag candidate detection using Synonym Dictionary + Semantic Vector Cosine Similarity (threshold ≥ 0.82)
-2. Generate dry-run duplicate merge diff report (`DuplicateDetectionResult`)
-3. Support entity normalization & node resolution logic in `entityResolver.ts`
-4. Preserve P4-12 HITL invariant (dry-run report only, applied=false pending queue proposals)
-5. Handoff S11 → S12 via STATE.md + PROMPT.md
+1. Implement `saveGraphNode` / `saveGraphEdge` / `listGraphNodes` / `listGraphEdges` on `BrainIntelligenceRepository` interface (additive widening only, P4-8)
+2. Concrete implementation in `RoomBrainIntelligenceRepository` backed by `bie_graph_nodes` + `bie_graph_edges` IndexedDB tables
+3. Wire `entityResolver.findDuplicateCandidates` output → pending-queue proposals (P4-12 applied=false)
+4. Preserve HITL invariant: all write paths for AI-generated edges must go through `proposeEdge` → `createPendingEdgeItem` → `appendPendingBieItem`
+5. Handoff S12 → S13 via STATE.md + PROMPT.md
 
 Status Before Start:
 - ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
 - ✅ Phase 4B S10 — KG Type & Schema Contracts Kickoff
-- ⏳ Phase 4B S11 — Entity Resolution & Duplicate Tag Matcher (THIS STEP)
+- ✅ Phase 4B S11 — Entity Resolution & Duplicate Tag Matcher
+- ⏳ Phase 4B S12 — Graph Persistence & Repository Write Layer (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S11 scope only)
+## Active Hard Constraints (S12 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S11 is background matching logic — no UI components. |
-| P4-12 | HITL: dry-run merge report / proposals only — zero auto-merge, zero auto-deletion. |
+| P4-2 | Zero UX/UI change. S12 is DB persistence logic — no UI components. |
+| P4-12 | HITL: all AI-generated edge writes route through proposal queue (applied=false invariant). No direct applied=true DB writes from AI paths. |
 | P4-3 | Edge & Merge Proposals: all proposed merges are pending (applied=false) — never auto-applied. |
 
 ---
 
-## Files Allowed / Forbidden (S11)
+## Files Allowed / Forbidden (S12)
 
 ✅ ALLOWED (additive logic implementation, NO UI):
-- `/src/pie/bie/graph/entityResolver.ts` (implement duplicate detection & merge diff generator)
+- `/src/pie/bie/BrainIntelligenceRepository.ts` (add graph node/edge read/write signatures — widening only)
+- `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (implement new graph persistence methods)
+- `/src/pie/bie/graph/entityResolver.ts` (integrate output with pending-queue proposals if needed)
 - `/src/pie/bie/graph/types.ts` (additive widening if needed)
 - `/src/pie/bie/graph/index.ts` (barrel export)
-- `/doc/CHANGELOG.md` (append S11 closeout section)
-- `/doc/ROADMAP.md` (S11 status update)
-- `/doc/STATE.md` (update for S12 kickoff)
-- `/doc/PROMPT.md` (overwrite with S12 handoff)
+- `/doc/CHANGELOG.md` (append S12 closeout section)
+- `/doc/ROADMAP.md` (S12 status update)
+- `/doc/STATE.md` (update for S13 kickoff)
+- `/doc/PROMPT.md` (overwrite with S13 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
 - `aiService.ts` 7 facade methods (P4-8)
-- S1–S10 delivered core modules (read-only reference only)
+- S1–S11 delivered core modules (read-only reference only)
 
 ---
 
 ## Readiness Checklist (before ANY code edit)
 
 - [ ] LS `/doc/` — 5 core docs + STATE.md + STANDING_INSTRUCTIONS.md exist
-- [ ] Read ROADMAP.md → confirm Phase 4A = ✅ Complete, 4B S10 = ⏳
-- [ ] Read CHANGELOG.md → confirm S9 entry exists at top
-- [ ] Read `/doc/ROADMAP_ARCHIVE.md` → confirm 4B Full Scope/Deliverables section (KG design reference)
-- [ ] Read `src/pie/bie/types.ts` → understand existing BIE type contracts before widening
-- [ ] Understood: S10 = type+schema design ONLY; zero UI changes; no removal of existing exports.
-- [ ] After implementation → UPDATE DOCS + PROMPT.md for S11 kickoff
-
+- [ ] Read ROADMAP.md → confirm Phase 4A = ✅ Complete, 4B S10+S11 = ✅
+- [ ] Read CHANGELOG.md → confirm S11 entry exists at top
+- [ ] Read `/src/pie/bie/BrainIntelligenceRepository.ts` → understand current interface before widening
+- [ ] Read `/src/pie/bie/RoomBrainIntelligenceRepository.ts` → understand existing concrete implementation
+- [ ] Read `/src/pie/bie/graph/types.ts` → understand `BIEGraphNodeRow`, `BIEGraphEdgeRow` DB shapes
+- [ ] Understood: S12 = persistence write layer; zero UI changes; no removal of existing exports.
+- [ ] After implementation → UPDATE DOCS + PROMPT.md for S13 kickoff
 
 ---
 

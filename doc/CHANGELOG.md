@@ -13,6 +13,20 @@
 
 ---
 
+## [Phase 4B — S11] — Entity Resolution & Duplicate Tag Matcher
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🔍 `entityResolver.ts`: Full S11 implementation — `findDuplicateCandidates` (3-tier: exact label, synonym dict, semantic cosine ≥ 0.82), `generateDuplicateMergeReport` (dry-run diff, evidencesToReassign + edgesToConsolidate counts), `resolveEntityNode` (whitespace/casing normalize → `BIEGraphNode`).
+
+### Verified
+- ✅ `npm run build` Exit 0 (2153 modules transformed). ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-12 HITL: zero auto-merge, zero auto-deletion, applied=false preserved throughout all report paths.
+- ✅ P4-8 Strict Widening: stubs replaced with implementations — no existing exports removed, 7 aiService facade UNTOUCHED.
+- [Doc Skip] AI_ARCHITECTURE.md — no new layer/module/dependency added; `entityResolver.ts` fulfills the S10 stub contract, no arch diagram change.
+
+---
+
 ## [Phase 4B — S10] — Knowledge Graph + Relationship Engine Kickoff
 **Status**: ✅ Complete (2026-08-01)
 
