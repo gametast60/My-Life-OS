@@ -259,3 +259,15 @@ export interface PendingLearning {
 // Convenience: explicit re-exports for sub-areas to consume cleanly.
 // (Barrel index.ts will be created in S5; keep this file pure types.)
 // ─────────────────────────────────────────────────────────────────────
+
+export type {
+  GraphNodeType,
+  BIEGraphNode,
+  BIEGraphEdge,
+  GraphEdgeProposal,
+  BIEGraphNodeRow,
+  BIEGraphEdgeRow,
+  EntityResolutionCandidate,
+  DuplicateDetectionResult,
+} from "./graph";
+

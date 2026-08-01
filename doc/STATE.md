@@ -7,54 +7,47 @@
 
 ## Current Step
 
-**Phase 4B — S10: Knowledge Graph + Relationship Engine (Kickoff)**
+**Phase 4B — S11: Entity Resolution & Duplicate Tag Matcher**
 Deliverable:
-1. Define KG node/edge type contracts (TypeScript interfaces, no DB yet)
-2. Design Graph storage schema (bie_graph_nodes, bie_graph_edges tables)
-3. Implement entity resolution + duplicate detection stubs
-4. Edge proposal queue (applied=false structural invariant, P4-12 HITL preserved)
-5. Handoff S10 → S11 via STATE.md + prompt.text
+1. Implement duplicate tag candidate detection using Synonym Dictionary + Semantic Vector Cosine Similarity (threshold ≥ 0.82)
+2. Generate dry-run duplicate merge diff report (`DuplicateDetectionResult`)
+3. Support entity normalization & node resolution logic in `entityResolver.ts`
+4. Preserve P4-12 HITL invariant (dry-run report only, applied=false pending queue proposals)
+5. Handoff S11 → S12 via STATE.md + prompt.text
 
 Status Before Start:
-- ✅ Phase 4A S1 — Type & Interface Contracts
-- ✅ Phase 4A S2 — Core Utilities
-- ✅ Phase 4A S3 — Default Provider Implementations
-- ✅ Phase 4A S4 — Repository + DB Schema Extensions
-- ✅ Phase 4A S5 — Indexing & Scoring Logic
-- ✅ Phase 4A S6 — Wire Hooks into PIE Layers
-- ✅ Phase 4A S7 — Disable Switch Integration
-- ✅ Phase 4A S8 — Tuning & Weight Calibration
-- ✅ Phase 4A S9 — Regression & Docs Gate ← **PHASE 4A COMPLETE**
-- ⏳ Phase 4B S10 — Knowledge Graph + Relationship Engine Kickoff (THIS STEP)
+- ✅ Phase 4A S1–S9 ← **PHASE 4A COMPLETE**
+- ✅ Phase 4B S10 — KG Type & Schema Contracts Kickoff
+- ⏳ Phase 4B S11 — Entity Resolution & Duplicate Tag Matcher (THIS STEP)
 
 ---
 
-## Active Hard Constraints (S10 scope only)
+## Active Hard Constraints (S11 scope only)
 
 | ID | Constraint |
 |----|------------|
 | P4-8 | Strict Widening Only: signature changes = add ONLY. No removal. 7 aiService.ts facade UNTOUCHED. |
-| P4-2 | Zero UX/UI change. S10 is type+schema design — no UI components. |
-| P4-12 | HITL: applied=false structural invariant preserved (unchanged). |
-| P4-3 | Edge Proposals: all edge creates are proposals only (applied=false) — never auto-applied. |
+| P4-2 | Zero UX/UI change. S11 is background matching logic — no UI components. |
+| P4-12 | HITL: dry-run merge report / proposals only — zero auto-merge, zero auto-deletion. |
+| P4-3 | Edge & Merge Proposals: all proposed merges are pending (applied=false) — never auto-applied. |
 
 ---
 
-## Files Allowed / Forbidden (S10)
+## Files Allowed / Forbidden (S11)
 
-✅ ALLOWED (additive new files + widen existing types, NO UI):
-- `/src/pie/bie/graph/` (new folder — KG type definitions, schema, entity resolution stubs)
-- `/src/pie/bie/types.ts` (additive: KG node/edge interfaces, proposal types)
-- `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (additive: KG method stubs)
-- `/doc/CHANGELOG.md` (append S10 closeout section)
-- `/doc/ROADMAP.md` (S10 → ✅)
-- `/doc/STATE.md` (this file — update for S11 kickoff)
-- `/doc/prompt.text` (overwrite with S11 handoff)
+✅ ALLOWED (additive logic implementation, NO UI):
+- `/src/pie/bie/graph/entityResolver.ts` (implement duplicate detection & merge diff generator)
+- `/src/pie/bie/graph/types.ts` (additive widening if needed)
+- `/src/pie/bie/graph/index.ts` (barrel export)
+- `/doc/CHANGELOG.md` (append S11 closeout section)
+- `/doc/ROADMAP.md` (S11 status update)
+- `/doc/STATE.md` (update for S12 kickoff)
+- `/doc/prompt.text` (overwrite with S12 handoff)
 
 ❌ FORBIDDEN (no modification):
 - ANY UI View / Settings / Chat component
 - `aiService.ts` 7 facade methods (P4-8)
-- S1–S9 delivered core modules (read-only reference only)
+- S1–S10 delivered core modules (read-only reference only)
 
 ---
 

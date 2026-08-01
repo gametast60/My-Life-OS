@@ -1,53 +1,50 @@
 ════════════════════════════════════════════════════════════════════
- PHASE 4B — S10: Knowledge Graph + Relationship Engine (Kickoff)
+ PHASE 4B — S11: Entity Resolution & Duplicate Tag Matcher
  My Life OS — Brain Intelligence Engine (BIE)
 ════════════════════════════════════════════════════════════════════
 
  สิ่งแรกที่ต้องทำ:
- 1. อ่าน /doc/STATE.md (current step = S10, constraints, allowed files)
+ 1. อ่าน /doc/STATE.md (current step = S11, constraints, allowed files)
  2. ปฏิบัติตาม /doc/STANDING_INSTRUCTIONS.md (ทุก workflow rule)
 
- PRIMARY DELIVERABLE (S10 = KG Type + Schema Design):
- - KG Node/Edge TypeScript interface contracts (additive widening of types.ts)
- - Graph storage schema design: bie_graph_nodes + bie_graph_edges table shapes
- - Entity resolution + duplicate detection stubs (no runtime logic yet)
- - Edge proposal queue structure (applied=false HITL invariant, P4-12)
- - Handoff S10 → S11 via STATE.md + prompt.text
+ PRIMARY DELIVERABLE (S11 = Entity Resolution & Duplicate Matching):
+ - Duplicate tag candidate detection using Synonym Dictionary + Semantic Vector Cosine Similarity (threshold ≥ 0.82)
+ - Dry-run duplicate merge diff report generator (`generateDuplicateMergeReport`)
+ - Entity normalization & node creation helper (`resolveEntityNode`)
+ - HITL Pending Queue proposals (applied=false invariant, P4-12)
+ - Handoff S11 → S12 via STATE.md + prompt.text
 
  WORK ORDER — EXECUTE IN ORDER:
 
- S10 Step 1 of 5 — Read-only exploration:
-   Read src/pie/bie/types.ts → understand all existing BIE interfaces/types
-   Read /doc/ROADMAP_ARCHIVE.md → find Phase 4B Scope + Deliverables section
-   Read src/pie/bie/RoomBrainIntelligenceRepository.ts → understand existing 28-method shape
+ S11 Step 1 of 5 — Read-only exploration:
+   Read /src/pie/bie/graph/types.ts → understand KG contracts & DB row schemas
+   Read /src/pie/bie/synonyms.ts → understand synonym dictionary lookup
+   Read /src/pie/bie/vectorIndex.ts → understand cosine similarity scan
 
- S10 Step 2 of 5 — KG Type Contracts (additive, types.ts widening):
-   Define: GraphNodeType enum (Entity, Tag, Dimension, Evidence, Room, Insight)
-   Define: GraphEdgeType enum (6 edge kinds per ROADMAP 4B spec)
-   Define: BIEGraphNode interface + BIEGraphEdge interface
-   Define: GraphEdgeProposal interface (applied: false invariant)
-   Rule: ADDITIVE ONLY — zero removal of existing exported types
+ S11 Step 2 of 5 — Duplicate Detection Engine (/src/pie/bie/graph/entityResolver.ts):
+   Implement `findDuplicateCandidates(nodes)`:
+   - Check exact label matches (case-insensitive, normalized)
+   - Check synonym dictionary matches via `expandSynonyms`
+   - Check semantic vector similarity (threshold ≥ 0.82)
+   - Return list of `EntityResolutionCandidate` objects
 
- S10 Step 3 of 5 — Storage Schema (no DB wiring yet, type-level only):
-   Define: BIEGraphNodeRow (DB row shape for bie_graph_nodes)
-   Define: BIEGraphEdgeRow (DB row shape for bie_graph_edges)
-   Document: schema rationale in inline JSDoc (column names, index plan)
+ S11 Step 3 of 5 — Dry-Run Merge Diff Report (/src/pie/bie/graph/entityResolver.ts):
+   Implement `generateDuplicateMergeReport(primaryNodeId, duplicateNodeIds)`:
+   - Calculate affected evidence count & edge count to consolidate
+   - Produce dry-run diff preview report without modifying DB (applied=false)
 
- S10 Step 4 of 5 — Repository Method Stubs (RoomBrainIntelligenceRepository.ts additive):
-   Add stub signatures only (throw new Error("TODO S10") bodies):
-   - saveGraphNode / getGraphNode / deleteGraphNode
-   - saveGraphEdge / getGraphEdgesByNode / deleteGraphEdge
-   - proposeEdge (returns GraphEdgeProposal with applied=false)
-   - findDuplicateCandidates (entity resolution stub)
-   Rule: Additive widening only — existing 28 methods UNTOUCHED
+ S11 Step 4 of 5 — Entity Resolution Helper:
+   Implement `resolveEntityNode(label, nodeType)`:
+   - Normalize whitespace & casing
+   - Construct BIEGraphNode entity structure
 
- S10 Step 5 of 5 — Doc Closeout + Handoff:
-   npm run build = Exit 0 (verify no TS errors from new types)
+ S11 Step 5 of 5 — Doc Closeout + Handoff:
+   npm run build = Exit 0
    npm run lint  = Exit 0
-   CHANGELOG.md: append S10 section at TOP (≤15 lines per SI-2)
-   ROADMAP.md: S10 row → ✅ Complete (targeted cell edit per SI-4)
-   STATE.md: update Current Step → S11 kickoff
-   prompt.text: overwrite with S11 handoff (minimal pointer format per SI-1)
+   CHANGELOG.md: append S11 section at TOP (≤15 lines per SI-2)
+   ROADMAP.md: S11 row update (targeted cell edit per SI-4)
+   STATE.md: update Current Step → S12 kickoff
+   prompt.text: overwrite with S12 handoff (minimal pointer format per SI-1)
 
- END OF S10 HANDOFF PROMPT.
+ END OF S11 HANDOFF PROMPT.
 ════════════════════════════════════════════════════════════════════

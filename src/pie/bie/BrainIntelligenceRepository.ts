@@ -24,7 +24,9 @@
 import type {
   BiePendingKind,
   EmbeddingRecord,
+  EntityResolutionCandidate,
   GraphEdge,
+  GraphEdgeProposal,
   GraphEdgeType,
   GraphNode,
   GraphNodeKind,
@@ -69,6 +71,8 @@ export interface BrainIntelligenceRepository {
 
   // ─── Knowledge Graph edges (bie_graph_edges) — Phase 4B ─────────
   getGraphEdges(filter?: { type?: GraphEdgeType; appliedOnly?: boolean }): GraphEdge[];
+  /** Fetch all graph edges associated with a specific node (either as source or target). */
+  getGraphEdgesByNode(nodeId: string): GraphEdge[];
   /**
    * Persist a graph edge. Per P4-12, AI-detected edges are stored with
    * applied=false and routed through the Pending Queue via `appendPending`.
@@ -79,6 +83,10 @@ export interface BrainIntelligenceRepository {
   /** Mark an edge as User-confirmed (applied=true). Call site = Confirm UI only. */
   applyGraphEdge(id: string): void;
   deleteGraphEdge(id: string): void;
+  /** Helper stub: Propose a new edge with enforced applied=false structural invariant. */
+  proposeEdge?(fromId: string, toId: string, type: GraphEdgeType, confidence?: number, reason?: string): GraphEdgeProposal;
+  /** Helper stub: Find candidate duplicate nodes for entity resolution. */
+  findDuplicateCandidates?(): EntityResolutionCandidate[];
 
   // ─── Identity (bie_identity) — Phase 4D ─────────────────────────
   /** Singleton row (id="singleton"). */

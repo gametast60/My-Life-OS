@@ -13,6 +13,18 @@
 
 ---
 
+## [Phase 4B — S10] — Knowledge Graph + Relationship Engine Kickoff
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 📦 `/src/pie/bie/graph/`: New module for Knowledge Graph type contracts, DB row schema shapes (`BIEGraphNodeRow`, `BIEGraphEdgeRow`), entity resolution stubs (`findDuplicateCandidates`, `resolveEntityNode`), and edge proposal queue stubs (`proposeEdge`, `createPendingEdgeItem`).
+- 🔀 `types.ts` & `BrainIntelligenceRepository.ts`: Additive widening for Knowledge Graph contracts, `GraphNodeType`, `GraphEdgeProposal` (enforces `applied: false` HITL invariant P4-12), and repository stub signatures.
+
+### Verified
+- ✅ `npm run build` Exit 0 (2153 modules transformed).
+- ✅ `npm run lint` (tsc --noEmit) Exit 0.
+- ✅ P4-8 Strict Widening: 7 aiService facade methods UNTOUCHED; zero UI changes.
+
 ## [Phase 4A — S9] — Regression & Docs Gate
 **Status**: ✅ Complete (2026-08-01)
 

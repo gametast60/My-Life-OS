@@ -40,7 +40,9 @@ import type {
   BiePendingKind,
   EmbeddingMethod,
   EmbeddingRecord,
+  EntityResolutionCandidate,
   GraphEdge,
+  GraphEdgeProposal,
   GraphEdgeType,
   GraphNode,
   GraphNodeKind,
@@ -51,6 +53,7 @@ import type {
   TimelineItem,
   TimelinePeriodKind,
 } from "./types";
+import { proposeEdge as createGraphEdgeProposal, findDuplicateCandidates as findGraphDuplicates } from "./graph";
 
 /**
  * FIFO capacity for the BIE pending queue. Matches the PIE-core pending
@@ -253,6 +256,38 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
    */
   deleteGraphEdge(id: string): void {
     void id;
+  }
+
+  /**
+   * [Placeholder — Phase 4B storage planned]
+   * Fetch graph edges connected to a given node.
+   *
+   * @param nodeId — Target node primary key.
+   * @returns Empty array in S10.
+   */
+  getGraphEdgesByNode(nodeId: string): GraphEdge[] {
+    void nodeId;
+    return [];
+  }
+
+  /**
+   * Helper stub: Construct a GraphEdgeProposal with enforced `applied: false` HITL invariant.
+   */
+  proposeEdge(
+    fromId: string,
+    toId: string,
+    type: GraphEdgeType,
+    confidence = 0.8,
+    reason = "AI-suggested relationship"
+  ): GraphEdgeProposal {
+    return createGraphEdgeProposal(fromId, toId, type, confidence, reason);
+  }
+
+  /**
+   * Helper stub: Return entity resolution duplicate candidates.
+   */
+  findDuplicateCandidates(): EntityResolutionCandidate[] {
+    return findGraphDuplicates([]);
   }
 
   // ────────────────────────────────────────────────────────────────
