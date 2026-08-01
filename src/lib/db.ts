@@ -27,7 +27,7 @@ import {
   EmbeddingRecord,
   PendingLearning,
 } from "../types";
-import type { GraphNode, GraphEdge, IdentityRow } from "../pie/bie/types";
+import type { GraphNode, GraphEdge, IdentityRow, InsightRow } from "../pie/bie/types";
 import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
 // ── Storage Keys ─────────────────────────────────────────────────
@@ -980,6 +980,16 @@ export class RoomDatabase {
   }
   static saveBieIdentity(row: IdentityRow) {
     this.set(KEYS.BIE_IDENTITY, row);
+  }
+
+  // ── BIE: Insights (bie_insights) ─────────────────────────────────
+  // Phase 4D: FIFO 100 insight rows. AI writes applied=false (P4-12).
+  // Repository enforces FIFO cap before calling saveBieInsights.
+  static getBieInsights(): InsightRow[] {
+    return this.get<InsightRow[]>(KEYS.BIE_INSIGHTS, []);
+  }
+  static saveBieInsights(list: InsightRow[]) {
+    this.set(KEYS.BIE_INSIGHTS, list);
   }
 
   // ── Backup & Restore ─────────────────────────────────────────────

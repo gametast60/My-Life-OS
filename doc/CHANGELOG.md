@@ -13,6 +13,26 @@
 
 ---
 
+## [Phase 4D — S25] — Insight Generator (6 Kinds, FIFO 100)
+**Status**: ✅ Complete (2026-08-01)
+
+### Added
+- 🆕 `/src/pie/bie/identity/insightGenerator.ts`: `InsightGenerator` interface + `DefaultInsightGenerator`. Detects all 6 `InsightType` kinds: `reflection` (keyword heuristic), `pattern` (dimension frequency ≥3), `milestone` (achievement keyword), `gap` (thin evidence <3), `conflict` (opposing polarity pairs), `prediction` (trend vs older rolling window). All InsightItems: `applied: false` readonly literal (P4-12).
+- 🆕 `RoomDatabase.getBieInsights()` / `saveBieInsights()` static methods in `db.ts` (additive; uses `KEYS.BIE_INSIGHTS`, stores `InsightRow[]`).
+
+### Changed
+- ⚙️ `/src/pie/bie/identity/index.ts`: re-export `insightGenerator` added.
+- ⚙️ `db.ts` import: `InsightRow` added to bie/types import.
+- ⚙️ `/src/pie/bie/RoomBrainIntelligenceRepository.ts` (additive): `InsightRow` import; upgraded `getInsights()` / `appendInsight()` / `applyInsight()` / `deleteInsight()` from placeholders to real `bie_insights` storage with FIFO 100 enforcement.
+
+### Verified
+- ✅ `npm run lint` (tsc --noEmit) Exit 0. ✅ `npm run build` Exit 0 (2156 modules transformed).
+- ✅ P4-8 Strict Widening: zero removals; 7 `aiService.ts` facade UNTOUCHED; zero UI changes.
+- ✅ P4-12 HITL: `applied: false` readonly literal on all generated `InsightItem` objects; `applyInsight()` exclusively Confirm UI.
+- [Doc Skip] AI_ARCHITECTURE.md — engine + storage layer; no PIE topology change.
+
+---
+
 ## [Phase 4D — S24] — Identity Engine (Singleton Row)
 **Status**: ✅ Complete (2026-08-01)
 

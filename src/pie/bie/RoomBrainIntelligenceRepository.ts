@@ -51,6 +51,7 @@ import type {
   IdentityRow,
   Insight,
   InsightKind,
+  InsightRow,
   PendingLearning,
   TimelineItem,
   TimelinePeriodKind,
@@ -437,52 +438,101 @@ export class RoomBrainIntelligenceRepository implements BrainIntelligenceReposit
   }
 
   // ────────────────────────────────────────────────────────────────
-  // 5. Insights — bie_insights (Phase 4D — PLACEHOLDER, FIFO 100)
+  // 5. Insights — bie_insights (Phase 4D — REAL STORAGE S25, FIFO 100)
+  //    All AI-generated insights stored with applied=false (P4-12).
+  //    applyInsight() / deleteInsight() are Confirm UI exclusives.
   // ────────────────────────────────────────────────────────────────
 
+  /** FIFO cap for bie_insights. Hard limit per spec. */
+  private static readonly INSIGHT_FIFO_CAP = 100;
+
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * List stored insights, optionally filtered by kind and/or applied
-   * status. Returns `[]` in 4A.
+   * List stored InsightRows, optionally filtered by kind and/or applied status.
+   * Bridges the legacy `Insight` / `InsightKind` interface contract (S1) with
+   * the canonical `InsightRow` storage format (S23 identity types).
    *
-   * @param filter.kind        — Optional insight-kind filter.
-   * @param filter.appliedOnly — When true, applied-only rows.
+   * @param filter.kind        — Optional insight kind filter (maps InsightKind →
+   *                             InsightRow.type via string equality for shared values).
+   * @param filter.appliedOnly — When true, returns only confirmed rows.
    */
   getInsights(filter?: { kind?: InsightKind; appliedOnly?: boolean }): Insight[] {
-    void filter;
-    return [];
+    let rows: InsightRow[] = RoomDatabase.getBieInsights();
+    if (filter?.appliedOnly) {
+      rows = rows.filter((r) => r.applied === true);
+    }
+    if (filter?.kind) {
+      // InsightKind and InsightType overlap on: "pattern", "milestone".
+      // For forward compat, do a loose string match.
+      rows = rows.filter((r) => (r.type as string) === filter.kind);
+    }
+    // Adapt InsightRow → Insight (legacy interface shape).
+    return rows.map(
+      (r): Insight => ({
+        id: r.id,
+        kind: r.type as unknown as InsightKind,
+        title: r.title,
+        description: r.description,
+        severity: "info",
+        dataContext: r.dataContext,
+        confidence: r.confidence,
+        generatedAt: r.generatedAt,
+        applied: r.applied,
+      })
+    );
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Append one insight row. Implementations enforce FIFO cap = 100.
-   * No-op in 4A.
+   * Append one InsightRow to bie_insights with FIFO 100 cap enforcement.
+   * Accepts the legacy `Insight` shape (S1 interface); converts to `InsightRow`
+   * for canonical storage.
    *
-   * @param insight — Insight payload.
+   * Per P4-12: AI path MUST supply insight with applied=false.
+   * This method does NOT validate — caller responsibility.
+   *
+   * @param insight — Insight payload (legacy Insight interface shape).
    */
   appendInsight(insight: Insight): void {
-    void insight;
+    const row: InsightRow = {
+      id: insight.id,
+      type: insight.kind as unknown as InsightRow["type"],
+      title: insight.title,
+      description: insight.description,
+      confidence: insight.confidence,
+      dataContext: insight.dataContext,
+      generatedAt: insight.generatedAt,
+      applied: insight.applied,
+    };
+    const current = RoomDatabase.getBieInsights();
+    const next = [...current, row].slice(-RoomBrainIntelligenceRepository.INSIGHT_FIFO_CAP);
+    RoomDatabase.saveBieInsights(next);
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Confirm UI exclusive: flip `applied = true` for one insight.
-   * No-op in 4A.
+   * Confirm UI exclusive: flip one insight's applied flag to true.
+   * Idempotent — no-op if id not found.
    *
    * @param id — Insight primary key.
    */
   applyInsight(id: string): void {
-    void id;
+    const rows = RoomDatabase.getBieInsights();
+    const idx = rows.findIndex((r) => r.id === id);
+    if (idx !== -1 && !rows[idx].applied) {
+      rows[idx] = { ...rows[idx], applied: true };
+      RoomDatabase.saveBieInsights(rows);
+    }
   }
 
   /**
-   * [Placeholder — Phase 4D storage planned]
-   * Drop a rejected insight (Confirm UI only). No-op in 4A.
+   * Confirm UI exclusive: drop a rejected insight. Idempotent.
    *
    * @param id — Insight primary key.
    */
   deleteInsight(id: string): void {
-    void id;
+    const rows = RoomDatabase.getBieInsights();
+    const next = rows.filter((r) => r.id !== id);
+    if (next.length !== rows.length) {
+      RoomDatabase.saveBieInsights(next);
+    }
   }
 
   // ────────────────────────────────────────────────────────────────
