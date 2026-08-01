@@ -17,11 +17,11 @@ function extractRequestContext(ctx: PipelineContext): RequestContextOverride | u
   };
 }
 
-export function retrieveMemory(
+export async function retrieveMemory(
   ctx: PipelineContext,
   options: RetrievalContext = {},
   pipelineOptions?: PipelineOptions
-): RetrievedMemory {
+): Promise<RetrievedMemory> {
   const maxSources = options.maxSources ?? pipelineOptions?.maxRetrievalSources ?? 30;
 
   if (!ctx.intent.requiresContext) {
@@ -34,7 +34,7 @@ export function retrieveMemory(
   const repo = resolveRepository(pipelineOptions ?? {});
   const requestContext = extractRequestContext(ctx);
 
-  const repoSources = repo.getRelevantMemory({
+  const repoSourcesResult = repo.getRelevantMemory({
     keywords: ctx.intent.keywords,
     detectedDimensions: ctx.intent.detectedDimensions,
     detectedBrainTypes: ctx.intent.detectedBrainTypes,
@@ -42,7 +42,12 @@ export function retrieveMemory(
     allowedBrainTypes: ctx.role.allowedBrainTypes,
     maxSources,
     requestContext,
+    bieEnabled: ctx.options.bieEnabled,
   });
+
+  const repoSources = repoSourcesResult instanceof Promise
+    ? await repoSourcesResult
+    : repoSourcesResult;
 
   return {
     sources: repoSources,
@@ -50,12 +55,12 @@ export function retrieveMemory(
   };
 }
 
-export function runMemoryRetrieval(
+export async function runMemoryRetrieval(
   ctx: PipelineContext,
   options?: PipelineOptions
-): PipelineContext {
+): Promise<PipelineContext> {
   try {
-    const retrievedMemory = retrieveMemory(ctx, {}, options);
+    const retrievedMemory = await retrieveMemory(ctx, {}, options);
     return { ...ctx, retrievedMemory };
   } catch (err: any) {
     return {

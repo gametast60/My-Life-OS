@@ -397,3 +397,10 @@ export interface GuideResult {
   checklist: string[];
 }
 
+// ── BIE (Brain Intelligence Engine) Type Re-exports ──────────────
+// Phase 4A S1 types are canonical in `src/pie/bie/types.ts`; re-export
+// here so that RoomDatabase / cross-module imports can access them from
+// the central `../types` path without creating duplicate declarations.
+// (Additive only — no existing exports modified.)
+export type { EmbeddingRecord, PendingLearning } from "./pie/bie/types";
+

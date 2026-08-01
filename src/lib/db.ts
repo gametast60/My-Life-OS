@@ -24,6 +24,8 @@ import {
   BrainConfiguration,
   EvidenceKind,
   TreeGrowthStatus,
+  EmbeddingRecord,
+  PendingLearning,
 } from "../types";
 import { seedDefaultTemplateIfEmpty, recalcAndPersistTagGrowth } from "./brainTree/brainTreeService";
 
@@ -250,6 +252,8 @@ export const DEFAULT_TIMELINE: TimelineEvent[] = [];
 export const DEFAULT_BRAIN_CARDS: BrainCard[] = [];
 export const DEFAULT_REMINDERS: ReminderItem[] = [];
 export const DEFAULT_PENDING_TASKS: PendingAITask[] = [];
+export const DEFAULT_BIE_EMBEDDINGS: EmbeddingRecord[] = [];
+export const DEFAULT_BIE_PENDING_QUEUE: PendingLearning[] = [];
 
 // ── RoomDatabase ──────────────────────────────────────────────────
 export class RoomDatabase {
@@ -924,6 +928,26 @@ export class RoomDatabase {
     this.set(KEYS.NOTES, notes);
   }
 
+  // ── BIE: Embedding Cache (bie_embeddings) ────────────────────────
+  // Phase 4A: Persistent embedding cache keyed by id (nodeId) +
+  // contentHash for invalidation. Never regenerate when hash matches (P4-10).
+  static getBieEmbeddings(): EmbeddingRecord[] {
+    return this.get<EmbeddingRecord[]>(KEYS.BIE_EMBEDDINGS, DEFAULT_BIE_EMBEDDINGS);
+  }
+  static saveBieEmbeddings(list: EmbeddingRecord[]) {
+    this.set(KEYS.BIE_EMBEDDINGS, list);
+  }
+
+  // ── BIE: Pending Queue (bie_pending_queue) ───────────────────────
+  // Phase 4A/4B/4C/4D shared: HITL structural-change suggestions
+  // (applied=false by definition). Repository is responsible for FIFO cap.
+  static getBiePendingQueue(): PendingLearning[] {
+    return this.get<PendingLearning[]>(KEYS.BIE_PENDING_QUEUE, DEFAULT_BIE_PENDING_QUEUE);
+  }
+  static saveBiePendingQueue(list: PendingLearning[]) {
+    this.set(KEYS.BIE_PENDING_QUEUE, list);
+  }
+
   // ── Backup & Restore ─────────────────────────────────────────────
   static async exportBackupZip(): Promise<Blob> {
     const zip = new JSZip();
@@ -954,6 +978,8 @@ export class RoomDatabase {
       brainTreeTags: this.getBrainTreeTags(),
       brainEvidence: this.getBrainEvidence(),
       brainConfig: this.getBrainConfig(),
+      bieEmbeddings: this.getBieEmbeddings(),
+      biePendingQueue: this.getBiePendingQueue(),
     };
     zip.file("backup.json", JSON.stringify(backupData, null, 2));
     return await zip.generateAsync({ type: "blob" });
@@ -992,6 +1018,8 @@ export class RoomDatabase {
       if (data.brainTreeTags) this.saveBrainTreeTags(data.brainTreeTags);
       if (data.brainEvidence) this.saveBrainEvidence(data.brainEvidence);
       if (data.brainConfig) this.saveBrainConfig(data.brainConfig);
+      if (data.bieEmbeddings) this.saveBieEmbeddings(data.bieEmbeddings);
+      if (data.biePendingQueue) this.saveBiePendingQueue(data.biePendingQueue);
 
       return true;
     } catch (e) {

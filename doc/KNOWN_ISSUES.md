@@ -35,10 +35,11 @@
 
 ## 🟡 Medium — Phase 4 จะแก้ไปเรื่อยๆ
 
-### KI-101: Semantic Retrieval ยังไม่มี (Keyword-only 100%)
+### KI-101: Semantic Retrieval ยังไม่มี User-visible Hybrid Sort (Keyword-only 100% sort order preserved)
 - **Issue:** Intent Engine + Retrieval ใช้ Keyword Matching + Thai Word Extraction (RegEx `[\u0E00-\u0E7F]{2,}`) เท่านั้น ไม่มี Synonym/Context/Semantic
-- **Impact:** พูด "วิกฤติเศรษฐกิจ" จะไม่เจอ Tag "การเงิน" (ไม่มีคำตรงกัน)
-- **Planned Fix:** **Phase 4A Semantic Retrieval + Hybrid Scoring**
+- **Impact:** พูด "วิกฤติเศรษฐกิจ" จะไม่เจอ Tag "การเงิน" (ไม่มีคำตรงกัน) ใน UX ผลลัพธ์เรียงลำดับยังคงเป็น keyword-hits DESC เหมือนเดิม
+- **Progress Note (Phase 4A S6, 2026-08-01):** S6 delivered baseline wire hook — Semantic Embeddings + 6-factor Hybrid Scoring ARE computed and attached to every `RetrievalSource` row as S1-declared optional fields (`.semanticScore`, `.tagMatchScore`, `.graphScore=0`). Pipeline now has the semantic signal end-to-end. SORT ORDER IS INTENTIONALLY PRESERVED as legacy keyword-hits DESC in S6 per DECISIONS.md trade-off — user-visible hybrid re-sorting is conditionally enabled in **S8 Tuning** sub-phase via `enableHybridSort` flag. `bieEnabled=false` disable switch (for keyword-only 100% behavior) is threaded through all layers in **S7** sub-phase. KI-101 will be fully closed when S7 + S8 deliver both (a) user toggle for BIE, and (b) default hybrid re-sort on ≡ keyword hits tiebreak scenario with semantic fallback.
+- **Planned Fix:** **Phase 4A S7 (Disable Switch Threading) + S8 (Weight Calibration + Conditional Hybrid Sort Enablement)** — full resolution targeted 4A S9 Regression Gate
 - **Since:** Phase 1
 
 ### KI-102: Knowledge Graph Tag-to-Tag Relationship ยังไม่มี

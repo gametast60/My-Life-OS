@@ -21,6 +21,9 @@ export interface RequestContextOverride {
     dimensions: BrainTreeDimension[];
     tags: BrainTreeTag[];
   };
+  options?: {
+    bieEnabled?: boolean;
+  };
 }
 
 export interface BrainRepository {
@@ -52,7 +55,8 @@ export interface BrainRepository {
     allowedBrainTypes: BrainType[] | "*";
     maxSources?: number;
     requestContext?: RequestContextOverride;
-  }): RetrievalSource[];
+    bieEnabled?: boolean;
+  }): Promise<RetrievalSource[]> | RetrievalSource[];
 
   savePendingLearning(items: LearnResult["itemsToPersist"]): void;
   getPendingLearning(): LearnResult["itemsToPersist"];

@@ -57,6 +57,13 @@ export function createEmptyContext(
   request: PipelineRequest,
   options?: PipelineOptions
 ): PipelineContext {
+  // S7: resolve bieEnabled (explicit false → disabled; undefined/true/truthy → enabled = opt-out model)
+  const effectiveBieEnabled: boolean = options?.bieEnabled !== false;
+  const resolvedOptions: PipelineOptions & { bieEnabled: boolean } = {
+    ...(options ?? {}),
+    bieEnabled: effectiveBieEnabled,
+  };
+
   const role: AIRole = getRole(request.roleId);
   const settings =
     request.settings ?? resolveRepository(options).getSettings();
@@ -109,6 +116,7 @@ export function createEmptyContext(
     analysis: emptyAnalysis,
     learnResult: emptyLearn,
     errors: [],
+    options: resolvedOptions,
   };
 }
 

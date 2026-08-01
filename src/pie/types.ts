@@ -184,6 +184,7 @@ export interface PipelineContext {
   analysis: AnalyzedResponse;
   learnResult: LearnResult;
   errors: { layer: string; message: string; stack?: string }[];
+  options: PipelineOptions & { bieEnabled: boolean };
 }
 
 export type PIPELINE_STAGE =

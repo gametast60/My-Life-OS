@@ -1,6 +1,9 @@
 # My Life OS — AI Architecture
 
-> เอกสารนี้อธิบายสถาปัตยกรรม AI ของ My Life OS ทั้งหมด ตั้งแต่ Flow ระดับสูง ลงไปถึง Layer แต่ละชั้น และ Folder Structure ภายใน
+> เอกสารนี้อธิบายสถาปัตยกรรม AI ของ My Life OS ปัจจุบัน (Current State Reference) เท่านั้น
+>
+> สำหรับ **Implementation rationale / step-by-step diagrams ของแต่ละ Sub-step ที่ปิดจบแล้ว** (เช่น Phase 4A S1, S2, S4, S5, S6, S7 Detail) ดูไฟล์แยก:
+> → `/doc/AI_ARCHITECTURE_ARCHIVE.md`
 
 ---
 
@@ -11,7 +14,7 @@ Phase 1: Foundation (PIE 7 Layers)          ✅ Complete
 Phase 2: Full Pipeline Integration          ✅ Complete
 Phase 3: Clean Architecture & Docs          ✅ Complete
 Phase 4: Brain Intelligence Engine (BIE)    🚧 In Progress
-   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1+S2 Complete (Types + Core Utilities)
+   ├─ 4A: Semantic Retrieval + Hybrid       🚧 S1-S7 Complete (Types → Repository + Schema → Indexing & Scoring Logic → Wire Hook Baseline Enrichment → Disable Switch bieEnabled Threading)
    ├─ 4B: Knowledge Graph + Relationship    ⏳ Planned
    ├─ 4C: Reflection + Memory Intel         ⏳ Planned
    └─ 4D: Identity + Insight + Timeline     ⏳ Planned
@@ -20,15 +23,21 @@ Phase 5: Personal Intelligence              ⏳ Planned
 
 ---
 
-## Documentation Suite (Phase 3 onwards — Source of Truth)
+## Documentation Suite (Source of Truth)
 
 | File | Purpose | Update Cadence |
 |------|---------|----------------|
-| **AI_ARCHITECTURE.md** | Architecture Diagrams, Layers, Data Flow, Storage | ต่อทุก Sub-Phase (4A, 4B, 4C, 4D) |
-| **ROADMAP.md** | Phase Status, Scope, Blockers, Progress % | ต่อทุก Sub-Phase |
-| **CHANGELOG.md** | Keep a Changelog format: Added / Changed / Removed / Fixed | ต่อทุก Sub-Phase |
-| **DECISIONS.md** | ADR — เหตุผลของการตัดสินใจ Architecture | เมื่อมี Decisions ใหม่ CONFIRMED |
-| **KNOWN_ISSUES.md** | Technical Debt, Known Gaps, Limitations | เมื่อพบหรือแก้ไข Debt ใหม่ |
+| **STATE.md** | Current Step + Active Constraints (ไฟล์แรกที่ต้องอ่านทุกครั้ง) | ต่อทุก Step |
+| **STANDING_INSTRUCTIONS.md** | Global Workflow Rules (handoff, doc rules, targeted edit) | ไม่บ่อย (เมื่อมี policy ใหม่) |
+| **AI_ARCHITECTURE.md** | Architecture State, Layers, Data Flow, Storage (ไฟล์นี้) | เมื่อ Architecture เปลี่ยนจริงเท่านั้น |
+| **AI_ARCHITECTURE_ARCHIVE.md** | Archived step-by-step rationale diagrams (S1-S7 เก่าๆ) | ไม่บ่อย |
+| **ROADMAP.md** | Phase Status + Work Order Table (toggle status) | ต่อทุก Step (targeted line edit) |
+| **CHANGELOG.md** | Active Changelog (phase ปัจจุบัน + ก่อนหน้า 1) | ต่อทุก Step (~15 lines) |
+| **CHANGELOG_ARCHIVE.md** | Compressed historical changelogs (S5-ด่าง, Phase 2, 1) | ไม่บ่อย |
+| **DECISIONS.md** | Active Architecture Decision Records (ADR) | เมื่อมี Decision ใหม่จริง |
+| **DECISIONS_ARCHIVE.md** | Archived ADR (fait accompli, ไม่ constrain step ปัจจุบัน) | ไม่บ่อย |
+| **KNOWN_ISSUES.md** | Active Known Issues / Technical Debt (unresolved) | เมื่อมี Issue ใหม่หรือ resolved |
+| **KNOWN_ISSUES_ARCHIVE.md** | Fully Resolved Issues (compressed 1-3 lines each) | ไม่บ่อย |
 
 ---
 
@@ -70,10 +79,10 @@ Phase 5: Personal Intelligence              ⏳ Planned
        │   ┌──────────┐     │         │          │   Response Analysis
        │   │  Brain   │     │         │          │   • Tone / Length
        │   │Repository│     │         │          │   • Actionable Items
-       │   │ (Single  │     │         │          │   • Fact Extraction
-       │   │  Source  │◄────┘         │          │   • Suggested Memory
-       │   │   of     │               │          │
-       │   │  Truth)  │◄──────────────┘          │
+       │   │ (Single  │◄────┘         │          │   • Fact Extraction
+       │   │  Source  │               │          │   • Suggested Memory
+       │   │   of     │◄──────────────┘          │
+       │   │  Truth)  │                          │
        │   └────┬─────┘                          │
        │        │                                │
        │        ▼                                ▼
@@ -149,6 +158,7 @@ PipelineStages (PIPELINE_STAGE)
   1. Brain Tree Tags (Primary — Growth Score Evidence)
   2. Recent Journals (Primary — User Written Context)
   3. Legacy BrainCards (Fallback — ถ้า Primary Sources < 5)
+- **BIE Hook (S6/S7)**: เมื่อ `bieEnabled !== false` → Repository hook enrich legacy rows with `.semanticScore` / `.tagMatchScore` / `.graphScore=0` via S5 hybrid pipeline (cache-first embed → vector cosine → 6-factor scoring)
 - **Role Permission Filter**:
   - `allowedDimensions` / `allowedBrainTypes` จาก Role Config
   - Filter ก่อนเข้า Ranking
@@ -284,6 +294,7 @@ Interface: BrainRepository (src/pie/repository/BrainRepository.ts)
     │     allowedDimensions, allowedBrainTypes
     │     maxSources (default 30)
     │     requestContext? (per-request override for backward compat)
+    │     bieEnabled?: boolean (S7: if explicit false → skip BIE hook)
     │
     ├── savePendingLearning(items) → void
     └── getPendingLearning()       → LearnResult.itemsToPersist
@@ -384,7 +395,7 @@ src/
 │  │
 │  ├─ layers/                                    ← 7 Core Layers (Functional: ctx → ctx)
 │  │  ├─ intentEngine.ts                         ← Pure Keyword Mapping (ไทย/อังกฤษ) — 0 AI Calls
-│  │  ├─ memoryRetrieval.ts                      ← เรียก BrainRepository.getRelevantMemory() เท่านั้น
+│  │  ├─ memoryRetrieval.ts                      ← เรียก BrainRepository.getRelevantMemory() เท่านั้น (thread bieEnabled flag)
 │  │  ├─ contextRanking.ts                       ← 3-factor Scoring (rel/rec/conf)
 │  │  ├─ promptBuilder.ts                        ← Role Persona + Context + User Prompt
 │  │  ├─ providerRouter.ts                       ← Pure I/O — Gemini/Groq/OpenRouter Failover
@@ -404,23 +415,27 @@ src/
 │  │  └─ custom.ts (Fallback)
 │  │
 │  └─ repository/                                ← Brain Repository Pattern (Single Source of Truth)
-│     ├─ BrainRepository.ts                      ← Interface + RequestContextOverride type
+│     ├─ BrainRepository.ts                      ← Interface + RequestContextOverride + bieEnabled widen
 │     └─ RoomBrainRepository.ts                  ← Implementation wraps RoomDatabase(localStorage)
-│                                                  + Conversion Helpers (DRY — ไม่มีซ้ำที่อื่น)
+│                                                  + Conversion Helpers + S6 BIE enrichment hook (S7 bieEnabled guard)
 │
 ├─ bie/                                          ← BIE — Brain Intelligence Engine (Phase 4 — Side Extension Layer)
-│  ├─ types.ts                                   ← BIE Domain Type Contracts (S1) — 7 row types + unions
-│  ├─ utils.ts                                   ← Core Utilities (S2) — 5 Pure Functions: contentHash, normalizeVector,
-│                                                  cosineSimilarity, levenshteinDistance, bm25Tokenize
-│  ├─ synonyms.ts                                ← Thai/English Synonym Dictionary (S2) — Seed set + expandSynonyms()
-│  ├─ BrainIntelligenceRepository.ts             ← SSOT Repository Interface (S1) — 20+ methods, no impl
+│  ├─ types.ts                                   ← BIE Domain Type Contracts (S1)
+│  ├─ utils.ts                                   ← Core Utilities: contentHash, normalizeVector, cosineSimilarity, levenshteinDistance, bm25Tokenize
+│  ├─ synonyms.ts                                ← Thai/English Synonym Dictionary + expandSynonyms()
+│  ├─ hybridScorer.ts                            ← 6-Factor Hybrid Rank Formula (Σ=1.0. Weights exported named constants S8 deliverable)
+│  ├─ semanticService.ts                         ← Cache-first + Primary/Failover Embedding Orchestrator
+│  ├─ vectorIndex.ts                             ← Dimension-Agnostic Linear Scan Cosine O(N)
+│  ├─ BrainIntelligenceRepository.ts             ← SSOT Repository Interface (S1: 7 areas, 28 methods)
+│  ├─ RoomBrainIntelligenceRepository.ts         ← S4 Implementation: Embeddings cache + HITL Pending Queue real storage; 5 areas = placeholders
 │  └─ providers/
-│     └─ embeddingProvider.ts                    ← EmbeddingProvider Interface ONLY (S1) — Provider-agnostic
-│                                                  (Gemini + LocalBM25 impls land in S3)
-
+│     ├─ embeddingProvider.ts                    ← EmbeddingProvider Interface (S1)
+│     ├─ geminiEmbeddingProvider.ts              ← Primary: Gemini HTTP API (S3. 10s timeout, 768-dim)
+│     └─ localBM25EmbeddingProvider.ts           ← Fallback (S3. 100% offline. BM25+synonyms. 384-dim)
+│
 ├─ lib/
 │  ├─ aiService.ts                               ← AI Facade (Thin Orchestration Layer)
-│  ├─ db.ts                                      ← RoomDatabase Singleton — localStorage Storage
+│  ├─ db.ts                                      ← RoomDatabase Singleton — localStorage Storage (core tables + bie_embeddings/bie_pending_queue)
 │  └─ brainTree/
 │     ├─ brainTreeService.ts                     ← Brain Tree CRUD + Evidence Helpers + Placement Search
 │     └─ growth.ts                               ← RPG Exponential Growth Formula
@@ -428,7 +443,7 @@ src/
 ├─ views/                                        ← UI Views (เรียกผ่าน aiService เท่านั้น)
 │  └─ AICoachView.tsx                            ← 6 Legacy UX Modes Grid
 │
-└─ types.ts                                      ← Global App Types (LIFE_DIMENSIONS, BRAIN_TYPES, BrainCard, AIMode ฯลฯ)
+└─ types.ts                                      ← Global App Types
 ```
 
 ---
@@ -452,9 +467,10 @@ src/
       │   └── detect dimensions, brain types, keywords → keyword count
       │
       ├─ Stage 2: Memory Retrieval
-      │   └── repo.getRelevantMemory(kw, dims, types, allowed, requestContext)
+      │   └── repo.getRelevantMemory(kw, dims, types, allowed, requestContext, bieEnabled)
       │       ├─ Primary: BrainTree Tags + Journals
-      │       └─ Fallback: Legacy BrainCards (if < 5 primary)
+      │       ├─ Fallback: Legacy BrainCards (if < 5 primary)
+      │       └─ BIE Hook (S6/S7): if bieEnabled!==false → enrich rows with semantic/tag scores (S7 guard: false → byte-identical pre-4)
       │
       ├─ Stage 3: Context Ranking
       │   └── 3-factor scoring → top 10 sources
@@ -505,128 +521,7 @@ src/
 >
 > **Folder:** `src/pie/bie/` (แยกจาก PIE core Layers)
 >
-> **Runtime Pattern:** BIE Hooks ถูกเรียกจากภายใน `runMemoryRetrieval()` + `rankContext()` + (optional) ระหว่าง `analysis → learning`
-
-### 🆕 Phase 4A S1 — Type & Interface Contracts (DELIVERED 2026-07-30)
-
-> S1 = Foundation Only. **No Business Logic, No Queries, No Migration.**
-> All contracts are additive; zero existing signatures changed (P4-8).
-> BIE not yet wired into the pipeline — `bieEnabled=false` (or omitted)
-> is the current effective behavior, identical to Pre-Phase-4.
-
-**Files Added (`src/pie/bie/`):**
-| File | Role |
-|------|------|
-| `types.ts` | 7 BIE row-type contracts + shared unions (single source of truth) |
-| `providers/embeddingProvider.ts` | `EmbeddingProvider` interface (no Gemini/Local impl — S3) |
-| `BrainIntelligenceRepository.ts` | SSOT repository interface for all `bie_*` tables (no impl — S4) |
-
-**Files Extended (Additive Only):**
-| File | Additions |
-|------|-----------|
-| `src/pie/types.ts` | `RetrievalSource.semanticScore?` / `.tagMatchScore?` / `.graphScore?` (optional); `PipelineOptions.bieEnabled?` (optional, default true) |
-| `src/lib/db.ts` | `KEYS.BIE_*` constants × 7 — Table DEFINITIONS only (`BIE_EMBEDDINGS`, `BIE_GRAPH_NODES`, `BIE_GRAPH_EDGES`, `BIE_IDENTITY`, `BIE_INSIGHTS`, `BIE_TIMELINE`, `BIE_PENDING_QUEUE`). No get/set methods yet (S4). |
-
-### 🆕 Phase 4A S2 — Core Utilities (Pure Functions) (DELIVERED 2026-07-30)
-
-> S2 = Pure Functions only. **No I/O, No Provider, No Database, No Pipeline,
-> No Business Logic.** S3 (Provider Impl) and S4 (Repository) import from
-> here; keeping S2 side-effect-free keeps S3/S4 tests isolated.
-> All additions are unimported — zero runtime impact.
-
-**Files Added (`src/pie/bie/`):**
-| File | Role |
-|------|------|
-| `utils.ts` | 5 pure functions: `contentHash`, `normalizeVector`, `cosineSimilarity`, `levenshteinDistance`, `bm25Tokenize` |
-| `synonyms.ts` | Thai/English Synonym Dictionary (~45 keys seed set) + `expandSynonyms()` lookup |
-
-**Utility Details:**
-| Function | Purpose | Edge-case Guard |
-|----------|---------|-----------------|
-| `contentHash(content)` | FNV-1a 32-bit hash for embedding cache invalidation (P4-10). Normalizes trim/lowercase/whitespace/punctuation. Prefix `fnv1a:` self-describing. | Empty/whitespace-only → constant hash (no error) |
-| `normalizeVector(vector)` | L2 normalization before cosine similarity. | Empty → `[]`; zero-magnitude → copy (no NaN); input never mutated |
-| `cosineSimilarity(a, b)` | Cosine similarity [-1, 1]. | Dimension mismatch → **returns 0** (graceful, not throw — P4-5); zero-magnitude or non-finite → 0 |
-| `levenshteinDistance(a, b)` | Edit distance for fuzzy synonym matching. Case-insensitive. Two-row DP. | Empty string → length of other |
-| `bm25Tokenize(text)` | Tokenizer for LocalBM25EmbeddingProvider (S3). Mirrors Phase 1 Intent Engine patterns exactly. | Empty → `[]`; de-duplicated, lowercase |
-
-**Synonym Dictionary (`synonyms.ts`):**
-- Addresses KI-101 directly (e.g. `"วิกฤติเศรษฐกิจ"` → `["การเงิน", "เงิน", ...]`)
-- Covers: Finance, Work, Health, Emotion, Goal, Relationship, Learning, Identity + English cross-script mirrors
-- `expandSynonyms(term)` — case-insensitive lookup, returns fresh de-duplicated array
-- Intentionally small seed set — S8 will bootstrap expansion from evidence co-occurrence
-
-**Domain Types Declared (in `bie/types.ts`):**
-`EmbeddingRecord`, `GraphNode`, `GraphEdge`, `IdentityProfile`, `Insight`, `TimelineItem`, `PendingLearning` — each mirrors the CONFIRMED `bie_*` schema (DECISIONS.md). HITL invariant encoded structurally: `GraphEdge.applied`, `IdentityProfile.applied`, `Insight.applied` are required `boolean`; `PendingLearning` has no `applied` field (in-queue = not applied by definition).
-
-**Provider Contract Highlights (`EmbeddingProvider`):**
-- Async-only surface (`embed`, `batchEmbed`) — uniform for hybrid fallback (P4-5)
-- Typed outcome (`EmbeddingOutcome = ok | failure`) — no throws on quota/network
-- `isAvailable()` + `dimensions` + `id`/`displayName` — orchestrator probes before awaiting
-- Concrete `GeminiEmbeddingProvider` + `LocalBM25EmbeddingProvider` arrive in S3
-
-### Component Overview
-
-| Sub-Phase | Component File | What it does | Input | Output | Persist? |
-|-----------|---------------|--------------|-------|--------|----------|
-| **4A** | `semanticService.ts` | Hybrid Embedding Provider: Primary via Gemini Embedding API, Fallback via Local TF-IDF/BM25 + Synonyms | `text: string, providers: APIProvider[]` | `embedding: number[], method: "gemini" \| "local"` | Persistent Cache (`bie_embeddings` RoomDB table via contentHash) |
-| **4A** | `vectorIndex.ts` | Vector Index (Linear Scan Cosine Similarity O(N), Dimension-Agnostic) | `query_vec: number[], maxHits: number` | `{nodeId, score}[]` Top-N Similar | No (reads from `bie_embeddings` table) |
-| **4B** | `graphStore.ts` | Knowledge Graph CRUD: GraphNodes, GraphEdges, Path Queries | CRUD Ops, Path Queries | `GraphNode[] \| GraphEdge[] \| Path` | `bie_graph_nodes` + `bie_graph_edges` (RoomDB applied=false) |
-| **4B** | `relationshipEngine.ts` | Auto-detect Relationships: supports, conflicts, causes, derived_from (via Semantic >0.85 + Evidence Patterns) | `Tag A, Tag B, EvidenceWindow[]` | `GraphEdge[] suggestions[]` | **`bie_pending_queue`** (HITL applied=false) |
-| **4C** | `consolidationEngine.ts` | Memory Consolidation: Duplicate Check, Conflict Check, Merge Suggest, Confidence Boost | `newLearningItem[] + existingTag[] + embeddings[]` | `ConsolidationResult[]` | **`bie_pending_queue`** (HITL applied=false) |
-| **4C** | `memoryScoring.ts` | Evidence Scoring + Decay: 5 Fields (importance, evidenceCount, lastConfirmed, lastUsed) on BrainTreeTag | `All BrainTreeTags + Config.decay` | `UpdatedTags[] + importanceScore[]` | Brain Tree (via BrainRepository + Confirm UI) |
-| **4C** | `reflectionEngine.ts` | Pattern Detection: Core Value (90D ≥10 occurrences), Co-occurrence, Frequency, Conflict Detection | `BrainEvidence[] + 90D Window` | `Reflection[]` | `bie_identity` (RoomDB) + Pending Queue |
-| **4D** | `insightGenerator.ts` | Insights: Trend 30D/90D %Change, Anomaly (>2σ), Progress, Milestone, Conflict Alert | `Timeline + Scoring + Graph` | `BieInsight[]` (Top 10 per run) | `bie_insights` (RoomDB FIFO 100 applied=false) |
-| **4D** | `identityEngine.ts` | Identity Summary: 8 Categories (Values, Goals, Motivations, Personality, Strengths, Weaknesses, Thinking Pattern) | `Top Tags + Core Reflections` | `IdentitySummary` | `bie_identity` (RoomDB 1-row singleton applied=false) |
-| **4D** | `timelineEngine.ts` | Life Timeline: Month / Quarter / Year Buckets + Milestones + Theme % Breakdown | `All Evidence + Time Buckets` | `TimelineQuarter[]` | `bie_timeline` (RoomDB Cache, contentHash invalidated rebuildable) |
-| **4B** | `BrainIntelligenceRepository.ts` | SSOT Repository สำหรับ BIE (CRUD Interface 12 Methods): getEmbeddings, saveEmbedding, getGraphNodes/Edges, saveGraphEdge, getInsights/Identity/Timeline, append/applied BIE Pending Queue | Request Objects | Domain Objects + Storage | **All 7 `bie_*` RoomDatabase Tables** (Zero localStorage persistent data) |
-
-### BIE Storage Structure (RoomDatabase Tables — Namespace bie_*)
-
-**Important:** RoomDatabase = Storage หลัก 100% สำหรับ BIE; **localStorage ใช้ได้เฉพาะ bie_runtime_cache_v1 (Cache ชั่วคราวเท่านั้น)**
-
-| Table Name (RoomDatabase) | Contents | Indexed By | Persistence |
-|-----------|----------|-------------|-------------|
-| `bie_embeddings` | `{id, contentHash, embedding[], dimensions, method, updatedAt}` | `id` (PK) + `contentHash` (UNIQUE) | **Persistent Cache** — ห้าม regenerate ถ้า hash ตรง |
-| `bie_graph_nodes` | GraphNode: tag/person/fear/lesson/experience/milestone | `id` (PK) + `kind` + `dimension` | Persistent; wipeable namespace |
-| `bie_graph_edges` | GraphEdge: supports/conflicts/causes/derived/related/opposes | `(fromId,toId,type)` UNIQUE; applied flag | 🔒 applied=false จนกว่า User Confirm |
-| `bie_identity` | IdentitySummary: 8 Categories (singleton 1-row) | `id="singleton"` (PK) | applied=false จน Confirm |
-| `bie_insights` | BieInsight[] (max 100 FIFO) | `id` + `kind` + `generatedAt DESC` | applied=false จน Confirm |
-| `bie_timeline` | TimelineCache: Month/Quarter/Year buckets + Milestones | `periodKey` (PK: e.g. "2026-Q2") + `contentHash` | Cache (rebuildable when evidence changes) |
-| `bie_pending_queue` | Pending BIE Items (HITL applied=false structural changes) | `id` + `kind` + `createdAt DESC` | **Applied=false by definition** (Queue ตัวเอง = Not Applied) |
-
-**RoomDatabase Singleton Integration:**
-- ทุก Table ผ่าน getter/setter methods ของ `RoomDatabase` class: `getBieEmbeddings()`, `setBieEmbedding()`, `getBieGraphEdges()`, `appendBiePendingQueueItem()`
-- เก็บใน localStorage key เดียวกับ RoomDatabase (`roomdb_master`) = Snapshot Export/Import ทีเดียวได้หมด
-
-**Storage Safety Rules:**
-- Namespace `bie_` = wipe BIE ทั้งหมดได้โดยไม่กระทบ brain_tree_types, brain_tree_tags, brain_evidence (Core Brain Tree Tables)
-- Persist ผ่าน `BrainIntelligenceRepository` Interface เท่านั้น → BIE Modules ห้ามเรียก `RoomDatabase.setBie*` โดยตรง
-- ทุก write บน applied=true path = **ผ่าน Pending Queue + Confirm UI**; NO direct write from AI
-- `contentHash(text)` = FNV-1a 32-bit hash ของ trimmed normalized text (lowercase + remove spaces/punctuation + collapse whitespace) สำหรับ embedding cache invalidation — implemented in `src/pie/bie/utils.ts`
-
-**Runtime Cache Only (localStorage = NOT Persistent):**
-- `bie_runtime_cache_v1` = Hot-path ระหว่าง App session (recent semantic queries, cosine sim hot vectors, computed rankings)
-- TTL = 30 นาที; Clean up ทุกครั้งที่เปิด App
-- ❌ ห้าม store embeddings/graph/identity/insights/timeline ที่นี่ (ต้องอยู่ RoomDatabase เท่านั้น)
-
----
-
-## 🔒 Phase 4 Additional Hard Constraints
-
-| # | Rule | Rationale |
-|---|------|-----------|
-| P4-1 | **PIE Architecture Immutable** — Phase 4 ห้ามแก้ `PIPELINE_STAGE[]` order เดิม; BIE ถูกเรียกเป็น Hooks ภายใน Stage เดิม | ไม่ต้องกลับไปแก้ Architecture อีกครั้ง (Phase 3 จบเรียบร้อย) |
-| P4-2 | **Zero UX/UI Change** — AICoachView, Journal, Modals ทั้งหมดทำงานเหมือนเดิม; BIE ไม่สร้าง Component ใหม่ | Core Philosophy Phase 4: "ทำให้ AI คิดได้ดีขึ้น ไม่ใช่ทำให้ UI เปลี่ยน" |
-| P4-3 | **Human-in-the-loop 100%** — BIE ทุก Output ที่จะ persist ลง Core Brain Tree หรือ bie_graph_v1 ต้อง applied=false; เข้า `bie_pending_v1` รอ User Confirm | ไม่ให้ AI ปนเปื้อน Knowledge โดยอัตโนมัติ |
-| P4-4 | **Docs-Code Co-commit** — ทุกครั้งที่แก้ BIE Code ต้องอัปเดต AI_ARCHITECTURE.md, ROADMAP.md, CHANGELOG.md ใน Commit เดียวกัน | กฎจาก Phase 4 Development Rules; ป้องกัน Code ล้าหลัง Docs |
-| P4-5 | **Fallback Safety** — Semantic ทุก Operation ต้องมี Offline Fallback Path (Provider Quota Exceed / No Internet → Local TF-IDF ยังทำงานได้) | ไม่ให้การค้นหาข้อมูลพังเมื่ออินเทอร์เน็ตขาด |
-| P4-6 | **Regression Gate** — ก่อน Sub-phase ถือว่า Complete ต้องผ่าน `npm run build` + `npm run lint` + 7 AI Features in aiService ยังทำงานครบ 100% | ไม่ให้ Phase 4 ทำลายระบบเดิม |
-| P4-7 | **BIE Sidecar Isolation** — BIE ไม่ Import PIE Layer ภายในโดยตรง (ยกเว้น Interface types); PIE Import BIE เท่านั้น (Dependency Direction: PIE → BIE → Storage) | Clean Architecture; BIE สามารถถูก Disable ทั้งหมดได้โดยไม่กระทบ PIE Core |
-| **P4-8** | **Backward Compatibility (Signature Integrity)** — ห้ามแก้ Existing API Signatures (aiService all exports, PipelineContext existing fields, PIPELINE_STAGES, BrainRepository interface methods) | tsc --noEmit check; additive changes only (new optional fields only — never modify or remove) |
-| **P4-9** | **Provider-Independent Interfaces** — All new components depend on INTERFACES, NOT concrete implementations. BIE = EmbeddingProvider-Agnostic, GraphStore-Agnostic | Constructor DI accepts `EmbeddingProvider` interface (never `GeminiEmbeddingProvider` concrete type) |
-| **P4-10** | **Performance — Embedding Cache First** — Never regenerate embedding ถ้า `contentHash(text)` ไม่เปลี่ยน. Persistent Cache บน `bie_embeddings` RoomDatabase table. Hit rate target > 95% สำหรับ content เดิม | Reduce API calls; Latency; Quota; Cost |
-| **P4-11** | **Performance — Async Background for Heavy Tasks** — Reflection, Graph rebuild, Insight generation, Memory Consolidation = Run Async/Background Promise (no await on User response path); User response returns first; heavy work completes later | ไม่ Block User Input; Chat latency < 2s target |
-| **P4-12** | **HITL Structural Changes Gate** — AI NEVER modifies Brain Tree or bie_* applied=true โดยอัตโนมัติ. Every structural change → `bie_pending_queue` (applied false by definition) | Core Philosophy: "AI เสนอ, ผู้ใช้ตัดสินใจ" 100% |
-| **P4-13** | **Preserve Existing PIE HITL Flow** — PIE Learning Engine `applied=false` + `mylifeos_pie_pending_learning_v1` (localStorage) ยังคงทำงานไม่เปลี่ยนแปลง. BIE Queue = คู่ขนานสำหรับ BIE-specific Items ONLY | Two Pending Queues; No cross-contamination; No merge required |
-| **P4-14** | **Future-Proof Disable Switch Everywhere** — PipelineOptions `bieEnabled?: boolean` (default true). If `bieEnabled=false`, BIE hooks ทั้งหมด SKIP → Behavior = Pre-Phase-4 100% (Keyword-only Ranking, Hierarchical Brain Tree, No Graph, No Identity) | Safe rollback; Zero regressions; A/B test ready |
-
+> **Runtime Pattern:** BIE Hooks ถูกเรียกจากภายใน `RoomBrainRepository.getRelevantMemory()` เมื่อ `bieEnabled !== false`
+>
+> **Note:** สำหรับ Implementation Rationale / Step-by-step Flow Diagrams / Component Detail Tables ของแต่ละ Phase 4A Sub-step (S1-S7 ที่ปิดจบแล้ว) ดูไฟล์แยก:
+> → `/doc/AI_ARCHITECTURE_ARCHIVE.md`

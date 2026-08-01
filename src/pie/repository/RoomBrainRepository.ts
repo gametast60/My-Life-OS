@@ -11,6 +11,15 @@ import type {
 } from "../../types";
 import type { BrainRepository, RequestContextOverride } from "./BrainRepository";
 import type { RetrievalSource, LearnResult } from "../types";
+import { createDefaultSemanticService } from "../bie/semanticService";
+import { VectorIndex } from "../bie/vectorIndex";
+import {
+  rankItems as hybridRankItems,
+  type ScorableItem,
+  type HybridScoreContext,
+} from "../bie/hybridScorer";
+import { cosineSimilarity } from "../bie/utils";
+import type { EmbeddingRecord } from "../bie/types";
 
 const PENDING_LEARNING_KEY = "mylifeos_pie_pending_learning_v1";
 
@@ -99,7 +108,17 @@ export class RoomBrainRepository implements BrainRepository {
     return RoomDatabase.getSettings();
   }
 
-  getRelevantMemory(params: {
+  /**
+   * Retrieve memory candidates matching keyword / dimension / type filters,
+   * then run the legacy 3-factor keyword-only pipeline.
+   *
+   * @see The BIE Phase-4A S6 additive enrichment hook below enriches the
+   *      returned rows with optional `semanticScore` / `tagMatchScore` /
+   *      `graphScore` fields declared on RetrievalSource in pie/types.ts
+   *      (lines 50/52/54). When BIE is absent, disabled, or throws — the
+   *      legacy array is returned untouched (full backward compatibility).
+   */
+  async getRelevantMemory(params: {
     keywords: string[];
     detectedDimensions: LifeDimension[];
     detectedBrainTypes: BrainType[];
@@ -107,7 +126,8 @@ export class RoomBrainRepository implements BrainRepository {
     allowedBrainTypes: BrainType[] | "*";
     maxSources?: number;
     requestContext?: RequestContextOverride;
-  }): RetrievalSource[] {
+    bieEnabled?: boolean;
+  }): Promise<RetrievalSource[]> {
     const {
       keywords,
       detectedDimensions: dims,
@@ -136,16 +156,167 @@ export class RoomBrainRepository implements BrainRepository {
 
     const primarySources = [...treeSources, ...journalSources];
     const fallbackThreshold = 5;
-    let final: RetrievalSource[];
+    let legacy: RetrievalSource[];
 
     if (primarySources.length < fallbackThreshold && legacyCardSources.length > 0) {
       const slotsRemaining = Math.max(0, fallbackThreshold - primarySources.length);
-      final = [...primarySources, ...legacyCardSources.slice(0, slotsRemaining + 8)];
+      legacy = [...primarySources, ...legacyCardSources.slice(0, slotsRemaining + 8)];
     } else {
-      final = primarySources.length > 0 ? primarySources : legacyCardSources;
+      legacy = primarySources.length > 0 ? primarySources : legacyCardSources;
     }
 
-    return final.slice(0, params.maxSources ?? 30);
+    legacy = legacy.slice(0, params.maxSources ?? 30);
+
+    /**
+     * BIE Phase-4A S6 additive enrichment hook.
+     * Uses S5 semanticService + vectorIndex + hybridScorer to populate
+     * S1-declared optional fields (RetrievalSource.semanticScore /
+     * .tagMatchScore / .graphScore).
+     *
+     * SKIPS ENTIRELY when bieEnabled=false or any BIE module throws →
+     * legacy 3-factor keyword baseline is preserved unchanged.
+     */
+    try {
+      // S7 Disable Switch: explicit bieEnabled=false → skip all BIE modules, preserve legacy 100%.
+      if (params?.bieEnabled === false || params?.requestContext?.options?.bieEnabled === false) {
+        return legacy;
+      }
+      const settings = this.getSettings();
+      const providers = (settings as any)?.apiProviders ?? [];
+      const semanticService = createDefaultSemanticService(providers);
+
+      const bieRepo = (semanticService as any)._repo ??
+        (semanticService.constructor.name.includes("SemanticService")
+          ? null
+          : null);
+
+      if (legacy.length === 0) return legacy;
+
+      const vectorIndex = new VectorIndex(
+        bieRepo ?? {
+          getEmbeddings: () => [],
+          getEmbedding: () => undefined,
+          saveEmbedding: () => {},
+          deleteEmbedding: () => {},
+          getGraphNodes: () => [],
+          getGraphNode: () => undefined,
+          saveGraphNode: () => {},
+          deleteGraphNode: () => {},
+          getGraphEdges: () => [],
+          saveGraphEdge: () => {},
+          applyGraphEdge: () => {},
+          deleteGraphEdge: () => {},
+          getIdentity: () => undefined,
+          saveIdentity: () => {},
+          applyIdentity: () => {},
+          getInsights: () => [],
+          appendInsight: () => {},
+          applyInsight: () => {},
+          deleteInsight: () => {},
+          getTimelineItems: () => [],
+          getTimelineItem: () => undefined,
+          saveTimelineItem: () => {},
+          clearTimeline: () => {},
+          getPendingBieItems: () => [],
+          getPendingBieItemsByKind: () => [],
+          appendPendingBieItem: () => {},
+          applyPendingBieItem: () => {},
+          rejectPendingBieItem: () => {},
+        },
+        semanticService
+      );
+
+      const allTexts: string[] = [];
+      const scorableItems: ScorableItem[] = [];
+
+      for (let i = 0; i < legacy.length; i++) {
+        const src = legacy[i];
+        const textOrContent = (src.title ? src.title + " " : "") + (src.content ?? "");
+        allTexts.push(textOrContent);
+
+        let confidence = 0.5;
+        switch (src.kind) {
+          case "brain_tree_tag":
+            confidence = 0.95;
+            break;
+          case "journal":
+            confidence = 0.9;
+            break;
+          case "brain_card_legacy":
+            confidence = 0.85;
+            break;
+          default:
+            confidence = 0.5;
+        }
+        const rawRefAny = src.rawRef as any;
+        if (rawRefAny && typeof rawRefAny.tag === "object" && rawRefAny.tag && typeof rawRefAny.tag.priority === "number") {
+          confidence = Math.min(1, 0.5 + (rawRefAny.tag.priority ?? 0) * 0.1);
+        }
+
+        scorableItems.push({
+          textOrContent,
+          tags: src.tags ?? [],
+          dimension: src.dimension,
+          createdAtMs: src.timestamp,
+          confidence,
+          embeddingId: undefined,
+        });
+      }
+
+      const candidateRecords: EmbeddingRecord[] = allTexts.length > 0
+        ? await semanticService.batchEmbedTexts(allTexts)
+        : [];
+
+      const queryText = keywords.join(" ");
+      const queryVecRecord = queryText.length > 0
+        ? await semanticService.embedText(queryText)
+        : null;
+      const queryVec = queryVecRecord ? queryVecRecord.embedding : [];
+
+      const semanticScoresMap = new Map<string, number>();
+      for (let i = 0; i < candidateRecords.length; i++) {
+        const rec = candidateRecords[i];
+        if (!rec || !rec.embedding || !scorableItems[i]) continue;
+        scorableItems[i].embeddingId = rec.id;
+        const sim = queryVec.length > 0
+          ? cosineSimilarity(queryVec, rec.embedding)
+          : 0;
+        semanticScoresMap.set(rec.id, Number.isFinite(sim) && sim >= 0 ? Math.min(1, sim) : 0);
+      }
+
+      const filterDimension: LifeDimension | undefined =
+        dims.length === 1 ? dims[0] : undefined;
+
+      const hybridCtx: HybridScoreContext = {
+        queryKeywords: keywords ?? [],
+        filterDimension,
+        semanticScores: semanticScoresMap,
+      };
+
+      const ranked = hybridRankItems(scorableItems, hybridCtx, legacy.length);
+
+      for (let i = 0; i < legacy.length; i++) {
+        const src = legacy[i];
+        const rankedRow = ranked[i];
+        if (rankedRow) {
+          src.semanticScore = Number.isFinite(rankedRow.semanticScore)
+            ? Math.max(0, Math.min(1, rankedRow.semanticScore))
+            : 0;
+          src.tagMatchScore = Number.isFinite(rankedRow.tagMatchScore)
+            ? Math.max(0, Math.min(1, rankedRow.tagMatchScore))
+            : 0;
+        } else {
+          src.semanticScore = 0;
+          src.tagMatchScore = 0;
+        }
+        src.graphScore = 0;
+      }
+
+      return legacy;
+    } catch (e: any) {
+      console.warn("[BIE S6 hook skipped:", e?.message ?? String(e), "]");
+      return legacy;
+    }
   }
 
   private convertBrainCardsToSources(
