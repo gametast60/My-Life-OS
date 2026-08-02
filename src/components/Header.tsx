@@ -44,17 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
-          {onOpenBieDiscovery && (
-            <button
-              onClick={onOpenBieDiscovery}
-              className="p-2 rounded-xl text-[#869883] hover:text-emerald-300 hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-semibold"
-              title="BIE Discovery & Review"
-            >
-              <Brain size={16} className="text-emerald-400" />
-              <span className="hidden sm:inline">BIE Review</span>
-            </button>
-          )}
-
           <button
             onClick={onOpenSearch}
             className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all"

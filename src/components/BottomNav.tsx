@@ -1,7 +1,7 @@
 import React from "react";
-import { LayoutDashboard, Brain, Bot, BookOpen, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Brain, Bot, BookOpen, Layers } from "lucide-react";
 
-export type NavTab = "home" | "journey" | "coach" | "journal" | "progress";
+export type NavTab = "home" | "pi" | "coach" | "journal" | "brain" | "journey" | "progress";
 
 interface BottomNavProps {
   currentTab: NavTab;
@@ -13,10 +13,10 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, hidden = false }) => {
   const tabs = [
     { id: "home" as NavTab, label: "หน้าแรก", icon: LayoutDashboard },
-    { id: "journey" as NavTab, label: "สมอง", icon: Brain },
+    { id: "pi" as NavTab, label: "ความเข้าใจ", icon: Brain },
     { id: "coach" as NavTab, label: "โค้ช", icon: Bot },
     { id: "journal" as NavTab, label: "บันทึก", icon: BookOpen },
-    { id: "progress" as NavTab, label: "โน้ต", icon: TrendingUp },
+    { id: "brain" as NavTab, label: "คลังสมอง", icon: Layers },
   ];
 
   return (

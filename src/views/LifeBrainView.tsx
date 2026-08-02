@@ -33,7 +33,11 @@ import { BrainTreeViewer } from "../components/BrainTreeViewer";
 import { BrainTreeManager } from "../components/BrainTreeManager";
 import type { FullTree } from "../lib/brainTree/brainTreeService";
 
-type BrainTab = "viewer" | "manager" | "legacy";
+import { NoteItem } from "../types";
+import { StickyNote } from "lucide-react";
+import { ProgressView } from "./ProgressView";
+
+type BrainTab = "viewer" | "manager" | "legacy" | "notes";
 
 interface LifeBrainViewProps {
   brainCards: BrainCard[];
@@ -42,11 +46,15 @@ interface LifeBrainViewProps {
   brainTreeTypes: BrainTreeType[];
   brainTreeDimensions: BrainTreeDimension[];
   brainTreeTags: BrainTreeTag[];
+  notes?: NoteItem[];
   onAddCard: (card: BrainCard) => void;
   onEditCard: (card: BrainCard) => void;
   onDeleteCard: (id: string) => void;
   onClose?: () => void;
   onEditJournal?: (journal: JournalEntry) => void;
+  onAddNote?: (note: NoteItem) => void;
+  onEditNote?: (note: NoteItem) => void;
+  onDeleteNote?: (id: string) => void;
   // Brain Tree Manager handlers
   onAddType: (name: string, color: string, icon: string, priority: number) => void;
   onUpdateType: (id: string, patch: Partial<BrainTreeType>) => void;
@@ -95,11 +103,15 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
   brainTreeTypes,
   brainTreeDimensions,
   brainTreeTags,
+  notes = [],
   onAddCard,
   onEditCard,
   onDeleteCard,
   onClose,
   onEditJournal,
+  onAddNote,
+  onEditNote,
+  onDeleteNote,
   onAddType, onUpdateType, onDeleteType,
   onAddDimension, onUpdateDimension, onDeleteDimension,
   onAddTag, onUpdateTag, onDeleteTag,
@@ -227,12 +239,14 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                 <Brain size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold" style={{ color: "#EBF1EA" }}>Life Brain</h1>
+                <h1 className="text-xl font-bold" style={{ color: "#EBF1EA" }}>คลังสมอง</h1>
                 <p className="text-xs" style={{ color: "#869883" }}>
                   {activeTab === "viewer"
                     ? `${globalEvidence} Evidence · Score ${globalScore.toFixed(0)}`
                     : activeTab === "manager"
                     ? `${brainTreeTypes.length} Types · ${brainTreeDimensions.length} Dims · ${brainTreeTags.length} Tags`
+                    : activeTab === "notes"
+                    ? `${notes.length} Fast Notes`
                     : `${brainCards.length} Brain Cards (Legacy)`}
                 </p>
               </div>
@@ -252,7 +266,7 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                   onClick={onClose}
                   className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-[#6B9361]/20 transition-all flex items-center justify-center"
                   style={{ border: "1px solid rgba(107,147,97,0.2)", background: "rgba(255,255,255,0.04)" }}
-                  title="ปิดหน้า Life Brain"
+                  title="ปิดหน้าคลังสมอง"
                   aria-label="Close Life Brain view"
                 >
                   <X size={20} />
@@ -262,7 +276,7 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
+          <div className="flex gap-1 p-1 rounded-xl overflow-x-auto" style={{ background: "rgba(255,255,255,0.04)" }}>
             <TabButton
               label="🌱 Growth"
               icon={TrendingUp}
@@ -280,6 +294,12 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
               icon={LayoutGrid}
               active={activeTab === "legacy"}
               onClick={() => setActiveTab("legacy")}
+            />
+            <TabButton
+              label="📝 โน้ตด่วน"
+              icon={StickyNote}
+              active={activeTab === "notes"}
+              onClick={() => setActiveTab("notes")}
             />
           </div>
         </div>
@@ -305,6 +325,15 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
             onAddTag={onAddTag}
             onUpdateTag={onUpdateTag}
             onDeleteTag={onDeleteTag}
+          />
+        )}
+
+        {activeTab === "notes" && (
+          <ProgressView
+            notes={notes}
+            onAddNote={onAddNote || (() => {})}
+            onEditNote={onEditNote || (() => {})}
+            onDeleteNote={onDeleteNote || (() => {})}
           />
         )}
 

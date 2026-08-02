@@ -77,16 +77,13 @@ export const AICoachView: React.FC<AICoachViewProps> = (props) => {
             AI Coach
           </h1>
           <p className="text-xs text-[#869883] mt-1">
-            AI Assistant ส่วนตัว อ่าน Life Brain เพื่อให้คำแนะนำเฉพาะตัว
+            AI Assistant ส่วนตัว อ่านความเข้าใจชีวิตของคุณเพื่อแนะนำเฉพาะตัว
           </p>
         </div>
-        <BieContextStatusBadge
-          bieEnabled={true}
-          onOpenDiscovery={props.onOpenBieDiscovery}
-          onOpenIdentityReview={props.onOpenIdentityReview}
-          onOpenInsightCenter={props.onOpenInsightCenter}
-          onOpenTimelineViewer={props.onOpenTimelineViewer}
-        />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
+          <Brain size={14} className="text-emerald-400" />
+          <span>อ่านความเข้าใจของคุณอัตโนมัติ</span>
+        </div>
       </div>
 
       {/* Mode Grid Header */}

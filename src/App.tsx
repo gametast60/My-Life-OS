@@ -10,6 +10,7 @@ import { AICoachView } from "./views/AICoachView";
 import { JournalView } from "./views/JournalView";
 import { ProgressView } from "./views/ProgressView";
 import { LifeBrainView } from "./views/LifeBrainView";
+import { PersonalIntelligenceView } from "./views/PersonalIntelligenceView";
 
 import { SettingsModal } from "./views/SettingsModal";
 import { ManageAPIModal } from "./components/ManageAPIModal";
@@ -23,10 +24,6 @@ import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
 import { JournalPlacementBottomSheet } from "./components/JournalPlacementBottomSheet";
-import { BieDiscoveryModal } from "./components/bie/BieDiscoveryModal";
-import { IdentityReviewModal } from "./components/bie/IdentityReviewModal";
-import { InsightCenterModal } from "./components/bie/InsightCenterModal";
-import { TimelineViewerModal } from "./components/bie/TimelineViewerModal";
 
 import { RoomDatabase } from "./lib/db";
 import { PresetMood } from "./lib/db";
@@ -775,7 +772,7 @@ export default function App() {
     if (action === "affirmation") setIsAffirmationOpen(true);
     if (action === "checklist") setIsChecklistOpen(true);
     if (action === "checkin") setIsCheckinOpen(true);
-    if (action === "brain") setCurrentTab("journey");
+    if (action === "brain") setCurrentTab("brain");
   };
 
   const pendingJournal = pendingJournalPlacement
@@ -795,7 +792,6 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenManageAPI={() => setIsManageAPIOpen(true)}
-        onOpenBieDiscovery={() => setIsBieDiscoveryOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-20 pb-12">
@@ -822,7 +818,11 @@ export default function App() {
           />
         )}
 
-        {currentTab === "journey" && (
+        {currentTab === "pi" && (
+          <PersonalIntelligenceView bieEnabled={true} />
+        )}
+
+        {(currentTab === "brain" || currentTab === "journey") && (
           <LifeBrainView
             brainCards={brainCards}
             journals={journals}
@@ -830,10 +830,14 @@ export default function App() {
             brainTreeTypes={brainTreeTypes}
             brainTreeDimensions={brainTreeDims}
             brainTreeTags={brainTreeTags}
+            notes={notes}
             onAddCard={handleAddBrainCard}
             onEditCard={handleEditBrainCard}
             onDeleteCard={handleDeleteBrainCard}
             onEditJournal={handleEditJournal}
+            onAddNote={handleAddNote}
+            onEditNote={handleEditNote}
+            onDeleteNote={handleDeleteNote}
             onAddType={handleAddBrainTreeType}
             onUpdateType={handleUpdateBrainTreeType}
             onDeleteType={handleDeleteBrainTreeType}
@@ -858,12 +862,8 @@ export default function App() {
             onSaveMessage={handleSaveMessage}
             onClearSession={handleClearChatSession}
             onOpenManageAPI={() => setIsManageAPIOpen(true)}
-            onOpenLifeBrain={() => setCurrentTab("journey")}
+            onOpenLifeBrain={() => setCurrentTab("brain")}
             onSuggestCard={(card) => setSuggestedCard(card)}
-            onOpenBieDiscovery={() => setIsBieDiscoveryOpen(true)}
-            onOpenIdentityReview={() => setIsIdentityReviewOpen(true)}
-            onOpenInsightCenter={() => setIsInsightCenterOpen(true)}
-            onOpenTimelineViewer={() => setIsTimelineViewerOpen(true)}
           />
         )}
 
@@ -882,11 +882,30 @@ export default function App() {
         )}
 
         {currentTab === "progress" && (
-          <ProgressView
+          <LifeBrainView
+            brainCards={brainCards}
+            journals={journals}
+            brainFullTree={brainFullTree}
+            brainTreeTypes={brainTreeTypes}
+            brainTreeDimensions={brainTreeDims}
+            brainTreeTags={brainTreeTags}
             notes={notes}
+            onAddCard={handleAddBrainCard}
+            onEditCard={handleEditBrainCard}
+            onDeleteCard={handleDeleteBrainCard}
+            onEditJournal={handleEditJournal}
             onAddNote={handleAddNote}
             onEditNote={handleEditNote}
             onDeleteNote={handleDeleteNote}
+            onAddType={handleAddBrainTreeType}
+            onUpdateType={handleUpdateBrainTreeType}
+            onDeleteType={handleDeleteBrainTreeType}
+            onAddDimension={handleAddBrainTreeDimension}
+            onUpdateDimension={handleUpdateBrainTreeDimension}
+            onDeleteDimension={handleDeleteBrainTreeDimension}
+            onAddTag={handleAddBrainTreeTag}
+            onUpdateTag={handleUpdateBrainTreeTag}
+            onDeleteTag={handleDeleteBrainTreeTag}
           />
         )}
       </main>
@@ -910,7 +929,7 @@ export default function App() {
         brainCards={brainCards}
         onSelectJournal={() => setCurrentTab("journal")}
         onSelectGoal={() => setIsGoalsOpen(true)}
-        onSelectBrainCard={() => setCurrentTab("journey")}
+        onSelectBrainCard={() => setCurrentTab("brain")}
       />
 
       <SettingsModal
@@ -1022,32 +1041,6 @@ export default function App() {
         onClose={() => setIsCheckinOpen(false)}
         onSaveCheckin={handleSaveCheckin}
         settings={settings}
-      />
-
-      <BieDiscoveryModal
-        isOpen={isBieDiscoveryOpen}
-        onClose={() => setIsBieDiscoveryOpen(false)}
-        bieEnabled={true}
-        onOpenIdentityReview={() => setIsIdentityReviewOpen(true)}
-        onOpenInsightCenter={() => setIsInsightCenterOpen(true)}
-      />
-
-      <IdentityReviewModal
-        isOpen={isIdentityReviewOpen}
-        onClose={() => setIsIdentityReviewOpen(false)}
-        bieEnabled={true}
-      />
-
-      <InsightCenterModal
-        isOpen={isInsightCenterOpen}
-        onClose={() => setIsInsightCenterOpen(false)}
-        bieEnabled={true}
-      />
-
-      <TimelineViewerModal
-        isOpen={isTimelineViewerOpen}
-        onClose={() => setIsTimelineViewerOpen(false)}
-        bieEnabled={true}
       />
     </div>
   );
