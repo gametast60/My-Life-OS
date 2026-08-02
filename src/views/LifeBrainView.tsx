@@ -37,7 +37,7 @@ import { NoteItem } from "../types";
 import { StickyNote } from "lucide-react";
 import { ProgressView } from "./ProgressView";
 
-type BrainTab = "viewer" | "manager" | "legacy" | "notes";
+type BrainTab = "viewer" | "manager" | "legacy";
 
 interface LifeBrainViewProps {
   brainCards: BrainCard[];
@@ -295,12 +295,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
               active={activeTab === "legacy"}
               onClick={() => setActiveTab("legacy")}
             />
-            <TabButton
-              label="📝 โน้ตด่วน"
-              icon={StickyNote}
-              active={activeTab === "notes"}
-              onClick={() => setActiveTab("notes")}
-            />
           </div>
         </div>
       </div>
@@ -325,15 +319,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
             onAddTag={onAddTag}
             onUpdateTag={onUpdateTag}
             onDeleteTag={onDeleteTag}
-          />
-        )}
-
-        {activeTab === "notes" && (
-          <ProgressView
-            notes={notes}
-            onAddNote={onAddNote || (() => {})}
-            onEditNote={onEditNote || (() => {})}
-            onDeleteNote={onDeleteNote || (() => {})}
           />
         )}
 

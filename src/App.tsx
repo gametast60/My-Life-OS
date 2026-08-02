@@ -899,12 +899,16 @@ export default function App() {
         {currentTab === "journal" && (
           <JournalView
             journals={journals}
+            notes={notes}
             settings={settings}
             presetTags={presetTags}
             presetMoods={presetMoods}
             onAddJournal={handleAddJournal}
             onEditJournal={handleEditJournal}
             onDeleteJournal={handleDeleteJournal}
+            onAddNote={handleAddNote}
+            onEditNote={handleEditNote}
+            onDeleteNote={handleDeleteNote}
             onSavePresetTags={handleSavePresetTags}
             onSavePresetMoods={handleSavePresetMoods}
           />
