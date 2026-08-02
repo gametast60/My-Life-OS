@@ -57,13 +57,13 @@ export const IdentityReviewModal: React.FC<IdentityReviewModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#EBF1EA] flex items-center gap-2">
-                Identity Review
+                AI เข้าใจคุณอย่างไร
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 font-medium">
-                  HITL Review
+                  รอการตัดสินใจ
                 </span>
               </h2>
               <p className="text-xs text-[#869883]">
-                ทบทวนและยืนยันโปรไฟล์ตัวตน AI ที่สร้างขึ้นจากข้อมูลของคุณ
+                ตรวจสอบว่า AI เข้าใจตัวตนของคุณถูกต้องหรือไม่
               </p>
             </div>
           </div>
@@ -91,9 +91,9 @@ export const IdentityReviewModal: React.FC<IdentityReviewModalProps> = ({
               <div className="p-4 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
                 <ShieldOff size={32} />
               </div>
-              <h3 className="text-sm font-semibold text-[#EBF1EA]">BIE Engine ปิดใช้งาน</h3>
+              <h3 className="text-sm font-semibold text-[#EBF1EA]">AI ยังไม่พร้อมทำงาน</h3>
               <p className="text-xs text-[#869883] max-w-xs">
-                Identity Review ไม่พร้อมใช้งานเมื่อ bieEnabled=false
+                เปิดใช้งาน AI เพื่อให้ระบบเรียนรู้และเข้าใจตัวตนของคุณ
               </p>
             </div>
           ) : !profile ? (
@@ -102,11 +102,11 @@ export const IdentityReviewModal: React.FC<IdentityReviewModalProps> = ({
                 <Sparkles size={32} />
               </div>
               <h3 className="text-sm font-semibold text-[#EBF1EA]">
-                ยังไม่มีโปรไฟล์ตัวตน
+                AI ยังรู้จักคุณไม่เพียงพอ
               </h3>
               <p className="text-xs text-[#869883] max-w-xs leading-relaxed">
-                ระบบ BIE ยังไม่ได้สร้างโปรไฟล์ตัวตนของคุณ
-                โปรไฟล์จะถูกสร้างอัตโนมัติหลังจากที่มีข้อมูลเพียงพอ (บันทึกรายวัน, Habit, เป้าหมาย)
+                เขียนบันทึก ติดตามนิสัย และบันทึกเป้าหมายเพิ่มเติม
+                เพื่อให้ AI เรียนรู้และเข้าใจตัวตนของคุณมากขึ้น
               </p>
             </div>
           ) : (
@@ -120,7 +120,7 @@ export const IdentityReviewModal: React.FC<IdentityReviewModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-[#6B9361]/15 bg-[#141A14]/40 text-[11px] text-[#869883]">
-          HITL Safeguard: โปรไฟล์จะมีผลใน Retrieval Context เมื่อกด Confirm เท่านั้น (P4-12)
+          การยืนยันช่วยให้ AI เข้าใจคุณได้ดีขึ้น — คุณสามารถเปลี่ยนคำตอบได้ตลอดเวลา
         </div>
       </div>
     </div>

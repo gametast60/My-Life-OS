@@ -80,13 +80,13 @@ export const InsightCenterModal: React.FC<InsightCenterModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#EBF1EA] flex items-center gap-2">
-                Insight Center
+                สิ่งที่ AI สังเกตเห็น
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
-                  HITL Review
+                  รอการตัดสินใจ
                 </span>
               </h2>
               <p className="text-xs text-[#869883]">
-                ทบทวนและยืนยันอินไซต์ที่ AI สร้างจากพฤติกรรมของคุณ
+                ตรวจสอบสิ่งที่ AI สังเกตเห็นจากพฤติกรรมและเรื่องราวของคุณ
               </p>
             </div>
           </div>
@@ -105,16 +105,16 @@ export const InsightCenterModal: React.FC<InsightCenterModalProps> = ({
             <div className="p-4 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <ShieldOff size={32} />
             </div>
-            <h3 className="text-sm font-semibold text-[#EBF1EA]">BIE Engine ปิดใช้งาน</h3>
-            <p className="text-xs text-[#869883]">Insight Center ไม่พร้อมใช้งานเมื่อ bieEnabled=false</p>
+            <h3 className="text-sm font-semibold text-[#EBF1EA]">AI ยังไม่พร้อมทำงาน</h3>
+            <p className="text-xs text-[#869883]">เปิดใช้งาน AI เพื่อให้ระบบสังเกตเห็นรูปแบบในชีวิตของคุณ</p>
           </div>
         ) : (
           <>
             {/* Summary Strip */}
             <div className="flex items-center gap-4 px-5 py-2.5 bg-[#141A14]/40 border-b border-[#6B9361]/12 text-xs">
-              <span className="text-[#869883]">อินไซต์ทั้งหมด: <span className="text-[#EBF1EA] font-semibold">{insights.length}</span></span>
-              <span className="text-amber-400">รอยืนยัน: <span className="font-semibold">{pendingCount}</span></span>
-              <span className="text-emerald-400">ยืนยันแล้ว: <span className="font-semibold">{appliedCount}</span></span>
+              <span className="text-[#869883]">ข้อสังเกตทั้งหมด: <span className="text-[#EBF1EA] font-semibold">{insights.length}</span></span>
+              <span className="text-amber-400">รอการตัดสินใจ: <span className="font-semibold">{pendingCount}</span></span>
+              <span className="text-emerald-400">นำไปใช้แล้ว: <span className="font-semibold">{appliedCount}</span></span>
               <button
                 onClick={() => setShowAppliedOnly((v) => !v)}
                 className={`ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
@@ -124,7 +124,7 @@ export const InsightCenterModal: React.FC<InsightCenterModalProps> = ({
                 }`}
               >
                 <Filter size={11} />
-                <span>{showAppliedOnly ? "แสดง Applied" : "แสดงทั้งหมด"}</span>
+                <span>{showAppliedOnly ? "แสดงที่ยืนยันแล้ว" : "แสดงทั้งหมด"}</span>
               </button>
             </div>
 
@@ -150,11 +150,11 @@ export const InsightCenterModal: React.FC<InsightCenterModalProps> = ({
               {displayed.length === 0 ? (
                 <div className="p-8 text-center flex flex-col items-center gap-2">
                   <Sparkles size={28} className="text-amber-400/50 mb-1" />
-                  <p className="text-xs text-[#EBF1EA] font-medium">ไม่มีอินไซต์ที่ตรงกับตัวกรอง</p>
+                  <p className="text-xs text-[#EBF1EA] font-medium">ไม่มีข้อสังเกตที่ตรงกับตัวกรอง</p>
                   <p className="text-[11px] text-[#869883]">
                     {insights.length === 0
-                      ? "BIE ยังไม่ได้สร้างอินไซต์ — จะปรากฏเมื่อมีข้อมูลเพียงพอ"
-                      : "ลองเปลี่ยนตัวกรองเพื่อดูอินไซต์ประเภทอื่น"}
+                      ? "AI ยังไม่มีข้อสังเกตใหม่ — จะปรากฏเมื่อมีข้อมูลเพียงพอ"
+                      : "ลองเปลี่ยนตัวกรองเพื่อดูข้อสังเกตประเภทอื่น"}
                   </p>
                 </div>
               ) : (
@@ -174,7 +174,7 @@ export const InsightCenterModal: React.FC<InsightCenterModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-[#6B9361]/15 bg-[#141A14]/40 text-[11px] text-[#869883]">
-          HITL Safeguard: อินไซต์จะมีผลใน Retrieval Context เมื่อกด Confirm เท่านั้น (P4-12)
+          การยืนยันช่วยให้ AI เรียนรู้จากชีวิตของคุณ — คุณสามารถเปลี่ยนคำตอบได้ตลอดเวลา
         </div>
       </div>
     </div>

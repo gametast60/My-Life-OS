@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Search, Sparkles, Brain, CheckCircle2, ShieldOff, Filter, RefreshCw, User, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
+import { X, Search, Sparkles, Brain, CheckCircle2, ShieldOff, Filter, RefreshCw, User, Lightbulb, ArrowRight, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import {
   getPendingBieQueue,
   searchBieSemantics,
@@ -35,6 +35,7 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
   const [searchResults, setSearchResults] = useState<Array<{ id: string; text: string; score: number }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showTechFooter, setShowTechFooter] = useState(false);
 
   const [queueResult, setQueueResult] = useState<GetPendingBieResult>({
     items: [],
@@ -125,13 +126,13 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#EBF1EA] flex items-center gap-2">
-                BIE Discovery & Pending Queue
+                สิ่งที่ AI ค้นพบ
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
-                  HITL Review
+                  รอการตัดสินใจของคุณ
                 </span>
               </h2>
               <p className="text-xs text-[#869883]">
-                ทบทวนและยืนยันข้อเสนอแนะความรู้จากระบบสมอง AI (BIE)
+                AI พบเรื่องที่น่าสนใจจากบันทึกและเรื่องราวของคุณ
               </p>
             </div>
           </div>
@@ -144,17 +145,17 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
           </button>
         </div>
 
-        {/* S32 Quick-Nav: Identity Review + Insight Center */}
+        {/* Quick-Nav: Identity Review + Insight Center */}
         {bieEnabled && (onOpenIdentityReview || onOpenInsightCenter) && (
           <div className="flex items-center gap-2 px-5 py-2.5 bg-[#141A14]/30 border-b border-[#6B9361]/12">
-            <span className="text-[11px] text-[#869883] shrink-0">เชื่อมต่อกับ:</span>
+            <span className="text-[11px] text-[#869883] shrink-0">ดูเพิ่มเติม:</span>
             {onOpenIdentityReview && (
               <button
                 onClick={() => { onClose(); onOpenIdentityReview(); }}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-all"
               >
                 <User size={12} />
-                <span>Identity Review</span>
+                <span>AI เข้าใจคุณอย่างไร</span>
                 <ArrowRight size={11} />
               </button>
             )}
@@ -164,7 +165,7 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-all"
               >
                 <Lightbulb size={12} />
-                <span>Insight Center</span>
+                <span>สิ่งที่ AI สังเกตเห็น</span>
                 <ArrowRight size={11} />
               </button>
             )}
@@ -179,15 +180,15 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
               <ShieldOff size={32} />
             </div>
             <h3 className="text-sm font-semibold text-[#EBF1EA]">
-              BIE Engine ปิดใช้งานอยู่ (bieEnabled: false)
+              AI ยังไม่พร้อมทำงาน
             </h3>
             <p className="text-xs text-[#869883] max-w-md">
-              ระบบใช้ Keyword Baseline ดั้งเดิม ข้อเสนอแนะ BIE ทั้งหมดถูกระงับเพื่อความปลอดภัยตามมาตรฐาน Pre-Phase-4
+              ขณะนี้ใช้ระบบพื้นฐาน AI จะยังไม่แสดงข้อค้นพบใหม่จนกว่าจะเปิดใช้งาน
             </p>
           </div>
         ) : (
           <>
-            {/* Semantic Discovery Search Bar */}
+            {/* Search Bar */}
             <div className="p-4 border-b border-[#6B9361]/15 bg-[#141A14]/30">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#869883]" />
@@ -195,7 +196,7 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ค้นหาเชิงความหมายใน BIE (Semantic Discovery)..."
+                  placeholder="ค้นหาจากเรื่องราวของคุณ..."
                   className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0A0E0A] border border-[#6B9361]/30 text-xs text-[#EBF1EA] placeholder-[#869883] focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -205,12 +206,12 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
                 <div className="mt-2 p-3 rounded-xl bg-[#0A0E0A] border border-[#6B9361]/20">
                   <div className="text-[11px] font-semibold text-[#869883] mb-2 flex items-center gap-1">
                     <Sparkles size={12} className="text-amber-400" />
-                    <span>ผลลัพธ์ Semantic Search ({searchResults.length})</span>
+                    <span>เรื่องราวที่เกี่ยวข้อง ({searchResults.length})</span>
                   </div>
                   {isSearching ? (
                     <p className="text-xs text-[#869883]">กำลังค้นหา...</p>
                   ) : searchResults.length === 0 ? (
-                    <p className="text-xs text-[#869883]">ไม่พบความรู้ที่ตรงกับคำค้นหา</p>
+                    <p className="text-xs text-[#869883]">ไม่พบเรื่องราวที่ตรงกับคำค้นหา</p>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {searchResults.map((m) => (
@@ -231,15 +232,15 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
             <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[#6B9361]/15 overflow-x-auto text-xs">
               <span className="text-[#869883] flex items-center gap-1 shrink-0 mr-1 text-[11px]">
                 <Filter size={12} />
-                <span>ตัวกรอง:</span>
+                <span>ประเภท:</span>
               </span>
 
               {[
                 { id: "all", label: `ทั้งหมด (${queueResult.total})` },
-                { id: "identity_update", label: "ตัวตน (Identity)" },
-                { id: "insight_proposal", label: "อินไซต์ (Insights)" },
-                { id: "graph_edge", label: "ความสัมพันธ์ (Relationships)" },
-                { id: "graph_merge", label: "รวมแท็ก (Merges)" },
+                { id: "identity_update", label: "ความเข้าใจตัวตน" },
+                { id: "insight_proposal", label: "ข้อสังเกต" },
+                { id: "graph_edge", label: "ความเชื่อมโยง" },
+                { id: "graph_merge", label: "การรวมหัวข้อ" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -261,10 +262,10 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
                 <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                   <CheckCircle2 size={32} className="text-emerald-400/60 mb-1" />
                   <p className="text-xs text-[#EBF1EA] font-medium">
-                    ไม่มีข้อเสนอแนะค้างอยู่ใน Pending Queue
+                    ไม่มีสิ่งที่รอการตัดสินใจ
                   </p>
                   <p className="text-[11px] text-[#869883]">
-                    ข้อมูลความรู้ปัจจุบันของคุณได้รับการทบทวนครบถ้วนแล้ว
+                    คุณได้ตรวจสอบทุกเรื่องที่ AI ค้นพบแล้ว
                   </p>
                 </div>
               ) : (
@@ -284,7 +285,14 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-[#6B9361]/15 bg-[#141A14]/40 flex items-center justify-between text-xs text-[#869883]">
-          <span>HITL Safeguard: ข้อเสนอแนะจะมีผลใน retrieval เมื่อกด Confirm เท่านั้น</span>
+          <button
+            onClick={() => setShowTechFooter((v) => !v)}
+            className="flex items-center gap-1 hover:text-[#EBF1EA] transition-all text-[11px]"
+          >
+            {showTechFooter ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            <span>รายละเอียดเพิ่มเติม</span>
+          </button>
+
           <div className="flex items-center gap-2">
             <button
               onClick={handleAnalyze}
@@ -299,10 +307,21 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
               className="flex items-center gap-1 hover:text-[#EBF1EA] transition-all text-xs font-medium"
             >
               <RefreshCw size={12} />
-              <span>รีเฟรช Queue</span>
+              <span>รีเฟรช</span>
             </button>
           </div>
         </div>
+
+        {/* Technical Detail (expandable) */}
+        {showTechFooter && (
+          <div className="px-6 py-3 bg-[#0A0E0A]/80 border-t border-[#6B9361]/10 text-[10px] font-mono text-[#869883] space-y-0.5">
+            <div>engine: BIE (Brain Intelligence Engine)</div>
+            <div>hitl_safeguard: true — proposals are applied only after user confirmation</div>
+            <div>pending_count: {queueResult.total}</div>
+            <div>has_more: {String(queueResult.hasMore)}</div>
+            <div>bie_enabled: {String(bieEnabled)}</div>
+          </div>
+        )}
       </div>
     </div>
   );
