@@ -603,6 +603,47 @@ export default function App() {
       createCheckinEvidence(checkin, kw.map((k) => k.tag.id));
       reloadBrainTreeSnapshots();
     }
+
+    // ── Trigger Point B: Auto-run BIE orchestrator after check-in save (fire-and-forget)
+    // Throttle: skip if last run was within 6 hours (21600000 ms)
+    const now = Date.now();
+    const lastRun = settings.bieLastRunAt ?? 0;
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+    if (now - lastRun >= SIX_HOURS_MS) {
+      // Update throttle timestamp immediately to prevent duplicate triggers
+      const updatedSettings = { ...settings, bieLastRunAt: now };
+      setSettings(updatedSettings);
+      RoomDatabase.saveSettings(updatedSettings);
+
+      // Fire-and-forget: non-blocking, errors don't propagate (P4-11 pattern)
+      Promise.resolve().then(async () => {
+        try {
+          const repo = new (await import("./pie/bie/RoomBrainIntelligenceRepository")).RoomBrainIntelligenceRepository();
+          const evidences: BrainEvidence[] = RoomDatabase.getBrainEvidence();
+          const tags: BrainTreeTag[] = RoomDatabase.getBrainTreeTags();
+          const dimensions: BrainTreeDimension[] = RoomDatabase.getBrainTreeDimensions();
+          const graphNodes = RoomDatabase.getBieGraphNodes().map((n) => ({
+            id: n.id,
+            label: n.label,
+            nodeType: n.kind as any,
+            createdAt: n.createdAt,
+            updatedAt: n.updatedAt,
+            dimension: n.dimension,
+            metadata: undefined,
+          }));
+
+          await (await import("./pie/bie/bieOrchestrator")).runBieAnalysisOrchestrator({
+            evidences,
+            tags,
+            dimensions,
+            graphNodes,
+            bieRepo: repo,
+          });
+        } catch (err) {
+          console.warn("[handleSaveCheckin] BIE orchestrator auto-trigger failed (non-fatal):", err);
+        }
+      });
+    }
   };
 
   const handleAddBrainCard = (card: BrainCard) => {

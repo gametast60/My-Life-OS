@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Search, Sparkles, Brain, CheckCircle2, ShieldOff, Filter, RefreshCw, User, Lightbulb, ArrowRight } from "lucide-react";
+import { X, Search, Sparkles, Brain, CheckCircle2, ShieldOff, Filter, RefreshCw, User, Lightbulb, ArrowRight, Loader2 } from "lucide-react";
 import {
   getPendingBieQueue,
   searchBieSemantics,
@@ -10,6 +10,10 @@ import {
 } from "../../pie/bie/bieDiscoveryService";
 import { BieReviewCard } from "./BieReviewCard";
 import type { BiePendingKind } from "../../pie/bie/types";
+import { runBieAnalysisOrchestrator } from "../../pie/bie/bieOrchestrator";
+import { RoomBrainIntelligenceRepository } from "../../pie/bie/RoomBrainIntelligenceRepository";
+import type { BrainEvidence, BrainTreeDimension, BrainTreeTag } from "../../types";
+import type { BIEGraphNode } from "../../pie/bie/graph/types";
 
 interface BieDiscoveryModalProps {
   isOpen: boolean;
@@ -30,6 +34,7 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; text: string; score: number }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [queueResult, setQueueResult] = useState<GetPendingBieResult>({
     items: [],
@@ -80,6 +85,31 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
   const handleUndo = (kind: string, targetId: string) => {
     undoAppliedBieItem(kind, targetId);
     loadQueue();
+  };
+
+  const handleAnalyze = async () => {
+    if (isAnalyzing) return;
+    setIsAnalyzing(true);
+    try {
+      const repo = new RoomBrainIntelligenceRepository();
+      const evidences: BrainEvidence[] = (window as any).__BIE_EVIDENCES__ || [];
+      const tags: BrainTreeTag[] = (window as any).__BIE_TAGS__ || [];
+      const dimensions: BrainTreeDimension[] = (window as any).__BIE_DIMENSIONS__ || [];
+      const graphNodes: BIEGraphNode[] = (window as any).__BIE_GRAPH_NODES__ || [];
+
+      await runBieAnalysisOrchestrator({
+        evidences,
+        tags,
+        dimensions,
+        graphNodes,
+        bieRepo: repo,
+      });
+      loadQueue();
+    } catch (err) {
+      console.warn("[BieDiscoveryModal] Analyze failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -255,13 +285,23 @@ export const BieDiscoveryModal: React.FC<BieDiscoveryModalProps> = ({
         {/* Footer */}
         <div className="px-6 py-3 border-t border-[#6B9361]/15 bg-[#141A14]/40 flex items-center justify-between text-xs text-[#869883]">
           <span>HITL Safeguard: ข้อเสนอแนะจะมีผลใน retrieval เมื่อกด Confirm เท่านั้น</span>
-          <button
-            onClick={loadQueue}
-            className="flex items-center gap-1 hover:text-[#EBF1EA] transition-all text-xs font-medium"
-          >
-            <RefreshCw size={12} />
-            <span>รีเฟรช Queue</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="flex items-center gap-1 hover:text-[#EBF1EA] transition-all text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-2 py-1 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              <span>วิเคราะห์ตอนนี้</span>
+            </button>
+            <button
+              onClick={loadQueue}
+              className="flex items-center gap-1 hover:text-[#EBF1EA] transition-all text-xs font-medium"
+            >
+              <RefreshCw size={12} />
+              <span>รีเฟรช Queue</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

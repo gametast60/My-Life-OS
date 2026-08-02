@@ -12,6 +12,27 @@
 
 ---
 
+## [Phase 5 — Hotfix] — BIE Trigger Gap Fix (Orchestrator + Manual + Auto Triggers)
+**Status**: ✅ Complete (2026-08-02) — Post-Phase-5 hotfix for Design Gate approved fix
+
+### Added
+- 🆕 `src/pie/bie/bieOrchestrator.ts`: `runBieAnalysisOrchestrator()` — single entry point running Identity Engine → Insight Generator → Timeline Builder → Relationship Extractor → Background Reflection Cycle. All proposals carry `applied: false` (P4-12 HITL). Non-fatal try/catch (P4-11).
+- 🆕 `src/components/bie/BieDiscoveryModal.tsx`: "วิเคราะห์ตอนนี้" button with loading state, calls orchestrator, refreshes queue on completion.
+- 🆕 `src/types.ts`: Added `bieLastRunAt` to `UserSettings` for 6-hour throttle tracking.
+
+### Changed
+- ⚙️ `src/App.tsx` `handleSaveCheckin`: Auto-trigger orchestrator after check-in save (fire-and-forget, non-blocking). Throttle: skip if last run < 6 hours.
+- ⚙️ `src/components/bie/BieDiscoveryModal.tsx`: Added analyze button in footer next to "รีเฟรช Queue".
+- ⚙️ `src/pie/bie/identity/identityEngine.ts`: Updated `buildEntries()` confidence normalization to scale by evidence sufficiency and prevent single-evidence entries from showing full confidence. Tuned `MIN_EVIDENCE_FOR_FULL_CONFIDENCE = 5`.
+
+### Verified
+- ✅ `npm run lint` Exit 0. ✅ `npm run build` Exit 0 (2174 modules transformed).
+- ✅ P4-12 HITL: All proposals `applied: false` — pending queue only.
+- ✅ P4-11 Non-fatal: Errors logged, execution continues, UI never blocked.
+- ✅ Trigger Gap resolved: Engines now callable via manual button AND auto after check-in.
+
+---
+
 ## [Phase 5 — S34] — Closeout, Regression, and Handoff
 **Status**: ✅ Complete (2026-08-02) — **PHASE 5 MASTER GATE PASSED**
 

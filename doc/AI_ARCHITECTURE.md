@@ -505,6 +505,30 @@ src/
 
 ---
 
+## Data Flow (Daily Check-in → BIE Orchestrator Trigger)
+
+```
+1. User completes Daily Check-in (DailyCheckinModal.tsx)
+      │
+2. App.tsx handleSaveCheckin() saves check-in + creates evidence
+      │
+3. Trigger Point B (Auto): After successful save, check throttle (bieLastRunAt)
+      │   └── If ≥ 6 hours since last run → fire-and-forget runBieAnalysisOrchestrator()
+      │
+4. runBieAnalysisOrchestrator() (src/pie/bie/bieOrchestrator.ts):
+      ├─ Identity Engine → proposeIdentityUpdate (applied: false)
+      ├─ Insight Generator → proposeInsightProposal × N (applied: false)
+      ├─ Timeline Builder → saveTimelineItem (M/Q/Y buckets)
+      ├─ Relationship Extractor → routeProposalsToPendingQueue (applied: false)
+      └─ Background Reflection Cycle (merges, conflicts, decay)
+      │
+5. All proposals land in bie_pending_queue → BieDiscoveryModal "วิเคราะห์ตอนนี้" (Trigger Point A) or auto-refresh
+      │
+6. User reviews in BieDiscoveryModal → Confirm → applied: true → enriches retrieval context
+```
+
+---
+
 ## Hard Constraints (Non-negotiable)
 
 | # | Rule | Status |

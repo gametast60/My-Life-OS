@@ -121,6 +121,14 @@ export interface IdentityEngine {
 const RECENCY_HALF_LIFE_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
+ * Minimum number of evidence items required for an entry to reach full confidence (1.0).
+ * Below this threshold, confidence is scaled down by a sufficiency factor.
+ * This prevents single-evidence entries from showing 100% confidence.
+ * Tunable constant — adjust based on empirical calibration (pattern matches hybridScorer.ts S8).
+ */
+export const MIN_EVIDENCE_FOR_FULL_CONFIDENCE = 5;
+
+/**
  * Exponential recency weight in (0, 1].
  * 1.0 for brand new; ~0.5 at 90 days; floored at 0.1 so old evidence
  * still contributes rather than vanishing.
@@ -387,10 +395,16 @@ export class DefaultIdentityEngine implements IdentityEngine {
       raw.sort((a, b) => b.confidence - a.confidence);
       const maxScore = raw[0].confidence;
       return raw
-        .map((e) => ({
-          ...e,
-          confidence: maxScore > 0 ? Math.min(1, e.confidence / maxScore) : 0,
-        }))
+        .map((e) => {
+          const relativeScore = maxScore > 0 ? Math.min(1, e.confidence / maxScore) : 0;
+          // Sufficiency factor: scale confidence by evidence count to prevent
+          // single-evidence entries from showing 100% confidence.
+          const sufficiencyFactor = Math.min(1, e.evidenceIds.length / MIN_EVIDENCE_FOR_FULL_CONFIDENCE);
+          return {
+            ...e,
+            confidence: relativeScore * sufficiencyFactor,
+          };
+        })
         .slice(0, topN);
     };
 

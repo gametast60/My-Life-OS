@@ -211,6 +211,8 @@ export interface UserSettings {
   customEndpoint?: string;
   // Multi-provider
   apiProviders: APIProvider[];
+  // BIE orchestrator throttle timestamp (Unix ms)
+  bieLastRunAt?: number;
 }
 
 export interface CharacterStatus {

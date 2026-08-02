@@ -62,6 +62,18 @@
 
 ---
 
+## 2026-08-02 — Identity Engine Confidence Calibration
+
+**Context:** BIE identity entries were normalised within category but could still reach full confidence from a single evidence item.
+
+**Decision:** Set `MIN_EVIDENCE_FOR_FULL_CONFIDENCE = 5` in `src/pie/bie/identity/identityEngine.ts` and apply a sufficiency scaling factor so confidence is proportional to evidence count, capped at 1.0.
+
+**Rationale:** This keeps top entries comparable within each category while preventing premature 100% confidence from weak single-evidence signals. Full confidence should require at least five supporting evidence records for a trustworthy identity proposal.
+
+**Trade-offs:** Single-evidence entries now max out at 0.2 confidence, which may delay their visibility, but improves trustworthiness and avoids misleading certainty.
+
+---
+
 ## 2026-07-30 — Phase 3: MODE_PROMPTS → 9 Native Roles + LEGACY_MODE_CONFIG
 
 **Context:** Phase 3 Cleanup: `aiService.ts` มี `MODE_PROMPTS` 7 Legacy Prompts ซ้ำกับ 9 Native Role Persona 5/7 อัน (Prompt กระจัดกระจาย)

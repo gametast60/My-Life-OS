@@ -77,6 +77,26 @@
 
 ## 🟢 Low — Nice to Have / Future Phase
 
+### KI-207: BIE Trigger Gap (RESOLVED in Phase 5 Hotfix 2026-08-02)
+- **Issue:** BIE engines (Identity, Insight, Timeline, Relationship, Reflection) were fully implemented but **never triggered** — no manual button, no auto-trigger after check-in/journal.
+- **Resolution:** Phase 5 Hotfix (Design Gate approved 2026-08-02):
+  - Added `src/pie/bie/bieOrchestrator.ts` with `runBieAnalysisOrchestrator()` — single entry point running all 5 engines.
+  - Added "วิเคราะห์ตอนนี้" button in `BieDiscoveryModal.tsx` (Trigger Point A).
+  - Added auto-trigger in `App.tsx handleSaveCheckin` with 6-hour throttle (Trigger Point B).
+  - All proposals carry `applied: false` (P4-12 HITL); non-fatal try/catch (P4-11).
+- **Verified:** `npm run lint` ✅, `npm run build` ✅, manual button works, auto-trigger fires after check-in.
+- **Reference:** CHANGELOG.md [Phase 5 — Hotfix] section.
+
+### KI-208: Identity confidence calibration fixed (RESOLVED)
+- **Issue:** `identityEngine.ts` could assign full confidence to entries based on a single evidence item because confidence normalization did not consider evidence count.
+- **Resolution:** Converted `buildEntries()` to apply a sufficiency factor using `MIN_EVIDENCE_FOR_FULL_CONFIDENCE = 5`, so entries need multiple supporting evidences before reaching 1.0 confidence.
+- **Status:** RESOLVED.
+
+### KI-209: Hardcoded confidence values remain in `insightGenerator.ts`
+- **Issue:** `insightGenerator.ts` still uses hardcoded confidence thresholds for some insight kinds, which may require future calibration alongside the identity engine fix.
+- **Impact:** Insight confidence scoring is not yet fully tunable and may misrepresent certainty.
+- **Status:** Active.
+
 ### KI-201: Embedding ยังไม่มี Local Offline Model
 - **Issue:** Phase 4A จะใช้ Hybrid Embedding Strategy — ถ้าออนไลน์เรียก Provider; ถ้าออฟไลน์ใช้ TF-IDF/BM25 local — ซึ่ง Semantic Quality ต่ำกว่า
 - **Planned Fix:** Phase 5 อาจจะลอง WebAssembly / ONNX runtime สำหรับ Universal Sentence Encoder Multilingual
