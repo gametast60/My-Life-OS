@@ -36,7 +36,9 @@ interface HomeViewProps {
   onAddReminder: (text: string, dueDate?: string) => void;
   onEditReminder: (id: string, newText: string, dueDate?: string) => void;
   onDeleteReminder: (id: string) => void;
-  onCompleteReminder: (item: ReminderItem) => void;
+  onCompleteReminder: (reminder: ReminderItem) => void;
+  onMarkReminderAsRead: (id: string) => void;
+  onNavigateToReminder?: (reminder: ReminderItem) => void;
   onToggleMission: (id: string) => void;
   onNavigateTab: (tab: "home" | "journey" | "coach" | "journal" | "progress") => void;
   onOpenQuickAction: (action: string) => void;
@@ -53,6 +55,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onEditReminder,
   onDeleteReminder,
   onCompleteReminder,
+  onMarkReminderAsRead,
+  onNavigateToReminder,
   onOpenCheckinModal,
 }) => {
   const [inputText, setInputText] = useState("");
@@ -115,6 +119,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
       onEditReminder(id, trimmed, editingDueDate || undefined);
     }
     setEditingId(null);
+  };
+
+  const handleItemClick = (reminder: ReminderItem) => {
+    // Mark as read
+    if (!reminder.isRead) {
+      onMarkReminderAsRead(reminder.id);
+    }
+    // Navigate if handler provided
+    if (onNavigateToReminder) {
+      onNavigateToReminder(reminder);
+    }
   };
 
   return (
@@ -273,76 +288,46 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 key={r.id}
                 className="flex items-center gap-3 p-3 rounded-xl bg-[#182018] border border-[#223022] hover:border-[#273727] transition-all group"
               >
-                {/* Circle-check button */}
+                {/* Circle-check button — Complete */}
                 <button
-                  onClick={() => onCompleteReminder(r)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCompleteReminder(r);
+                  }}
                   className="w-5 h-5 rounded-full border-2 border-[#374E37] flex items-center justify-center flex-shrink-0 hover:border-[#6B9361] hover:bg-[#1F2B1F] transition-all"
                   title="ทำเสร็จแล้ว — บันทึกเข้าไดอารี่"
                 >
                   <span className="sr-only">ทำเสร็จแล้ว</span>
                 </button>
 
-                {/* Inline Edit or Text */}
-                {editingId === r.id ? (
-                  <div className="flex-1 flex flex-col gap-2">
-                    <textarea
-                      autoFocus
-                      ref={(el) => autoResizeTextarea(el)}
-                      value={editingText}
-                      onChange={(e) => {
-                        setEditingText(e.target.value);
-                        autoResizeTextarea(e.target);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      rows={TEXTAREA_MIN_LINES}
-                      className="w-full px-3 py-1.5 rounded-xl bg-[#131913] border border-[#4E7345] text-sm leading-5 text-[#EBF1EA] outline-none resize-none"
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleSaveEdit(r.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-lg text-emerald-400 bg-emerald-950/20 hover:bg-emerald-950/40 text-xs font-semibold"
-                        title="บันทึก"
-                      >
-                        <Check className="w-4 h-4" /> บันทึก
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="flex-1 flex items-center justify-center gap-1.5 p-1.5 rounded-lg text-gray-400 bg-white/5 hover:bg-white/10 text-xs font-semibold"
-                        title="ยกเลิก"
-                      >
-                        <X className="w-4 h-4" /> ยกเลิก
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsEditDateModalOpen(true)}
-                        className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#131913] border border-[#4E7345] text-xs text-[#EBF1EA] hover:border-[#6B9361] transition-colors text-left"
-                      >
-                        <Clock className="w-3 h-3 text-[#6B9361] flex-shrink-0" />
-                        <span className="truncate">
-                          {editingDueDate
-                            ? new Date(editingDueDate).toLocaleString("th-TH", {
-                                day: "numeric",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "กำหนดวัน/เวลา..."}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        onClick={() => handleStartEdit(r)}
-                        className="text-sm text-[#EBF1EA] leading-relaxed cursor-pointer hover:text-emerald-300 transition-colors break-words whitespace-pre-wrap"
-                        title="คลิกเพื่อแก้ไข"
-                      >
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  {editingId === r.id ? (
+                    <>
+                      <textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="w-full min-h-[80px] px-3.5 py-2.5 rounded-2xl bg-[#131913] border border-[#223022] text-sm leading-5 text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors resize-none"
+                        placeholder="แก้ไขรายการเตือนความจำ"
+                      />
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditDateModalOpen(true)}
+                          className="px-3 py-2 rounded-2xl border border-[#223022] bg-[#182018] text-[11px] text-[#EBF1EA] hover:border-[#4E7345] hover:bg-[#1F2B1F] transition-all"
+                        >
+                          {editingDueDate ? "แก้ไขวัน/เวลา" : "ตั้งวัน/เวลา"}
+                        </button>
+                        {editingDueDate && (
+                          <span className="text-[10px] font-mono text-[#6B9361] bg-[#131913] px-2 py-1 rounded-full border border-[#223022]">
+                            {new Date(editingDueDate).toLocaleString("th-TH")}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-[#EBF1EA] leading-relaxed break-words whitespace-pre-wrap">
                         {r.text}
                       </p>
                       {r.dueDate && (
@@ -350,27 +335,62 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           <Clock className="w-3 h-3" /> {new Date(r.dueDate).toLocaleString("th-TH")}
                         </span>
                       )}
-                    </div>
+                    </>
+                  )}
+                </div>
 
-                    {/* Actions: Edit = White, Delete = Red */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Actions: Edit + Delete */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {editingId === r.id ? (
+                    <>
                       <button
-                        onClick={() => handleStartEdit(r)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveEdit(r.id);
+                        }}
+                        className="px-3 py-2 rounded-2xl bg-[#3F5C3A] text-[11px] text-white hover:bg-[#4E7345] transition-all"
+                        title="บันทึกการแก้ไข"
+                      >
+                        บันทึก
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingId(null);
+                          setEditingText("");
+                          setEditingDueDate("");
+                        }}
+                        className="px-3 py-2 rounded-2xl border border-[#223022] bg-[#182018] text-[11px] text-[#EBF1EA] hover:border-[#4E7345] hover:bg-[#1F2B1F] transition-all"
+                        title="ยกเลิก"
+                      >
+                        ยกเลิก
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEdit(r);
+                        }}
                         className="p-1.5 rounded-lg text-white bg-[#1F2B1F] hover:bg-[#273727] transition-all"
                         title="แก้ไข"
                       >
                         <Edit2 className="w-3.5 h-3.5 text-white" />
                       </button>
                       <button
-                        onClick={() => setDeletingId(r.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingId(r.id);
+                        }}
                         className="p-1.5 rounded-lg text-red-400 bg-[#2A1818] hover:bg-[#3D1D1D] transition-all"
                         title="ลบ"
                       >
                         <Trash2 className="w-3.5 h-3.5 text-red-400" />
                       </button>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>

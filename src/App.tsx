@@ -15,7 +15,6 @@ import { PersonalIntelligenceView } from "./views/PersonalIntelligenceView";
 import { SettingsModal } from "./views/SettingsModal";
 import { ManageAPIModal } from "./components/ManageAPIModal";
 import { AISuggestPopup } from "./components/AISuggestPopup";
-import { ReminderJournalModal } from "./components/ReminderJournalModal";
 import { GoalsModal } from "./views/GoalsModal";
 import { HabitsModal } from "./views/HabitsModal";
 import { ChecklistModal } from "./views/ChecklistModal";
@@ -97,7 +96,6 @@ export default function App() {
   const [reminders, setReminders] = useState<ReminderItem[]>(() => RoomDatabase.getReminders());
   const [notes, setNotes] = useState<NoteItem[]>(() => RoomDatabase.getNotes());
   const [suggestedCard, setSuggestedCard] = useState<Partial<BrainCard> | null>(null);
-  const [popupReminder, setPopupReminder] = useState<ReminderItem | null>(null);
 
   const [brainTreeTypes, setBrainTreeTypes] = useState<BrainTreeType[]>(() =>
     RoomDatabase.getBrainTreeTypes()
@@ -237,6 +235,19 @@ export default function App() {
     );
     setReminders(updated);
     RoomDatabase.saveReminders(updated);
+  };
+
+  const handleDeleteReminder = (id: string) => {
+    const updated = reminders.filter((r) => r.id !== id);
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
+  };
+
+  const handleCompleteReminder = (reminder: ReminderItem) => {
+    const updated = reminders.filter((r) => r.id !== reminder.id);
+    setReminders(updated);
+    RoomDatabase.saveReminders(updated);
+    createReminderCompletedEvidence(reminder, []);
   };
 
   const todayStr = new Intl.DateTimeFormat("sv-SE", {
@@ -661,32 +672,50 @@ export default function App() {
     RoomDatabase.saveBrainCards(updated);
   };
 
-  const handleDeleteReminder = (id: string) => {
-    const updated = reminders.filter((r) => r.id !== id);
+  const handleClearAllReminders = () => {
+    setReminders([]);
+    RoomDatabase.saveReminders([]);
+  };
+
+  const handleMarkReminderAsRead = (id: string) => {
+    const updated = reminders.map((r) =>
+      r.id === id ? { ...r, isRead: true } : r
+    );
     setReminders(updated);
     RoomDatabase.saveReminders(updated);
   };
 
-  const handleCompleteReminder = (item: ReminderItem) => {
-    setPopupReminder(item);
-  };
-
-  const handleConfirmReminderJournal = (entry: JournalEntry) => {
-    handleAddJournal(entry);
-    if (popupReminder) {
-      const kw = findPlacementCandidatesByKeyword(popupReminder.text, 2, 1);
-      if (kw.length > 0) {
-        createReminderCompletedEvidence(popupReminder, kw.map((k) => k.tag.id));
-        reloadBrainTreeSnapshots();
+  const handleNavigateToReminder = (reminder: ReminderItem) => {
+    // If the reminder has a dimension, navigate to that tab
+    if (reminder.dimension) {
+      switch (reminder.dimension) {
+        case "work":
+        case "finance":
+        case "goal":
+          setCurrentTab("progress");
+          break;
+        case "learning":
+        case "mindset":
+        case "identity":
+        case "values":
+          setCurrentTab("brain");
+          break;
+        case "health":
+        case "emotion":
+        case "lifestyle":
+        case "hobby":
+          setCurrentTab("home");
+          break;
+        case "relationship":
+          setCurrentTab("journal");
+          break;
+        default:
+          setCurrentTab("home");
       }
-      handleDeleteReminder(popupReminder.id);
+    } else {
+      // Default to home tab
+      setCurrentTab("home");
     }
-    setPopupReminder(null);
-  };
-
-  const handleClearAllReminders = () => {
-    setReminders([]);
-    RoomDatabase.saveReminders([]);
   };
 
   const handleSaveHabitsWithEvidence = (updated: HabitItem[]) => {
@@ -784,10 +813,8 @@ export default function App() {
       <Header
         settings={settings}
         reminders={reminders}
-        onAddReminder={handleAddReminder}
-        onEditReminder={handleEditReminder}
-        onDeleteReminder={handleDeleteReminder}
-        onCompleteReminder={handleCompleteReminder}
+        onMarkReminderAsRead={handleMarkReminderAsRead}
+        onNavigateToReminder={handleNavigateToReminder}
         onClearAllReminders={handleClearAllReminders}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
@@ -809,6 +836,8 @@ export default function App() {
             onEditReminder={handleEditReminder}
             onDeleteReminder={handleDeleteReminder}
             onCompleteReminder={handleCompleteReminder}
+            onMarkReminderAsRead={handleMarkReminderAsRead}
+            onNavigateToReminder={handleNavigateToReminder}
             onToggleMission={handleToggleMission}
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenQuickAction={handleQuickAction}
@@ -975,16 +1004,6 @@ export default function App() {
         onDismiss={handleDismissJournalPlacement}
         onRequestCreateMissing={handleCreateMissingBrainNode}
       />
-
-      {popupReminder && (
-        <ReminderJournalModal
-          item={popupReminder}
-          presetTags={presetTags}
-          presetMoods={presetMoods}
-          onConfirm={handleConfirmReminderJournal}
-          onClose={() => setPopupReminder(null)}
-        />
-      )}
 
       <GoalsModal
         isOpen={isGoalsOpen}
