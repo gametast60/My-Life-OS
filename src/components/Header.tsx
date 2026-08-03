@@ -8,7 +8,6 @@ interface HeaderProps {
   reminders?: ReminderItem[];
   onMarkReminderAsRead?: (id: string) => void;
   onNavigateToReminder?: (reminder: ReminderItem) => void;
-  onClearAllReminders?: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   onOpenAIQuick?: () => void;
@@ -21,7 +20,6 @@ export const Header: React.FC<HeaderProps> = ({
   reminders = [],
   onMarkReminderAsRead = () => {},
   onNavigateToReminder = () => {},
-  onClearAllReminders = () => {},
   onOpenSettings,
   onOpenSearch,
   onOpenAIQuick,
@@ -63,7 +61,6 @@ export const Header: React.FC<HeaderProps> = ({
             reminders={reminders}
             onMarkAsRead={onMarkReminderAsRead}
             onNavigateToReminder={onNavigateToReminder}
-            onClearAllReminders={onClearAllReminders}
           />
 
           <button

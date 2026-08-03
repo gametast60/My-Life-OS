@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DateTimePicker } from "../components/DateTimePicker";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 
 interface HomeViewProps {
   settings: UserSettings;
@@ -67,6 +68,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [editingText, setEditingText] = useState("");
   const [editingDueDate, setEditingDueDate] = useState("");
   const [isEditDateModalOpen, setIsEditDateModalOpen] = useState(false);
+
+  // Reminder edit field: grows with the text instead of scrolling in a fixed box
+  const editingTextField = useAutoResizeTextarea(editingText, { minRows: 3, maxRows: 30 });
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -286,7 +290,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {reminders.map((r) => (
               <div
                 key={r.id}
-                className="flex items-center gap-3 p-3 rounded-xl bg-[#182018] border border-[#223022] hover:border-[#273727] transition-all group"
+                className={`flex gap-3 p-3 rounded-xl bg-[#182018] border border-[#223022] hover:border-[#273727] transition-all group ${
+                  editingId === r.id ? "items-start" : "items-center"
+                }`}
               >
                 {/* Circle-check button — Complete */}
                 <button
@@ -305,9 +311,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {editingId === r.id ? (
                     <>
                       <textarea
-                        value={editingText}
+                        {...editingTextField.textAreaProps}
+                        ref={editingTextField.ref}
                         onChange={(e) => setEditingText(e.target.value)}
-                        className="w-full min-h-[80px] px-3.5 py-2.5 rounded-2xl bg-[#131913] border border-[#223022] text-sm leading-5 text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors resize-none"
+                        className="w-full px-3.5 py-2.5 rounded-2xl bg-[#131913] border border-[#223022] text-sm leading-5 text-[#EBF1EA] placeholder-[#556653] focus:outline-none focus:border-[#4E7345] transition-colors resize-none"
                         placeholder="แก้ไขรายการเตือนความจำ"
                       />
                       <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -324,6 +331,30 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           </span>
                         )}
                       </div>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveEdit(r.id);
+                          }}
+                          className="px-3 py-2 rounded-2xl bg-[#3F5C3A] text-[11px] text-white hover:bg-[#4E7345] transition-all"
+                          title="บันทึกการแก้ไข"
+                        >
+                          บันทึก
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(null);
+                            setEditingText("");
+                            setEditingDueDate("");
+                          }}
+                          className="px-3 py-2 rounded-2xl border border-[#223022] bg-[#182018] text-[11px] text-[#EBF1EA] hover:border-[#4E7345] hover:bg-[#1F2B1F] transition-all"
+                          title="ยกเลิก"
+                        >
+                          ยกเลิก
+                        </button>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -339,58 +370,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   )}
                 </div>
 
-                {/* Actions: Edit + Delete */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {editingId === r.id ? (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSaveEdit(r.id);
-                        }}
-                        className="px-3 py-2 rounded-2xl bg-[#3F5C3A] text-[11px] text-white hover:bg-[#4E7345] transition-all"
-                        title="บันทึกการแก้ไข"
-                      >
-                        บันทึก
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingId(null);
-                          setEditingText("");
-                          setEditingDueDate("");
-                        }}
-                        className="px-3 py-2 rounded-2xl border border-[#223022] bg-[#182018] text-[11px] text-[#EBF1EA] hover:border-[#4E7345] hover:bg-[#1F2B1F] transition-all"
-                        title="ยกเลิก"
-                      >
-                        ยกเลิก
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartEdit(r);
-                        }}
-                        className="p-1.5 rounded-lg text-white bg-[#1F2B1F] hover:bg-[#273727] transition-all"
-                        title="แก้ไข"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-white" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingId(r.id);
-                        }}
-                        className="p-1.5 rounded-lg text-red-400 bg-[#2A1818] hover:bg-[#3D1D1D] transition-all"
-                        title="ลบ"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                      </button>
-                    </>
-                  )}
-                </div>
+                {/* Actions: Edit + Delete (hidden while editing — Save/Cancel live under the textarea instead) */}
+                {editingId !== r.id && (
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEdit(r);
+                      }}
+                      className="p-1.5 rounded-lg text-white bg-[#1F2B1F] hover:bg-[#273727] transition-all"
+                      title="แก้ไข"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingId(r.id);
+                      }}
+                      className="p-1.5 rounded-lg text-red-400 bg-[#2A1818] hover:bg-[#3D1D1D] transition-all"
+                      title="ลบ"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

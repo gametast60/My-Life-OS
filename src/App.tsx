@@ -672,11 +672,6 @@ export default function App() {
     RoomDatabase.saveBrainCards(updated);
   };
 
-  const handleClearAllReminders = () => {
-    setReminders([]);
-    RoomDatabase.saveReminders([]);
-  };
-
   const handleMarkReminderAsRead = (id: string) => {
     const updated = reminders.map((r) =>
       r.id === id ? { ...r, isRead: true } : r
@@ -815,7 +810,6 @@ export default function App() {
         reminders={reminders}
         onMarkReminderAsRead={handleMarkReminderAsRead}
         onNavigateToReminder={handleNavigateToReminder}
-        onClearAllReminders={handleClearAllReminders}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenManageAPI={() => setIsManageAPIOpen(true)}

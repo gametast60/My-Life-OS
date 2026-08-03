@@ -709,7 +709,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* MODAL 1: MODE SELECTION POPUP                             */}
       {/* ────────────────────────────────────────────────────────── */}
       {isModeSelectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-[#131913] border border-[#1F2B1F] rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl relative">
             <button
               type="button"
@@ -783,7 +783,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* MODAL 2: JOURNAL CREATION / EDITING EDITOR                 */}
       {/* ────────────────────────────────────────────────────────── */}
       {isJournalModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-[#131913] border border-[#1F2B1F] rounded-3xl p-5 md:p-6 max-w-2xl w-full my-8 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[#1F2B1F] pb-3">
               <div className="flex items-center gap-2">
@@ -937,7 +937,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* MODAL 3: QUICK NOTE CREATION / EDITING EDITOR              */}
       {/* ────────────────────────────────────────────────────────── */}
       {isNoteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-[#131913] border border-[#1F2B1F] rounded-3xl p-5 md:p-6 max-w-md w-full space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[#1F2B1F] pb-3">
               <div className="flex items-center gap-2">
@@ -1009,7 +1009,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* MODAL 4: LIST FILTER POPUP (แสดงรายการ)                     */}
       {/* ────────────────────────────────────────────────────────── */}
       {isFilterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-[#131913] border border-[#1F2B1F] rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-[#1F2B1F] pb-3">
               <h3 className="text-base font-bold text-[#EBF1EA]">แสดงรายการ</h3>

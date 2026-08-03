@@ -6,14 +6,12 @@ interface NotificationBellProps {
   reminders: ReminderItem[];
   onMarkAsRead: (id: string) => void;
   onNavigateToReminder?: (reminder: ReminderItem) => void;
-  onClearAllReminders: () => void;
 }
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   reminders,
   onMarkAsRead,
   onNavigateToReminder,
-  onClearAllReminders,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -83,14 +81,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
               )}
             </div>
             <div className="flex items-center gap-2">
-              {reminders.length > 0 && (
-                <button
-                  onClick={onClearAllReminders}
-                  className="text-[11px] text-[#869883] hover:text-red-400 transition-colors"
-                >
-                  ลบทั้งหมด
-                </button>
-              )}
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all"
