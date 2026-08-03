@@ -300,7 +300,7 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="max-w-4xl mx-auto px-4 pt-4 pb-28">
         {activeTab === "viewer" && (
           <BrainTreeViewer tree={brainFullTree} />
         )}

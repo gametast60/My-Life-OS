@@ -90,3 +90,20 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* Notification click-through: flash highlight on the target item */
+@keyframes notifyFlash {
+  0%, 100% {
+    background-color: transparent;
+    border-color: #223022;
+    box-shadow: none;
+  }
+  25%, 75% {
+    background-color: rgba(230, 180, 92, 0.16);
+    border-color: #E6B45C;
+    box-shadow: 0 0 0 1px rgba(230, 180, 92, 0.35);
+  }
+}
+.notify-flash {
+  animation: notifyFlash 1.3s ease-in-out 2;
+}

@@ -46,6 +46,8 @@ interface HomeViewProps {
   onOpenCheckinModal: () => void;
   onAddJournal: (entry: JournalEntry) => void;
   onSavePresetTags: (tags: string[]) => void;
+  /** Set when a notification-bell item is clicked, to scroll+flash the matching reminder */
+  highlightReminderId?: { id: string; nonce: number } | null;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -59,6 +61,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onMarkReminderAsRead,
   onNavigateToReminder,
   onOpenCheckinModal,
+  highlightReminderId,
 }) => {
   const [inputText, setInputText] = useState("");
   const [inputDueDate, setInputDueDate] = useState("");
@@ -75,6 +78,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const mainTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Notification click-through: scroll to + flash the matching reminder item
+  const reminderItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [flashReminderId, setFlashReminderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightReminderId) return;
+    const el = reminderItemRefs.current[highlightReminderId.id];
+    if (!el) return;
+
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Restart the CSS animation every time (even for the same id/element):
+    // drop the class, force a reflow, then re-add it.
+    setFlashReminderId(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    void el.offsetWidth;
+    const raf = requestAnimationFrame(() => setFlashReminderId(highlightReminderId.id));
+
+    const clearTimer = setTimeout(() => setFlashReminderId(null), 2700);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(clearTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightReminderId]);
 
   // Auto-expanding textarea: starts at 4 lines, grows up to 6 lines, then scrolls
   const TEXTAREA_MIN_LINES = 3;
@@ -290,9 +319,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {reminders.map((r) => (
               <div
                 key={r.id}
+                ref={(el) => {
+                  reminderItemRefs.current[r.id] = el;
+                }}
                 className={`flex gap-3 p-3 rounded-xl bg-[#182018] border border-[#223022] hover:border-[#273727] transition-all group ${
                   editingId === r.id ? "items-start" : "items-center"
-                }`}
+                } ${flashReminderId === r.id ? "notify-flash" : ""}`}
               >
                 {/* Circle-check button — Complete */}
                 <button

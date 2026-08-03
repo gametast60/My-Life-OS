@@ -68,6 +68,7 @@ import {
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>("home");
+  const [highlightReminderId, setHighlightReminderId] = useState<{ id: string; nonce: number } | null>(null);
   const isKeyboardOpen = useKeyboardOpen();
   useKeyboardScrollFix();
 
@@ -681,36 +682,12 @@ export default function App() {
   };
 
   const handleNavigateToReminder = (reminder: ReminderItem) => {
-    // If the reminder has a dimension, navigate to that tab
-    if (reminder.dimension) {
-      switch (reminder.dimension) {
-        case "work":
-        case "finance":
-        case "goal":
-          setCurrentTab("progress");
-          break;
-        case "learning":
-        case "mindset":
-        case "identity":
-        case "values":
-          setCurrentTab("brain");
-          break;
-        case "health":
-        case "emotion":
-        case "lifestyle":
-        case "hobby":
-          setCurrentTab("home");
-          break;
-        case "relationship":
-          setCurrentTab("journal");
-          break;
-        default:
-          setCurrentTab("home");
-      }
-    } else {
-      // Default to home tab
-      setCurrentTab("home");
-    }
+    // Reminders only render in the Home view's "เตือนความจำ" list, so always
+    // land there, then trigger the scroll-into-view + flash highlight.
+    // (nonce changes on every click so re-clicking the same reminder always
+    // restarts the flash animation, even if you're already on Home.)
+    setCurrentTab("home");
+    setHighlightReminderId({ id: reminder.id, nonce: Date.now() });
   };
 
   const handleSaveHabitsWithEvidence = (updated: HabitItem[]) => {
@@ -838,6 +815,7 @@ export default function App() {
             onOpenCheckinModal={() => setIsCheckinOpen(true)}
             onAddJournal={handleAddJournal}
             onSavePresetTags={handleSavePresetTags}
+            highlightReminderId={highlightReminderId}
           />
         )}
 
