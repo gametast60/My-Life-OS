@@ -67,16 +67,16 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
       {isOpen && (
         <div
           className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 max-w-md sm:max-w-none mx-auto sm:mx-0 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
-          style={{ background: "#1F1912", border: "1px solid #34281A" }}
+          style={{ background: "#1c1c1e", border: "1px solid #3a3a3c" }}
         >
           {/* Header with Close Button */}
           <div
             className="flex items-center justify-between px-4 py-3"
-            style={{ background: "#251D14", borderBottom: "1px solid #34281A" }}
+            style={{ background: "#2c2c2e", borderBottom: "1px solid #3a3a3c" }}
           >
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-[#6B9361]" />
-              <h3 className="text-xs font-bold" style={{ color: "#F3ECE0" }}>เตือนความจำ</h3>
+              <h3 className="text-xs font-bold" style={{ color: "#f2f2f7" }}>เตือนความจำ</h3>
               {reminders.length > 0 && (
                 <span
                   className="text-[10px] font-mono px-2 py-0.5 rounded-full"
@@ -90,7 +90,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg transition-all hover:bg-white/5"
-                style={{ color: "#9C8E7A" }}
+                style={{ color: "#a1a1a6" }}
                 title="ปิด"
               >
                 <X className="w-4 h-4" />
@@ -99,9 +99,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           </div>
 
           {/* List */}
-          <div className="max-h-72 overflow-y-auto" style={{ background: "#231C13" }}>
+          <div className="max-h-72 overflow-y-auto" style={{ background: "#1c1c1e" }}>
             {reminders.length === 0 ? (
-              <div className="py-8 text-center text-xs" style={{ color: "#9C8E7A" }}>
+              <div className="py-8 text-center text-xs" style={{ color: "#a1a1a6" }}>
                 ไม่มีรายการเตือนความจำ ✨
               </div>
             ) : (
@@ -110,9 +110,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                   key={r.id}
                   className="p-3 flex items-start gap-2.5 cursor-pointer group transition-colors"
                   style={{
-                    borderTop: i === 0 ? "none" : "1px solid #34281A",
+                    borderTop: i === 0 ? "none" : "1px solid #3a3a3c",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#2A2118")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#2c2c2e")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   onClick={() => handleItemClick(r)}
                 >
@@ -121,14 +121,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                     className="w-2 h-2 mt-2 rounded-full flex-shrink-0"
                     style={
                       r.isRead
-                        ? { background: "#3A2F22", border: "1px solid #4A3B28" }
+                        ? { background: "#3a3a3c", border: "1px solid #48484a" }
                         : { background: "#E6B45C" }
                     }
                   />
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-relaxed" style={{ color: "#F3ECE0" }}>
+                    <p className="text-sm leading-relaxed" style={{ color: "#f2f2f7" }}>
                       {r.text}
                     </p>
                     {r.dueDate && (
