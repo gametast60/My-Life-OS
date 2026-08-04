@@ -11,7 +11,7 @@ import {
 } from "../types";
 import {
   sendAIChatRequest,
-  suggestBrainCard,
+  summarizeAIChatExchange,
 } from "../lib/aiService";
 import {
   Bot,
@@ -40,9 +40,10 @@ interface AICoachViewProps {
   onClearSession?: () => void;
   onOpenManageAPI?: () => void;
   onOpenLifeBrain?: () => void;
-  onSuggestCard?: (card: Partial<BrainCard>) => void;
+  onAddJournal?: (entry: JournalEntry) => void;
   onOpenBieDiscovery?: () => void;
   onOpenIdentityReview?: () => void;
+
   onOpenInsightCenter?: () => void;
   onOpenTimelineViewer?: () => void;
 }
@@ -64,7 +65,7 @@ export const AICoachView: React.FC<AICoachViewProps> = (props) => {
     journals,
     onSaveMessage,
     onClearSession,
-    onSuggestCard,
+    onAddJournal,
   } = props;
   const [activePopupMode, setActivePopupMode] = useState<AIMode | null>(null);
 
@@ -132,7 +133,7 @@ export const AICoachView: React.FC<AICoachViewProps> = (props) => {
           onSaveMessage={onSaveMessage}
           onClearSession={onClearSession}
           onClose={() => setActivePopupMode(null)}
-          onSuggestCard={onSuggestCard}
+          onAddJournal={onAddJournal}
         />
       )}
     </div>
@@ -149,7 +150,7 @@ interface ChatPopupModalProps {
   onSaveMessage: (msg: AIChatMessage) => void;
   onClearSession?: () => void;
   onClose: () => void;
-  onSuggestCard?: (card: Partial<BrainCard>) => void;
+  onAddJournal?: (entry: JournalEntry) => void;
 }
 
 const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
@@ -161,7 +162,7 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
   onSaveMessage,
   onClearSession,
   onClose,
-  onSuggestCard,
+  onAddJournal,
 }) => {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -220,10 +221,36 @@ const ChatPopupModal: React.FC<ChatPopupModalProps> = ({
       };
       onSaveMessage(aiMsg);
 
-      // Trigger background suggestion check
-      if (onSuggestCard) {
-        suggestBrainCard(userMsgText, brainCards, settings).then((suggested) => {
-          if (suggested) onSuggestCard(suggested);
+      // Summarize key user intentions and save to Journal
+      if (onAddJournal) {
+        summarizeAIChatExchange({
+          userPrompt: userMsgText,
+          aiResponse: response,
+          settings,
+        }).then((summary) => {
+          if (!summary) return;
+          const now = Date.now();
+          const entryDate = new Date(now).toLocaleDateString("th-TH", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          });
+          const journalEntry: JournalEntry = {
+            id: "j-chat-" + now,
+            date: entryDate,
+            timestamp: now,
+            title: "AI Chat Insight",
+            content: summary,
+            mode: "Normal Diary",
+            mood: "😊",
+            emotion: "😊",
+            tags: ["AI Chat"],
+            favorite: false,
+            pinned: false,
+            dimension: "mindset",
+            linkedBrainCardIds: [],
+          };
+          onAddJournal(journalEntry);
         });
       }
     } catch (err: any) {

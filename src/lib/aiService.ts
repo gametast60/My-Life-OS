@@ -618,4 +618,48 @@ export const MODE_TO_ROLE: Record<AIMode, AIRoleId> = {
   Chat: LEGACY_MODE_CONFIG.Chat.roleId,
 };
 
+export async function summarizeAIChatExchange(params: {
+  userPrompt: string;
+  aiResponse: string;
+  settings: UserSettings;
+}): Promise<string> {
+  const { userPrompt, aiResponse, settings } = params;
+  if (!userPrompt.trim()) return "";
+
+  try {
+    const systemPrompt = `คุณคือ AI Memory Extractor สำหรับ Life OS
+หน้าที่ของคุณคือ สกัด "ความตั้งใจ ตัวตน หรือการกระทำของผู้ใช้" (User Intent & Goal) จากการสนทนานี้
+กฎเหล็ก:
+1. สรุปเฉพาะความตั้งใจ/เป้าหมาย/ตัวตน/การกระทำของผู้ใช้ เป็นประโยคสั้นๆ 1-2 ประโยค (ภาษาไทย)
+2. ห้ามสรุปบทอธิบายหรือคำแนะนำยาวๆ ของ AI
+3. โฟกัสว่า "ผู้ใช้คือใคร / ต้องการอะไร / กำลังทำอะไร" (เช่น "ผู้ใช้ต้องการพัฒนาตัวเองเพื่อเป็นเทรดเดอร์...")
+4. ตอบกลับเป็นเพียงข้อความสรุปตรงๆ ห้ามมีคำเกริ่น ห้ามมี JSON`;
+
+    const promptText = `[User Message]: ${userPrompt}\n[AI Response]: ${aiResponse.slice(0, 300)}`;
+
+    const pieRequest = createPipelineRequestFromLegacy({
+      prompt: promptText,
+      systemPrompt,
+      roleHint: "custom",
+      settings,
+      outputFormat: "text",
+    });
+
+    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
+      retrieval: true,
+      ranking: true,
+    };
+    const result = await runPipeline(pieRequest, { skipStages });
+    if (result.success) {
+      const summary = (result.finalText || result.context.providerResult.rawText || "").trim();
+      if (summary) return summary;
+    }
+  } catch (err) {
+    console.warn("[summarizeAIChatExchange] AI pipeline failed, using fallback:", err);
+  }
+
+  return `ผู้ใช้: ${userPrompt.slice(0, 100)}`;
+}
+
 export type { PipelineContext };
+

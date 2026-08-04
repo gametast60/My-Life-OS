@@ -14,7 +14,6 @@ import { PersonalIntelligenceView } from "./views/PersonalIntelligenceView";
 
 import { SettingsModal } from "./views/SettingsModal";
 import { ManageAPIModal } from "./components/ManageAPIModal";
-import { AISuggestPopup } from "./components/AISuggestPopup";
 import { GoalsModal } from "./views/GoalsModal";
 import { HabitsModal } from "./views/HabitsModal";
 import { ChecklistModal } from "./views/ChecklistModal";
@@ -51,16 +50,16 @@ import {
 } from "./types";
 import {
   createJournalEvidence,
-  createCheckinEvidence,
   createGoalProgressEvidence,
   createHabitCompletedEvidence,
-  createReminderCompletedEvidence,
-  findPlacementCandidatesByKeyword,
   buildFullTree,
   recalcAndPersistTagGrowth,
   seedDefaultTemplateIfEmpty,
 } from "./lib/brainTree/brainTreeService";
 import type { FullTree } from "./lib/brainTree/brainTreeService";
+import {
+  findPlacementCandidatesByKeyword,
+} from "./lib/brainTree/brainTreeService";
 import {
   suggestJournalBrainPlacement,
   AIBrainPlacementSuggestion,
@@ -96,7 +95,6 @@ export default function App() {
   const [brainCards, setBrainCards] = useState<BrainCard[]>(() => RoomDatabase.getBrainCards());
   const [reminders, setReminders] = useState<ReminderItem[]>(() => RoomDatabase.getReminders());
   const [notes, setNotes] = useState<NoteItem[]>(() => RoomDatabase.getNotes());
-  const [suggestedCard, setSuggestedCard] = useState<Partial<BrainCard> | null>(null);
 
   const [brainTreeTypes, setBrainTreeTypes] = useState<BrainTreeType[]>(() =>
     RoomDatabase.getBrainTreeTypes()
@@ -248,7 +246,29 @@ export default function App() {
     const updated = reminders.filter((r) => r.id !== reminder.id);
     setReminders(updated);
     RoomDatabase.saveReminders(updated);
-    createReminderCompletedEvidence(reminder, []);
+
+    const now = Date.now();
+    const entryDate = new Date(now).toLocaleDateString("th-TH", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+    const reminderJournalEntry: JournalEntry = {
+      id: "j-rem-" + now,
+      date: entryDate,
+      timestamp: now,
+      title: `งานที่ทำเสร็จ: ${reminder.text}`,
+      content: `ทำงาน ${reminder.text} เสร็จแล้ว`,
+      mode: "Normal Diary",
+      mood: "😊",
+      emotion: "😊",
+      tags: ["Reminder"],
+      favorite: false,
+      pinned: false,
+      dimension: reminder.dimension || "mindset",
+      linkedBrainCardIds: [],
+    };
+    handleAddJournal(reminderJournalEntry);
   };
 
   const todayStr = new Intl.DateTimeFormat("sv-SE", {
@@ -600,59 +620,41 @@ export default function App() {
     setCharacter(updatedChar);
     RoomDatabase.saveCharacter(updatedChar);
 
-    const blob = [
-      checkin.answers.wentWell,
-      checkin.answers.challenge,
-      checkin.answers.learned,
-      checkin.answers.grateful,
-      checkin.answers.tomorrow,
-    ].join(" ");
-    const kw = findPlacementCandidatesByKeyword(blob, 2, 1);
-    if (kw.length > 0) {
-      createCheckinEvidence(checkin, kw.map((k) => k.tag.id));
-      reloadBrainTreeSnapshots();
-    }
+    const qaContent = [
+      `1. สิ่งที่ดำเนินไปได้ด้วยดี: ${checkin.answers.wentWell || "-"}`,
+      `2. อุปสรรค/ความท้าทาย: ${checkin.answers.challenge || "-"}`,
+      `3. สิ่งที่ได้เรียนรู้: ${checkin.answers.learned || "-"}`,
+      `4. สิ่งที่รู้สึกขอบคุณ: ${checkin.answers.grateful || "-"}`,
+      `5. สิ่งที่จะทำในวันพรุ่งนี้: ${checkin.answers.tomorrow || "-"}`,
+    ].join("\n");
 
-    // ── Trigger Point B: Auto-run BIE orchestrator after check-in save (fire-and-forget)
-    // Throttle: skip if last run was within 6 hours (21600000 ms)
+    const fullContent = checkin.aiSummary
+      ? `[AI สรุป]: ${checkin.aiSummary}\n\n[คำตอบ Check-in]:\n${qaContent}`
+      : qaContent;
+
     const now = Date.now();
-    const lastRun = settings.bieLastRunAt ?? 0;
-    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-    if (now - lastRun >= SIX_HOURS_MS) {
-      // Update throttle timestamp immediately to prevent duplicate triggers
-      const updatedSettings = { ...settings, bieLastRunAt: now };
-      setSettings(updatedSettings);
-      RoomDatabase.saveSettings(updatedSettings);
+    const entryDate = new Date(now).toLocaleDateString("th-TH", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+    const checkinJournalEntry: JournalEntry = {
+      id: "j-chk-" + now,
+      date: entryDate,
+      timestamp: now,
+      title: `Daily Check-in Summary (${checkin.date})`,
+      content: fullContent,
+      mode: "Normal Diary",
+      mood: (checkin.mood as any) || "😊",
+      emotion: checkin.mood || "😊",
+      tags: ["Check-in"],
+      favorite: false,
+      pinned: false,
+      dimension: "mindset",
+      linkedBrainCardIds: [],
+    };
 
-      // Fire-and-forget: non-blocking, errors don't propagate (P4-11 pattern)
-      Promise.resolve().then(async () => {
-        try {
-          const repo = new (await import("./pie/bie/RoomBrainIntelligenceRepository")).RoomBrainIntelligenceRepository();
-          const evidences: BrainEvidence[] = RoomDatabase.getBrainEvidence();
-          const tags: BrainTreeTag[] = RoomDatabase.getBrainTreeTags();
-          const dimensions: BrainTreeDimension[] = RoomDatabase.getBrainTreeDimensions();
-          const graphNodes = RoomDatabase.getBieGraphNodes().map((n) => ({
-            id: n.id,
-            label: n.label,
-            nodeType: n.kind as any,
-            createdAt: n.createdAt,
-            updatedAt: n.updatedAt,
-            dimension: n.dimension,
-            metadata: undefined,
-          }));
-
-          await (await import("./pie/bie/bieOrchestrator")).runBieAnalysisOrchestrator({
-            evidences,
-            tags,
-            dimensions,
-            graphNodes,
-            bieRepo: repo,
-          });
-        } catch (err) {
-          console.warn("[handleSaveCheckin] BIE orchestrator auto-trigger failed (non-fatal):", err);
-        }
-      });
-    }
+    handleAddJournal(checkinJournalEntry);
   };
 
   const handleAddBrainCard = (card: BrainCard) => {
@@ -733,23 +735,6 @@ export default function App() {
     }
     if (needsReload) reloadBrainTreeSnapshots();
     priorGoalsRef.current = updated;
-  };
-
-  const handleConfirmSuggestedCard = (partial: Partial<BrainCard>) => {
-    const now = Date.now();
-    const newCard: BrainCard = {
-      id: `brain-${now}-${Math.random().toString(36).slice(2, 7)}`,
-      title: partial.title || "Brain Card",
-      description: partial.description || "",
-      dimension: partial.dimension || "goal",
-      brainType: partial.brainType || "Knowledge",
-      tags: partial.tags || [],
-      linkedJournalIds: partial.linkedJournalIds || [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    handleAddBrainCard(newCard);
-    setSuggestedCard(null);
   };
 
   const handleSaveMessage = (msg: AIChatMessage) => {
@@ -864,7 +849,7 @@ export default function App() {
             onClearSession={handleClearChatSession}
             onOpenManageAPI={() => setIsManageAPIOpen(true)}
             onOpenLifeBrain={() => setCurrentTab("brain")}
-            onSuggestCard={(card) => setSuggestedCard(card)}
+            onAddJournal={handleAddJournal}
           />
         )}
 
@@ -959,11 +944,6 @@ export default function App() {
         }}
       />
 
-      <AISuggestPopup
-        card={suggestedCard}
-        onConfirm={handleConfirmSuggestedCard}
-        onDismiss={() => setSuggestedCard(null)}
-      />
 
       <JournalPlacementBottomSheet
         isOpen={pendingJournalPlacement !== null}
