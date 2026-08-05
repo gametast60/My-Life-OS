@@ -30,13 +30,30 @@
 // runBieAnalysisOrchestrator() may run. Everything that orchestrator
 // produces still lands in the pending queue (applied: false) exactly as
 // before — see bieOrchestrator.ts, unmodified.
+//
+// Architect Fix 1: also builds the read-only Journal-memory resolver
+// (journalMemoryResolver.ts) from `journals` and passes it into the
+// orchestrator context, so BIE can resolve BrainEvidence.sourceId back
+// to the original JournalEntry without duplicating Journal storage.
+//
+// Architect Fix 2: `bieEnabled` here is just a parameter — it is the
+// CALLER's responsibility (see App.tsx) to pass the real, persisted
+// `settings.bieEnabled` explicitly rather than relying on this
+// function's own default.
 // ─────────────────────────────────────────────────────────────────────
 
-import type { BrainEvidence, BrainTreeDimension, BrainTreeTag, UserSettings } from "../../types";
+import type {
+  BrainEvidence,
+  BrainTreeDimension,
+  BrainTreeTag,
+  JournalEntry,
+  UserSettings,
+} from "../../types";
 import { runBieAnalysisOrchestrator } from "./bieOrchestrator";
 import type { BrainIntelligenceRepository } from "./BrainIntelligenceRepository";
 import type { GraphNode } from "./types";
 import type { BIEGraphNode } from "./graph/types";
+import { createJournalMemoryResolver } from "./journalMemoryResolver";
 
 /**
  * Minimum time between BIE learning cycles (throttle), reusing the
@@ -72,9 +89,21 @@ export interface MaybeRunBieParams {
   evidences: BrainEvidence[];
   tags: BrainTreeTag[];
   dimensions: BrainTreeDimension[];
+  /**
+   * Architect Fix 1: canonical Journal list (e.g. RoomDatabase.getJournals()),
+   * used only to build a read-only sourceId -> JournalEntry resolver for
+   * this run. Not stored, not duplicated.
+   */
+  journals: JournalEntry[];
   bieRepo: BrainIntelligenceRepository;
   settings: UserSettings;
-  /** Opt-out switch, consistent with the rest of the BIE codebase (P4-14). Defaults true. */
+  /**
+   * Architect Fix 2: the caller MUST pass the actual persisted
+   * `settings.bieEnabled` value explicitly (do not rely on this
+   * parameter's own default when a real user setting exists). Only
+   * callers with no real setting to read may omit it, in which case it
+   * defaults to true (P4-14 opt-out convention).
+   */
   bieEnabled?: boolean;
   nowMs?: number;
 }
@@ -112,6 +141,7 @@ export async function maybeRunBieLearningCycle(
     evidences,
     tags,
     dimensions,
+    journals,
     bieRepo,
     settings,
     bieEnabled = true,
@@ -133,6 +163,7 @@ export async function maybeRunBieLearningCycle(
 
   try {
     const graphNodes = (bieRepo.getGraphNodes?.() ?? []).map(toBieGraphNode);
+    const resolveJournalMemory = createJournalMemoryResolver(journals);
     await runBieAnalysisOrchestrator({
       evidences,
       tags,
@@ -140,6 +171,7 @@ export async function maybeRunBieLearningCycle(
       graphNodes,
       bieRepo,
       nowMs,
+      resolveJournalMemory,
     });
     return {
       ran: true,

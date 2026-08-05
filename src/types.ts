@@ -213,6 +213,11 @@ export interface UserSettings {
   apiProviders: APIProvider[];
   // BIE orchestrator throttle timestamp (Unix ms)
   bieLastRunAt?: number;
+  // BIE auto-trigger opt-out switch (P4-14 / S7 convention: undefined/true = enabled).
+  // Note: this did not previously exist as a persisted setting — added here
+  // (Architect Fix 2) since bieTrigger.ts needs a real value to respect,
+  // not a hardcoded default.
+  bieEnabled?: boolean;
 }
 
 export interface CharacterStatus {

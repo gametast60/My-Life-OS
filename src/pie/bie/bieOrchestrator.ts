@@ -32,6 +32,7 @@ import type { ReflectionCycleOptions } from "./reflection/reflectorEngine";
 import type { BrainIntelligenceRepository } from "./BrainIntelligenceRepository";
 import type { PendingLearning } from "./types";
 import type { InsightType } from "./identity";
+import type { JournalMemoryResolver } from "./journalMemoryResolver";
 
 /** Map InsightType (identity layer) to InsightKind (legacy S1 interface). */
 function mapInsightTypeToKind(type: InsightType): import("./types").InsightKind {
@@ -66,6 +67,17 @@ export interface BieOrchestratorContext {
   maxInsights?: number;
   /** Timeline granularities to build. Defaults to ["month", "quarter", "year"]. */
   timelineGranularities?: TimelineGranularity[];
+  /**
+   * Architect Fix 1: read-only resolver from BrainEvidence.sourceId to the
+   * original JournalEntry (canonical memory). Optional and additive —
+   * existing engines (identityEngine/insightGenerator/etc.) are NOT
+   * modified and keep reasoning from `evidences` exactly as before. When
+   * provided, it is echoed back on the result so BIE-boundary consumers
+   * (e.g. a HITL review surface) can resolve full Journal memory for a
+   * given proposal's evidence on demand, without Journal being duplicated
+   * into BIE storage.
+   */
+  resolveJournalMemory?: JournalMemoryResolver;
 }
 
 /** Result of the orchestrator run. */
@@ -76,6 +88,8 @@ export interface BieOrchestratorResult {
   relationshipsProposed: number;
   reflectionCycleResult: Awaited<ReturnType<typeof runBackgroundReflectionCycle>>;
   executedAt: number;
+  /** Present iff a resolver was supplied in context (Architect Fix 1). */
+  resolveJournalMemory?: JournalMemoryResolver;
 }
 
 /**
@@ -103,6 +117,7 @@ export async function runBieAnalysisOrchestrator(
     nowMs = Date.now(),
     maxInsights = 20,
     timelineGranularities = ["month", "quarter", "year"],
+    resolveJournalMemory,
   } = ctx;
 
   let identityProposed = false;
@@ -243,5 +258,6 @@ export async function runBieAnalysisOrchestrator(
     relationshipsProposed,
     reflectionCycleResult,
     executedAt: nowMs,
+    resolveJournalMemory,
   };
 }

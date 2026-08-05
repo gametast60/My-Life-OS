@@ -388,8 +388,12 @@ export default function App() {
       evidences: RoomDatabase.getBrainEvidence(),
       tags: RoomDatabase.getBrainTreeTags(),
       dimensions: RoomDatabase.getBrainTreeDimensions(),
+      journals: RoomDatabase.getJournals(),
       bieRepo: new RoomBrainIntelligenceRepository(),
       settings,
+      // Architect Fix 2: pass the real persisted setting explicitly —
+      // do not let the helper silently default to true.
+      bieEnabled: settings.bieEnabled !== false,
     })
       .then((result) => {
         if (result.ran && result.updatedSettings) {
