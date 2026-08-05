@@ -36,6 +36,8 @@ import type {
   LifeDimension,
 } from "../../../types";
 import { cosineSimilarity } from "../utils";
+import { resolveEvidenceText } from "../analysisContext";
+import type { JournalMemoryResolver } from "../journalMemoryResolver";
 import type {
   IdentityEntry,
   IdentityProfile,
@@ -74,6 +76,15 @@ export interface IdentityBuildContext {
   nowMs?: number;
   /** Max entries to keep per identity category. Defaults to 5. */
   topN?: number;
+  /**
+   * Architect Fix 1 (Final): read-only resolver from BrainEvidence.sourceId
+   * to the original JournalEntry (canonical memory). When supplied, journal
+   * evidence is bucketed using the real Journal content instead of only
+   * the 140-char `preview` — see analysisContext.ts. Optional and
+   * backward-compatible: omitting it preserves the previous preview-only
+   * behavior exactly.
+   */
+  resolveJournalMemory?: JournalMemoryResolver;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -146,9 +157,17 @@ function recencyWeight(occurredAtMs: number, nowMs: number): number {
  */
 function bucketEvidence(
   evidence: BrainEvidence,
-  dim: LifeDimension | undefined
+  dim: LifeDimension | undefined,
+  analysisText: string
 ): IdentityCategoryKey | null {
-  const preview = evidence.preview.toLowerCase();
+  // Architect Fix 1 (Final): classify from the resolved analysis text
+  // (real Journal content for kind:"journal" evidence when a resolver
+  // was supplied; falls back to evidence.preview otherwise — see
+  // resolveEvidenceText() in analysisContext.ts). This is the actual
+  // fix: previously this always read `evidence.preview.toLowerCase()`
+  // directly, so content past the 140-char preview cutoff could never
+  // influence category classification.
+  const preview = analysisText.toLowerCase();
 
   // ── Keyword-first overrides (language-agnostic heuristics) ──────
 
@@ -330,7 +349,14 @@ export class DefaultIdentityEngine implements IdentityEngine {
    * 7. Return IdentityProfile with applied=false (P4-12 readonly literal).
    */
   async buildProfile(context: IdentityBuildContext): Promise<IdentityProfile> {
-    const { evidences, tags, dimensions, nowMs = Date.now(), topN = 5 } = context;
+    const {
+      evidences,
+      tags,
+      dimensions,
+      nowMs = Date.now(),
+      topN = 5,
+      resolveJournalMemory,
+    } = context;
 
     // ── 1. Build lookup maps ──────────────────────────────────────────
     const tagMap = new Map<string, BrainTreeTag>();
@@ -365,7 +391,8 @@ export class DefaultIdentityEngine implements IdentityEngine {
         ? dimIdMap.get(tag.brainTreeDimensionId)
         : undefined;
 
-      const category = bucketEvidence(ev, dim);
+      const analysisText = resolveEvidenceText(ev, resolveJournalMemory);
+      const category = bucketEvidence(ev, dim, analysisText);
       if (!category) continue;
 
       const label = evidenceToLabel(ev);

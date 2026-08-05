@@ -68,14 +68,16 @@ export interface BieOrchestratorContext {
   /** Timeline granularities to build. Defaults to ["month", "quarter", "year"]. */
   timelineGranularities?: TimelineGranularity[];
   /**
-   * Architect Fix 1: read-only resolver from BrainEvidence.sourceId to the
-   * original JournalEntry (canonical memory). Optional and additive —
-   * existing engines (identityEngine/insightGenerator/etc.) are NOT
-   * modified and keep reasoning from `evidences` exactly as before. When
-   * provided, it is echoed back on the result so BIE-boundary consumers
-   * (e.g. a HITL review surface) can resolve full Journal memory for a
-   * given proposal's evidence on demand, without Journal being duplicated
-   * into BIE storage.
+   * Architect Fix 1 (Final): read-only resolver from BrainEvidence.sourceId
+   * to the original JournalEntry (canonical memory). Optional and
+   * additive. Passed through into identityEngine.buildProfile,
+   * insightGenerator.generateInsights, and timelineBuilder.buildTimeline
+   * (see analysisContext.ts / resolveEvidenceText) so those engines
+   * actually classify/scan the real Journal content for kind:"journal"
+   * evidence instead of only the 140-char `preview`. Also echoed back on
+   * the result so BIE-boundary consumers (e.g. a HITL review surface)
+   * can resolve full Journal memory for a given proposal's evidence on
+   * demand — Journal is never duplicated into BIE storage.
    */
   resolveJournalMemory?: JournalMemoryResolver;
 }
@@ -134,6 +136,7 @@ export async function runBieAnalysisOrchestrator(
       dimensions,
       nowMs,
       topN: 5,
+      resolveJournalMemory,
     };
     const profile: IdentityProfile = await identityEngine.buildProfile(identityCtx);
     // Propose to pending queue (applied: false enforced by proposeIdentityUpdate)
@@ -154,6 +157,7 @@ export async function runBieAnalysisOrchestrator(
       dimensions,
       nowMs,
       maxInsights,
+      resolveJournalMemory,
     };
     const insights: InsightItem[] = await insightGenerator.generateInsights(insightCtx);
     // Propose each insight to pending queue (convert InsightItem → Insight for proposeInsightProposal)
@@ -188,6 +192,7 @@ export async function runBieAnalysisOrchestrator(
         dimensions,
         granularity,
         nowMs,
+        resolveJournalMemory,
       };
       const entries: TimelineEntry[] = await timelineBuilder.buildTimeline(timelineCtx);
       for (const entry of entries) {

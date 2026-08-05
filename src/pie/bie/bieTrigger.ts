@@ -21,20 +21,22 @@
 //     Journal event must not trigger a full learning cycle by itself;
 //     confidence-per-category sufficiency is still handled inside
 //     identityEngine/insightGenerator exactly as before).
-//   - `BrainEvidence.preview` + `BrainEvidence.sourceId` as the existing
-//     read-through reference to Journal memory (already consumed by
-//     identityEngine/insightGenerator keyword heuristics). Journal
-//     records are NOT duplicated into a second memory store.
+//   - `BrainEvidence.sourceId` as the existing read-through reference to
+//     Journal memory. Journal records are NOT duplicated into a second
+//     memory store.
 //
 // HITL is unaffected: this file only decides WHEN
 // runBieAnalysisOrchestrator() may run. Everything that orchestrator
 // produces still lands in the pending queue (applied: false) exactly as
-// before — see bieOrchestrator.ts, unmodified.
+// before — see bieOrchestrator.ts.
 //
-// Architect Fix 1: also builds the read-only Journal-memory resolver
+// Architect Fix 1 (Final): builds the read-only Journal-memory resolver
 // (journalMemoryResolver.ts) from `journals` and passes it into the
-// orchestrator context, so BIE can resolve BrainEvidence.sourceId back
-// to the original JournalEntry without duplicating Journal storage.
+// orchestrator context. From there it now reaches identityEngine /
+// insightGenerator / timelineBuilder (via analysisContext.ts), so BIE
+// reasoning actually classifies/scans the real Journal content for
+// kind:"journal" evidence — not only BrainEvidence.preview — without
+// duplicating Journal storage.
 //
 // Architect Fix 2: `bieEnabled` here is just a parameter — it is the
 // CALLER's responsibility (see App.tsx) to pass the real, persisted

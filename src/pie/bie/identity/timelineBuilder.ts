@@ -31,6 +31,8 @@ import type {
   LifeDimension,
 } from "../../../types";
 import { contentHash } from "../utils";
+import { resolveEvidenceText } from "../analysisContext";
+import type { JournalMemoryResolver } from "../journalMemoryResolver";
 import type {
   TimelineEntry,
   TimelineGranularity,
@@ -50,6 +52,13 @@ export interface TimelineBuilderContext {
   granularity: TimelineGranularity;
   /** Current Unix ms timestamp. Defaults to Date.now(). */
   nowMs?: number;
+  /**
+   * Architect Fix 1 (Final): read-only resolver from BrainEvidence.sourceId
+   * to the original JournalEntry. When supplied, milestone detection scans
+   * the real Journal content instead of only the 140-char `preview`.
+   * Optional and backward-compatible.
+   */
+  resolveJournalMemory?: JournalMemoryResolver;
 }
 
 /** Interface for TimelineBuilder. */
@@ -106,7 +115,14 @@ function formatPeriod(timestamp: number, granularity: TimelineGranularity): stri
 
 export class DefaultTimelineBuilder implements TimelineBuilder {
   async buildTimeline(context: TimelineBuilderContext): Promise<TimelineEntry[]> {
-    const { evidences, tags, dimensions, granularity, nowMs = Date.now() } = context;
+    const {
+      evidences,
+      tags,
+      dimensions,
+      granularity,
+      nowMs = Date.now(),
+      resolveJournalMemory,
+    } = context;
 
     if (evidences.length === 0) {
       return [];
@@ -160,8 +176,12 @@ export class DefaultTimelineBuilder implements TimelineBuilder {
           dimTags.set(dim, tset);
         }
 
-        // Check if evidence is a milestone
-        if (isMilestone(ev.preview)) {
+        // Check if evidence is a milestone. Architect Fix 1 (Final): scan
+        // the real Journal content (when resolvable) rather than only the
+        // 140-char preview; the short display label stays preview-derived
+        // and unchanged.
+        const analysisText = resolveEvidenceText(ev, resolveJournalMemory);
+        if (isMilestone(analysisText)) {
           milestones.push({
             id: ev.id,
             label: ev.preview.trim().slice(0, 60),

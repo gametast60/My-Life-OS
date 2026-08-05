@@ -15,6 +15,7 @@ import {
   Clipboard,
   Shield,
   Key,
+  BrainCircuit,
 } from "lucide-react";
 
 interface SettingsModalProps {
@@ -131,6 +132,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Key size={16} />
               🔑 เปิดหน้าจัดการ AI Providers (Manage API)
             </button>
+          </div>
+
+          {/* Section: BIE Learning Cycle (Architect Fix 2 — Final) */}
+          <div className="space-y-3 pt-2 border-t border-emerald-900/20">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <BrainCircuit size={13} />
+              BIE — การเรียนรู้ระยะยาว
+            </h3>
+            <div className="flex items-center justify-between gap-3 bg-black/30 border border-emerald-900/30 rounded-xl px-3.5 py-3">
+              <div className="pr-3">
+                <p className="text-xs font-semibold text-gray-200">
+                  เปิดใช้งาน BIE Learning Cycle
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                  {formData.bieEnabled !== false
+                    ? "เปิด: BIE จะเรียนรู้จาก Journal และ Evidence ที่สะสมไว้โดยอัตโนมัติ (เมื่อมีข้อมูลเพียงพอ)"
+                    : "ปิด: BIE จะไม่รันรอบการเรียนรู้อัตโนมัติ — Journal และข้อมูลอื่นยังบันทึกตามปกติ"}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={formData.bieEnabled !== false}
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    bieEnabled: formData.bieEnabled === false ? true : false,
+                  })
+                }
+                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${
+                  formData.bieEnabled !== false ? "bg-emerald-500" : "bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    formData.bieEnabled !== false ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Section: Backup & Restore */}

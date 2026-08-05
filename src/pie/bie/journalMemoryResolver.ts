@@ -20,10 +20,12 @@
 //   - No second storage table / no duplication of Journal records.
 //   - No mutation of BrainEvidence.preview.
 //   - No change to createJournalEvidence() semantics.
-//   - No changes to identityEngine/insightGenerator (existing BIE
-//     engines keep working off evidence.preview exactly as before —
-//     this resolver is exposed at the orchestrator boundary as an
-//     additional, optional capability; see bieOrchestrator.ts).
+//
+// Architect Fix 1 (Final): this resolver is now actually consumed by the
+// BIE reasoning engines (identityEngine / insightGenerator /
+// timelineBuilder) via the shared analysisContext.ts helper
+// (resolveEvidenceText), not just echoed through the orchestrator
+// boundary — see bieOrchestrator.ts, analysisContext.ts.
 //
 // This is a plain in-memory lookup function built fresh per BIE run from
 // RoomDatabase.getJournals() (already the canonical source) — nothing

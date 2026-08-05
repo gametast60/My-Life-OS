@@ -126,6 +126,10 @@ export const DEFAULT_SETTINGS: UserSettings = {
   aiMaxTokens: 2048,
   // Multi-provider
   apiProviders: [],
+  // Architect Fix 2 (Final): default ON for existing/new users
+  // (P4-14 opt-out convention). getSettings() spreads saved settings
+  // over this default, so a persisted explicit `false` always wins.
+  bieEnabled: true,
 };
 
 export const DEFAULT_CHARACTER: CharacterStatus = {

@@ -32,6 +32,8 @@ import type {
   BrainTreeTag,
   LifeDimension,
 } from "../../../types";
+import { resolveEvidenceText } from "../analysisContext";
+import type { JournalMemoryResolver } from "../journalMemoryResolver";
 import type { IdentityProfile, IdentityRow, InsightItem, InsightType } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -55,6 +57,14 @@ export interface InsightGeneratorContext {
   nowMs?: number;
   /** Max total insights to return. Defaults to 20. */
   maxInsights?: number;
+  /**
+   * Architect Fix 1 (Final): read-only resolver from BrainEvidence.sourceId
+   * to the original JournalEntry (canonical memory). When supplied,
+   * reflection/milestone/conflict detection scan the real Journal
+   * content instead of only the 140-char `preview` — see
+   * analysisContext.ts. Optional and backward-compatible.
+   */
+  resolveJournalMemory?: JournalMemoryResolver;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -210,6 +220,7 @@ export class DefaultInsightGenerator implements InsightGenerator {
       dimensions,
       nowMs = Date.now(),
       maxInsights = 20,
+      resolveJournalMemory,
     } = ctx;
 
     const tagMap = buildTagMap(tags);
@@ -224,14 +235,22 @@ export class DefaultInsightGenerator implements InsightGenerator {
 
     // ── 1. Reflection ──────────────────────────────────────────────
     for (const ev of recent) {
-      if (hasKeyword(ev.preview, REFLECTION_KEYWORDS)) {
+      // Architect Fix 1 (Final): scan the real Journal content (when
+      // resolvable) rather than only the 140-char preview, so keywords
+      // appearing after the old preview cutoff are no longer missed.
+      const analysisText = resolveEvidenceText(ev, resolveJournalMemory);
+      if (hasKeyword(analysisText, REFLECTION_KEYWORDS)) {
         insights.push(
           makeInsight(
             "reflection",
             "มีบางสิ่งที่ควรทบทวน",
-            `หลักฐาน: "${ev.preview.slice(0, 80)}" ชวนให้ตั้งคำถามและสะท้อนความคิด`,
+            `หลักฐาน: "${analysisText.slice(0, 80)}" ชวนให้ตั้งคำถามและสะท้อนความคิด`,
             0.7,
-            { evidenceId: ev.id, preview: ev.preview.slice(0, 80) }
+            {
+              evidenceId: ev.id,
+              preview: analysisText.slice(0, 80),
+              sourceText: analysisText === ev.preview ? "preview" : "journal",
+            }
           )
         );
         if (insights.length >= maxInsights) return insights;
@@ -262,15 +281,21 @@ export class DefaultInsightGenerator implements InsightGenerator {
 
     // ── 3. Milestone ───────────────────────────────────────────────
     for (const ev of recent) {
-      if (hasKeyword(ev.preview, MILESTONE_KEYWORDS)) {
+      const analysisText = resolveEvidenceText(ev, resolveJournalMemory);
+      if (hasKeyword(analysisText, MILESTONE_KEYWORDS)) {
         const dim = resolveDim(ev, tagMap, dimMap);
         insights.push(
           makeInsight(
             "milestone",
             "ก้าวสำคัญที่น่าจดจำ",
-            `"${ev.preview.slice(0, 80)}" เป็นสัญญาณของความสำเร็จหรือจุดเปลี่ยนสำคัญ`,
+            `"${analysisText.slice(0, 80)}" เป็นสัญญาณของความสำเร็จหรือจุดเปลี่ยนสำคัญ`,
             0.75,
-            { evidenceId: ev.id, dimension: dim, preview: ev.preview.slice(0, 80) }
+            {
+              evidenceId: ev.id,
+              dimension: dim,
+              preview: analysisText.slice(0, 80),
+              sourceText: analysisText === ev.preview ? "preview" : "journal",
+            }
           )
         );
         if (insights.length >= maxInsights) return insights;
@@ -313,19 +338,25 @@ export class DefaultInsightGenerator implements InsightGenerator {
       dimEvidences.set(dim, bucket);
     }
     for (const [dim, evList] of dimEvidences) {
-      const pos = evList.filter((e) => polarity(e.preview) === 1);
-      const neg = evList.filter((e) => polarity(e.preview) === -1);
+      const pos = evList.filter(
+        (e) => polarity(resolveEvidenceText(e, resolveJournalMemory)) === 1
+      );
+      const neg = evList.filter(
+        (e) => polarity(resolveEvidenceText(e, resolveJournalMemory)) === -1
+      );
       if (pos.length > 0 && neg.length > 0) {
+        const posText = resolveEvidenceText(pos[0], resolveJournalMemory);
+        const negText = resolveEvidenceText(neg[0], resolveJournalMemory);
         insights.push(
           makeInsight(
             "conflict",
             `ความขัดแย้งในมิติ "${dim}"`,
-            `พบหลักฐานที่ขัดกัน — "${pos[0].preview.slice(0, 40)}" vs "${neg[0].preview.slice(0, 40)}" อาจสะท้อนถึงความขัดแย้งภายใน`,
+            `พบหลักฐานที่ขัดกัน — "${posText.slice(0, 40)}" vs "${negText.slice(0, 40)}" อาจสะท้อนถึงความขัดแย้งภายใน`,
             0.65,
             {
               dimension: dim,
-              positiveSample: pos[0].preview.slice(0, 80),
-              negativeSample: neg[0].preview.slice(0, 80),
+              positiveSample: posText.slice(0, 80),
+              negativeSample: negText.slice(0, 80),
             }
           )
         );
