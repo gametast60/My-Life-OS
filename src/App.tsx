@@ -64,6 +64,8 @@ import {
   suggestJournalBrainPlacement,
   AIBrainPlacementSuggestion,
 } from "./lib/aiService";
+import { maybeRunBieLearningCycle } from "./pie/bie/bieTrigger";
+import { RoomBrainIntelligenceRepository } from "./pie/bie/RoomBrainIntelligenceRepository";
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>("home");
@@ -377,6 +379,27 @@ export default function App() {
     createJournalEvidence(journal, tagIds);
     reloadBrainTreeSnapshots();
     setPendingJournalPlacement(null);
+
+    // B: BIE long-term learning cycle — accumulated Journal Memory + Brain
+    // Evidence, throttled (bieLastRunAt) and HITL-gated. Never runs on
+    // every Journal save; only after A confirms a placement. Fire-and-forget:
+    // must not block the A confirmation UX.
+    maybeRunBieLearningCycle({
+      evidences: RoomDatabase.getBrainEvidence(),
+      tags: RoomDatabase.getBrainTreeTags(),
+      dimensions: RoomDatabase.getBrainTreeDimensions(),
+      bieRepo: new RoomBrainIntelligenceRepository(),
+      settings,
+    })
+      .then((result) => {
+        if (result.ran && result.updatedSettings) {
+          RoomDatabase.saveSettings(result.updatedSettings);
+          setSettings(result.updatedSettings);
+        }
+      })
+      .catch((err) => {
+        console.warn("[handleConfirmJournalPlacement] BIE trigger failed:", err);
+      });
   };
 
   const handleDismissJournalPlacement = () => setPendingJournalPlacement(null);
