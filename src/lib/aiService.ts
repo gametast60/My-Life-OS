@@ -253,75 +253,6 @@ export async function analyzeTodayJournals(
   }
 }
 
-export async function suggestBrainCard(
-  text: string,
-  existingCards: BrainCard[],
-  settings?: UserSettings
-): Promise<Partial<BrainCard> | null> {
-  const providers = getProviders(settings!);
-  if (providers.length === 0 || !text.trim()) return null;
-
-  try {
-    const systemPrompt = `คุณคือ AI Brain Scout ที่ช่วยระบุข้อมูลสำคัญเกี่ยวกับผู้ใช้
-วิเคราะห์ข้อความว่ามีข้อมูลสำคัญควรบันทึกลง Life Brain หรือไม่
-ถ้าพบ ตอบ JSON เท่านั้น (ไม่มีข้อความอื่น):
-{
-  "found": true,
-  "title": "ชื่อข้อมูลสั้นๆ",
-  "description": "รายละเอียดเพิ่มเติม",
-  "dimension": "work|finance|relationship|health|mindset|learning|emotion|goal|lifestyle|values|hobby|identity",
-  "brainType": "Goal|Habit|Knowledge|Belief|Identity|Preference|Skill|Strength|Weakness|Decision|Relationship",
-  "tags": ["tag1", "tag2"]
-}
-ถ้าไม่พบ ตอบ: {"found": false}
-
-สำคัญ: พบเฉพาะข้อมูลที่มีความสำคัญต่อชีวิตหรือเป้าหมายของผู้ใช้เท่านั้น ไม่ใช่ทุกประโยค`;
-
-    const existingTitles = existingCards.map((c) => c.title).join(", ");
-    const userPrompt = `[ข้อความ]: ${text.slice(0, 500)}
-[Brain ที่มีอยู่แล้ว]: ${existingTitles.slice(0, 200) || "ยังไม่มี"}`;
-
-    const pieRequest = createPipelineRequestFromLegacy({
-      prompt: userPrompt,
-      systemPrompt,
-      roleHint: "custom",
-      settings,
-      outputFormat: "json",
-    });
-
-    const skipStages: Partial<Record<PIPELINE_STAGE, boolean>> = {
-      retrieval: true,
-      ranking: true,
-    };
-    const options: PipelineOptions = { skipStages };
-
-    const result = await runPipeline(pieRequest, options);
-    if (!result.success) return null;
-    const rawText = result.finalText || result.context.providerResult.rawText;
-
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (!parsed.found || !parsed.title) return null;
-
-    const alreadyExists = existingCards.some(
-      (c) => c.title.toLowerCase() === parsed.title.toLowerCase()
-    );
-    if (alreadyExists) return null;
-
-    return {
-      title: parsed.title,
-      description: parsed.description || "",
-      dimension: parsed.dimension || "goal",
-      brainType: parsed.brainType || "Knowledge",
-      tags: parsed.tags || [],
-      linkedJournalIds: [],
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function generateGuide(
   brainCards: BrainCard[],
   goals: GoalItem[],
@@ -662,4 +593,3 @@ export async function summarizeAIChatExchange(params: {
 }
 
 export type { PipelineContext };
-
