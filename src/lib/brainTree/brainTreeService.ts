@@ -10,7 +10,6 @@ import {
   HabitItem,
   ReminderItem,
   GoalItem,
-  DailyCheckin,
 } from "../../types";
 import { RoomDatabase, DEFAULT_BRAIN_CONFIG } from "../db";
 import { computeGrowth, progressToStatus, GrowthSnapshot } from "./growth";
@@ -673,24 +672,6 @@ export function createGoalProgressEvidence(
   }
   recalcAndPersistTagGrowth();
   return existing ?? RoomDatabase.getBrainEvidence().find((e) => e.sourceId === goal.id) ?? null;
-}
-
-export function createCheckinEvidence(
-  checkin: DailyCheckin,
-  tagIds: string[]
-): BrainEvidence | null {
-  if (tagIds.length === 0) return null;
-  const preview =
-    `Check-in ${checkin.date} — mood:${checkin.mood} learned:${checkin.answers.learned}`.slice(0, 140);
-  const row = RoomDatabase.attachEvidenceToTags({
-    kind: "daily_checkin",
-    sourceId: checkin.id,
-    preview,
-    occurredAt: checkin.timestamp || Date.now(),
-    tagIds,
-  });
-  recalcAndPersistTagGrowth();
-  return row;
 }
 
 // ─────────────────────────────────────────────────────────────────────
