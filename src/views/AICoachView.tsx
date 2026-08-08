@@ -3,11 +3,8 @@ import {
   AIMode,
   AIChatMessage,
   UserSettings,
-  CharacterStatus,
   BrainCard,
   JournalEntry,
-  HabitItem,
-  GoalItem,
 } from "../types";
 import {
   sendAIChatRequest,
@@ -30,22 +27,12 @@ import { BieContextStatusBadge } from "../components/bie/BieContextStatusBadge";
 
 interface AICoachViewProps {
   settings: UserSettings;
-  character: CharacterStatus;
   messages: AIChatMessage[];
   brainCards: BrainCard[];
   journals: JournalEntry[];
-  habits: HabitItem[];
-  goals: GoalItem[];
   onSaveMessage: (msg: AIChatMessage) => void;
   onClearSession?: () => void;
-  onOpenManageAPI?: () => void;
-  onOpenLifeBrain?: () => void;
   onAddJournal?: (entry: JournalEntry) => void;
-  onOpenBieDiscovery?: () => void;
-  onOpenIdentityReview?: () => void;
-
-  onOpenInsightCenter?: () => void;
-  onOpenTimelineViewer?: () => void;
 }
 
 const MODES = [

@@ -843,14 +843,10 @@ export default function App() {
             brainTreeTypes={brainTreeTypes}
             brainTreeDimensions={brainTreeDims}
             brainTreeTags={brainTreeTags}
-            notes={notes}
             onAddCard={handleAddBrainCard}
             onEditCard={handleEditBrainCard}
             onDeleteCard={handleDeleteBrainCard}
             onEditJournal={handleEditJournal}
-            onAddNote={handleAddNote}
-            onEditNote={handleEditNote}
-            onDeleteNote={handleDeleteNote}
             onAddType={handleAddBrainTreeType}
             onUpdateType={handleUpdateBrainTreeType}
             onDeleteType={handleDeleteBrainTreeType}
@@ -866,16 +862,11 @@ export default function App() {
         {currentTab === "coach" && (
           <AICoachView
             settings={settings}
-            character={character}
             messages={messages}
             brainCards={brainCards}
             journals={journals}
-            habits={habits}
-            goals={goals}
             onSaveMessage={handleSaveMessage}
             onClearSession={handleClearChatSession}
-            onOpenManageAPI={() => setIsManageAPIOpen(true)}
-            onOpenLifeBrain={() => setCurrentTab("brain")}
             onAddJournal={handleAddJournal}
           />
         )}
@@ -906,14 +897,10 @@ export default function App() {
             brainTreeTypes={brainTreeTypes}
             brainTreeDimensions={brainTreeDims}
             brainTreeTags={brainTreeTags}
-            notes={notes}
             onAddCard={handleAddBrainCard}
             onEditCard={handleEditBrainCard}
             onDeleteCard={handleDeleteBrainCard}
             onEditJournal={handleEditJournal}
-            onAddNote={handleAddNote}
-            onEditNote={handleEditNote}
-            onDeleteNote={handleDeleteNote}
             onAddType={handleAddBrainTreeType}
             onUpdateType={handleUpdateBrainTreeType}
             onDeleteType={handleDeleteBrainTreeType}

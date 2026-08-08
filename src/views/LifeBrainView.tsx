@@ -33,8 +33,6 @@ import { BrainTreeViewer } from "../components/BrainTreeViewer";
 import { BrainTreeManager } from "../components/BrainTreeManager";
 import type { FullTree } from "../lib/brainTree/brainTreeService";
 
-import { NoteItem } from "../types";
-import { StickyNote } from "lucide-react";
 import { ProgressView } from "./ProgressView";
 
 type BrainTab = "viewer" | "manager" | "legacy";
@@ -46,15 +44,11 @@ interface LifeBrainViewProps {
   brainTreeTypes: BrainTreeType[];
   brainTreeDimensions: BrainTreeDimension[];
   brainTreeTags: BrainTreeTag[];
-  notes?: NoteItem[];
   onAddCard: (card: BrainCard) => void;
   onEditCard: (card: BrainCard) => void;
   onDeleteCard: (id: string) => void;
   onClose?: () => void;
   onEditJournal?: (journal: JournalEntry) => void;
-  onAddNote?: (note: NoteItem) => void;
-  onEditNote?: (note: NoteItem) => void;
-  onDeleteNote?: (id: string) => void;
   // Brain Tree Manager handlers
   onAddType: (name: string, color: string, icon: string, priority: number) => void;
   onUpdateType: (id: string, patch: Partial<BrainTreeType>) => void;
@@ -103,15 +97,11 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
   brainTreeTypes,
   brainTreeDimensions,
   brainTreeTags,
-  notes = [],
   onAddCard,
   onEditCard,
   onDeleteCard,
   onClose,
   onEditJournal,
-  onAddNote,
-  onEditNote,
-  onDeleteNote,
   onAddType, onUpdateType, onDeleteType,
   onAddDimension, onUpdateDimension, onDeleteDimension,
   onAddTag, onUpdateTag, onDeleteTag,
@@ -245,8 +235,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                     ? `${globalEvidence} Evidence · Score ${globalScore.toFixed(0)}`
                     : activeTab === "manager"
                     ? `${brainTreeTypes.length} Types · ${brainTreeDimensions.length} Dims · ${brainTreeTags.length} Tags`
-                    : activeTab === "notes"
-                    ? `${notes.length} Fast Notes`
                     : `${brainCards.length} Brain Cards (Legacy)`}
                 </p>
               </div>
