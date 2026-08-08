@@ -12,14 +12,10 @@ import {
 } from "../types";
 import {
   Brain,
-  Plus,
   Search,
-  Edit2,
-  Trash2,
   X,
   ChevronDown,
   Link,
-  Unlink,
   Tag,
   Calendar,
   BookOpen,
@@ -27,8 +23,6 @@ import {
   LayoutGrid,
   TrendingUp,
 } from "lucide-react";
-import { BrainCardModal } from "../components/BrainCardModal";
-import { ConfirmDialog } from "../components/ConfirmDialog";
 import { BrainTreeViewer } from "../components/BrainTreeViewer";
 import { BrainTreeManager } from "../components/BrainTreeManager";
 import type { FullTree } from "../lib/brainTree/brainTreeService";
@@ -44,11 +38,7 @@ interface LifeBrainViewProps {
   brainTreeTypes: BrainTreeType[];
   brainTreeDimensions: BrainTreeDimension[];
   brainTreeTags: BrainTreeTag[];
-  onAddCard: (card: BrainCard) => void;
-  onEditCard: (card: BrainCard) => void;
-  onDeleteCard: (id: string) => void;
   onClose?: () => void;
-  onEditJournal?: (journal: JournalEntry) => void;
   // Brain Tree Manager handlers
   onAddType: (name: string, color: string, icon: string, priority: number) => void;
   onUpdateType: (id: string, patch: Partial<BrainTreeType>) => void;
@@ -97,11 +87,7 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
   brainTreeTypes,
   brainTreeDimensions,
   brainTreeTags,
-  onAddCard,
-  onEditCard,
-  onDeleteCard,
   onClose,
-  onEditJournal,
   onAddType, onUpdateType, onDeleteType,
   onAddDimension, onUpdateDimension, onDeleteDimension,
   onAddTag, onUpdateTag, onDeleteTag,
@@ -113,10 +99,7 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
   const [selectedType, setSelectedType] = useState<BrainType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<BrainCard | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCard, setEditingCard] = useState<BrainCard | null>(null);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Stats per dimension (legacy)
   const dimStats = useMemo(() => {
@@ -151,59 +134,10 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
     );
   }, [selectedCard, journals]);
 
-  const handleUnlinkJournal = (journalId: string, card: BrainCard, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updatedCard = {
-      ...card,
-      linkedJournalIds: card.linkedJournalIds.filter((id) => id !== journalId),
-      updatedAt: Date.now(),
-    };
-    onEditCard(updatedCard);
-    if (selectedCard?.id === card.id) setSelectedCard(updatedCard);
-    if (onEditJournal) {
-      const jToUpdate = journals.find((j) => j.id === journalId);
-      if (jToUpdate && jToUpdate.linkedBrainCardIds?.includes(card.id)) {
-        onEditJournal({
-          ...jToUpdate,
-          linkedBrainCardIds: jToUpdate.linkedBrainCardIds.filter((id) => id !== card.id),
-        });
-      }
-    }
-  };
-
-  const handleAdd = () => { setEditingCard(null); setIsModalOpen(true); };
-  const handleEdit = (card: BrainCard, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingCard(card); setIsModalOpen(true);
-  };
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); setDeleteConfirmId(id);
-  };
-  const confirmDelete = (id: string) => {
-    onDeleteCard(id);
-    setDeleteConfirmId(null);
-    if (selectedCard?.id === id) setSelectedCard(null);
-  };
-  const handleSaveCard = (card: BrainCard) => {
-    if (editingCard) onEditCard(card);
-    else onAddCard(card);
-    if (onEditJournal) {
-      const prevIds = editingCard?.linkedJournalIds ?? [];
-      const nextIds = card.linkedJournalIds ?? [];
-      const added = nextIds.filter((id) => !prevIds.includes(id));
-      const removed = prevIds.filter((id) => !nextIds.includes(id));
-      journals.forEach((j) => {
-        const has = j.linkedBrainCardIds?.includes(card.id) ?? false;
-        const shouldHave = nextIds.includes(j.id);
-        if (added.includes(j.id) && !has) {
-          onEditJournal({ ...j, linkedBrainCardIds: [...(j.linkedBrainCardIds ?? []), card.id] });
-        } else if ((removed.includes(j.id) || (!shouldHave && has)) && has) {
-          onEditJournal({ ...j, linkedBrainCardIds: (j.linkedBrainCardIds ?? []).filter((id) => id !== card.id) });
-        }
-      });
-    }
-    setIsModalOpen(false); setEditingCard(null);
-  };
+  // KD4 Legacy Freeze: Legacy BrainCard is READ-ONLY historical view.
+  // Add / Edit / Delete / journal-unlink mutation handlers intentionally
+  // removed — do not reintroduce a write path here. View, search, and
+  // filter remain fully functional above.
 
   const globalEvidence = brainFullTree.globalEvidenceCount;
   const globalScore = brainFullTree.globalRawScore;
@@ -240,15 +174,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {activeTab === "legacy" && (
-                <button
-                  onClick={handleAdd}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                  style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)", color: "white" }}
-                >
-                  <Plus size={16} /> เพิ่มการ์ด
-                </button>
-              )}
               {onClose && (
                 <button
                   onClick={onClose}
@@ -419,18 +344,9 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                 </p>
                 <p className="text-sm mb-6" style={{ color: "#576656" }}>
                   {brainCards.length === 0
-                    ? "ลองไปที่ Growth Tab เพื่อดูต้นไม้ความรู้ หรือสร้าง Brain Card แรก"
+                    ? "ลองไปที่ Growth Tab เพื่อดูต้นไม้ความรู้ (Legacy เป็นข้อมูลย้อนหลังแบบอ่านอย่างเดียว)"
                     : "ลองเปลี่ยน Filter หรือคำค้นหา"}
                 </p>
-                {brainCards.length === 0 && (
-                  <button
-                    onClick={handleAdd}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105"
-                    style={{ background: "linear-gradient(135deg, #4E7345, #6B9361)", color: "white" }}
-                  >
-                    + สร้าง Brain Card แรก
-                  </button>
-                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -455,22 +371,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                           <h3 className="font-semibold text-sm leading-tight truncate" style={{ color: "#EBF1EA" }}>
                             {card.title}
                           </h3>
-                        </div>
-                        <div className="flex gap-1 flex-shrink-0">
-                          <button
-                            onClick={(e) => handleEdit(card, e)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white hover:bg-white/10 transition-colors"
-                            title="แก้ไข"
-                          >
-                            <Edit2 size={12} className="text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => handleDelete(card.id, e)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-950/40 transition-colors"
-                            title="ลบ"
-                          >
-                            <Trash2 size={12} className="text-red-400" />
-                          </button>
                         </div>
                       </div>
                       {card.description && (
@@ -539,15 +439,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
                                           </p>
                                         </div>
                                       </div>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => handleUnlinkJournal(j.id, card, e)}
-                                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 transition-all flex-shrink-0"
-                                        title="ยกเลิกการเชื่อมโยง"
-                                      >
-                                        <Unlink size={11} />
-                                        <span>ยกเลิกเชื่อมโยง</span>
-                                      </button>
                                     </div>
                                   ))}
                                 </div>
@@ -578,25 +469,6 @@ export const LifeBrainView: React.FC<LifeBrainViewProps> = ({
           </>
         )}
       </div>
-
-      {/* Delete Confirm (Legacy) */}
-      <ConfirmDialog
-        isOpen={deleteConfirmId !== null}
-        title="ลบ Brain Card?"
-        message="การลบ Brain Card จะลบข้อมูลนี้ถาวรและไม่สามารถย้อนกลับได้"
-        confirmText="ยืนยันลบ"
-        cancelText="ยกเลิก"
-        variant="danger"
-        onConfirm={() => { if (deleteConfirmId) confirmDelete(deleteConfirmId); }}
-        onCancel={() => setDeleteConfirmId(null)}
-      />
-      <BrainCardModal
-        isOpen={isModalOpen}
-        editingCard={editingCard}
-        journals={journals}
-        onSave={handleSaveCard}
-        onClose={() => { setIsModalOpen(false); setEditingCard(null); }}
-      />
     </div>
   );
 };

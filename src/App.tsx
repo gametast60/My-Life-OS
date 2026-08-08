@@ -684,23 +684,10 @@ export default function App() {
     handleAddJournal(checkinJournalEntry);
   };
 
-  const handleAddBrainCard = (card: BrainCard) => {
-    const updated = [card, ...brainCards];
-    setBrainCards(updated);
-    RoomDatabase.saveBrainCards(updated);
-  };
-
-  const handleEditBrainCard = (updatedCard: BrainCard) => {
-    const updated = brainCards.map((b) => (b.id === updatedCard.id ? updatedCard : b));
-    setBrainCards(updated);
-    RoomDatabase.saveBrainCards(updated);
-  };
-
-  const handleDeleteBrainCard = (id: string) => {
-    const updated = brainCards.filter((b) => b.id !== id);
-    setBrainCards(updated);
-    RoomDatabase.saveBrainCards(updated);
-  };
+  // KD4 Legacy Freeze cleanup: handleAddBrainCard / handleEditBrainCard /
+  // handleDeleteBrainCard removed — Legacy BrainCard UI in LifeBrainView is
+  // read-only and had no other consumer of these handlers. Do not
+  // reintroduce a BrainCard write path here.
 
   const handleMarkReminderAsRead = (id: string) => {
     const updated = reminders.map((r) =>
@@ -843,10 +830,6 @@ export default function App() {
             brainTreeTypes={brainTreeTypes}
             brainTreeDimensions={brainTreeDims}
             brainTreeTags={brainTreeTags}
-            onAddCard={handleAddBrainCard}
-            onEditCard={handleEditBrainCard}
-            onDeleteCard={handleDeleteBrainCard}
-            onEditJournal={handleEditJournal}
             onAddType={handleAddBrainTreeType}
             onUpdateType={handleUpdateBrainTreeType}
             onDeleteType={handleDeleteBrainTreeType}
@@ -897,10 +880,6 @@ export default function App() {
             brainTreeTypes={brainTreeTypes}
             brainTreeDimensions={brainTreeDims}
             brainTreeTags={brainTreeTags}
-            onAddCard={handleAddBrainCard}
-            onEditCard={handleEditBrainCard}
-            onDeleteCard={handleDeleteBrainCard}
-            onEditJournal={handleEditJournal}
             onAddType={handleAddBrainTreeType}
             onUpdateType={handleUpdateBrainTreeType}
             onDeleteType={handleDeleteBrainTreeType}
