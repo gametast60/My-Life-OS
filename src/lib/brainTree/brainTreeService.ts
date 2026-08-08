@@ -8,7 +8,6 @@ import {
   TreeGrowthStatus,
   JournalEntry,
   HabitItem,
-  ReminderItem,
   GoalItem,
 } from "../../types";
 import { RoomDatabase, DEFAULT_BRAIN_CONFIG } from "../db";
@@ -620,22 +619,6 @@ export function createHabitCompletedEvidence(
     sourceId,
     preview,
     occurredAt: new Date(completedDateStr).getTime() || Date.now(),
-    tagIds,
-  });
-  recalcAndPersistTagGrowth();
-  return row;
-}
-
-export function createReminderCompletedEvidence(
-  reminder: ReminderItem,
-  tagIds: string[]
-): BrainEvidence | null {
-  if (tagIds.length === 0) return null;
-  const row = RoomDatabase.attachEvidenceToTags({
-    kind: "reminder_completed",
-    sourceId: reminder.id,
-    preview: `Reminder done: ${reminder.text}`.slice(0, 140),
-    occurredAt: Date.now(),
     tagIds,
   });
   recalcAndPersistTagGrowth();
