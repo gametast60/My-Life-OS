@@ -29,12 +29,6 @@ export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
       description: "เป้าหมายหลักและวิสัยทัศน์ชีวิต",
     },
     {
-      id: "insights",
-      label: "Insights Center",
-      icon: "ti ti-brain",
-      description: "วิเคราะห์ข้อมูลและ AI Intelligence",
-    },
-    {
       id: "notes",
       label: "Notes",
       icon: "ti ti-notes",

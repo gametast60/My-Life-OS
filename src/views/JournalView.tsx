@@ -444,8 +444,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
       <ManageMoodsModal
         isOpen={isManageMoodsOpen}
         onClose={() => setIsManageMoodsOpen(false)}
-        moods={presetMoods}
-        onSaveMoods={onSavePresetMoods}
+        presetMoods={presetMoods}
+        onSavePresetMoods={onSavePresetMoods}
       />
     </div>
   );

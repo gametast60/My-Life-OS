@@ -15,7 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange, h
     { id: "home" as NavTab, label: "หน้าแรก", icon: LayoutDashboard },
     { id: "pi" as NavTab, label: "ความเข้าใจ", icon: Brain },
     { id: "coach" as NavTab, label: "โค้ช", icon: Bot },
-    { id: "journal" as NavTab, label: "บันทึก", icon: BookOpen },
+    { id: "journal" as NavTab, label: "Journal", icon: BookOpen },
     { id: "brain" as NavTab, label: "คลังสมอง", icon: Layers },
   ];
 
