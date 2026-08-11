@@ -22,6 +22,8 @@ import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
 import { JournalPlacementBottomSheet } from "./components/JournalPlacementBottomSheet";
+import { ManifestCard } from "./components/Manifest/ManifestCard";
+import { MenuItemId } from "./components/Navigation/AppMenuDrawer";
 
 import { RoomDatabase } from "./lib/db";
 import { PresetMood } from "./lib/db";
@@ -138,6 +140,39 @@ export default function App() {
   const [isIdentityReviewOpen, setIsIdentityReviewOpen] = useState(false);
   const [isInsightCenterOpen, setIsInsightCenterOpen] = useState(false);
   const [isTimelineViewerOpen, setIsTimelineViewerOpen] = useState(false);
+
+  const [manifestText, setManifestText] = useState<string | null>(() => RoomDatabase.getManifestText());
+  const [manifestLastUpdated, setManifestLastUpdated] = useState<string | null>(() => RoomDatabase.getManifestLastUpdated());
+  const [isManifestOpen, setIsManifestOpen] = useState(false);
+  const [isManifestEditing, setIsManifestEditing] = useState(false);
+
+  const handleSaveManifest = (newText: string) => {
+    const saved = RoomDatabase.saveManifest(newText);
+    setManifestText(saved.text);
+    setManifestLastUpdated(saved.lastUpdated);
+    setIsManifestEditing(false);
+  };
+
+  const handleDeleteManifest = () => {
+    RoomDatabase.deleteManifest();
+    setManifestText(null);
+    setManifestLastUpdated(null);
+    setIsManifestEditing(false);
+  };
+
+  const handleMenuNavigate = (itemId: MenuItemId) => {
+    if (itemId === "manifest") {
+      setIsManifestOpen(true);
+    } else if (itemId === "insights") {
+      setIsManifestOpen(false);
+      setCurrentTab("pi");
+    } else if (itemId === "journal") {
+      setIsManifestOpen(false);
+      setCurrentTab("journal");
+    } else if (itemId === "settings") {
+      setIsSettingsOpen(true);
+    }
+  };
 
 
   const handleSavePresetTags = (tags: string[]) => {
@@ -789,114 +824,136 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenManageAPI={() => setIsManageAPIOpen(true)}
+        onNavigate={handleMenuNavigate}
       />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 pt-20 pb-12">
-        {currentTab === "home" && (
-          <HomeView
-            settings={settings}
-            character={character}
-            journey={journey}
-            missions={missions}
-            recentJournals={journals}
-            todayCheckin={todayCheckin}
-            presetTags={presetTags}
-            reminders={reminders}
-            onAddReminder={handleAddReminder}
-            onEditReminder={handleEditReminder}
-            onDeleteReminder={handleDeleteReminder}
-            onCompleteReminder={handleCompleteReminder}
-            onMarkReminderAsRead={handleMarkReminderAsRead}
-            onNavigateToReminder={handleNavigateToReminder}
-            onToggleMission={handleToggleMission}
-            onNavigateTab={(tab) => setCurrentTab(tab)}
-            onOpenQuickAction={handleQuickAction}
-            onOpenCheckinModal={() => setIsCheckinOpen(true)}
-            onAddJournal={handleAddJournal}
-            onSavePresetTags={handleSavePresetTags}
-            highlightReminderId={highlightReminderId}
+      <main className="max-w-7xl mx-auto px-4 md:px-8 pt-20 pb-24 md:pb-28">
+        {isManifestOpen ? (
+          <ManifestCard
+            manifestText={manifestText}
+            lastUpdated={manifestLastUpdated}
+            onBack={() => {
+              setIsManifestOpen(false);
+              setIsManifestEditing(false);
+            }}
+            onSave={handleSaveManifest}
+            onDelete={handleDeleteManifest}
+            onEditModeChange={setIsManifestEditing}
           />
-        )}
+        ) : (
+          <>
+            {currentTab === "home" && (
+              <HomeView
+                settings={settings}
+                character={character}
+                journey={journey}
+                missions={missions}
+                recentJournals={journals}
+                todayCheckin={todayCheckin}
+                presetTags={presetTags}
+                reminders={reminders}
+                onAddReminder={handleAddReminder}
+                onEditReminder={handleEditReminder}
+                onDeleteReminder={handleDeleteReminder}
+                onCompleteReminder={handleCompleteReminder}
+                onMarkReminderAsRead={handleMarkReminderAsRead}
+                onNavigateToReminder={handleNavigateToReminder}
+                onToggleMission={handleToggleMission}
+                onNavigateTab={(tab) => {
+                  setIsManifestOpen(false);
+                  setCurrentTab(tab);
+                }}
+                onOpenQuickAction={handleQuickAction}
+                onOpenCheckinModal={() => setIsCheckinOpen(true)}
+                onAddJournal={handleAddJournal}
+                onSavePresetTags={handleSavePresetTags}
+                highlightReminderId={highlightReminderId}
+              />
+            )}
 
-        {currentTab === "pi" && (
-          <PersonalIntelligenceView bieEnabled={true} />
-        )}
+            {currentTab === "pi" && (
+              <PersonalIntelligenceView bieEnabled={true} />
+            )}
 
-        {(currentTab === "brain" || currentTab === "journey") && (
-          <LifeBrainView
-            brainCards={brainCards}
-            journals={journals}
-            brainFullTree={brainFullTree}
-            brainTreeTypes={brainTreeTypes}
-            brainTreeDimensions={brainTreeDims}
-            brainTreeTags={brainTreeTags}
-            onAddType={handleAddBrainTreeType}
-            onUpdateType={handleUpdateBrainTreeType}
-            onDeleteType={handleDeleteBrainTreeType}
-            onAddDimension={handleAddBrainTreeDimension}
-            onUpdateDimension={handleUpdateBrainTreeDimension}
-            onDeleteDimension={handleDeleteBrainTreeDimension}
-            onAddTag={handleAddBrainTreeTag}
-            onUpdateTag={handleUpdateBrainTreeTag}
-            onDeleteTag={handleDeleteBrainTreeTag}
-          />
-        )}
+            {(currentTab === "brain" || currentTab === "journey") && (
+              <LifeBrainView
+                brainCards={brainCards}
+                journals={journals}
+                brainFullTree={brainFullTree}
+                brainTreeTypes={brainTreeTypes}
+                brainTreeDimensions={brainTreeDims}
+                brainTreeTags={brainTreeTags}
+                onAddType={handleAddBrainTreeType}
+                onUpdateType={handleUpdateBrainTreeType}
+                onDeleteType={handleDeleteBrainTreeType}
+                onAddDimension={handleAddBrainTreeDimension}
+                onUpdateDimension={handleUpdateBrainTreeDimension}
+                onDeleteDimension={handleDeleteBrainTreeDimension}
+                onAddTag={handleAddBrainTreeTag}
+                onUpdateTag={handleUpdateBrainTreeTag}
+                onDeleteTag={handleDeleteBrainTreeTag}
+              />
+            )}
 
-        {currentTab === "coach" && (
-          <AICoachView
-            settings={settings}
-            messages={messages}
-            brainCards={brainCards}
-            journals={journals}
-            onSaveMessage={handleSaveMessage}
-            onClearSession={handleClearChatSession}
-            onAddJournal={handleAddJournal}
-          />
-        )}
+            {currentTab === "coach" && (
+              <AICoachView
+                settings={settings}
+                messages={messages}
+                brainCards={brainCards}
+                journals={journals}
+                onSaveMessage={handleSaveMessage}
+                onClearSession={handleClearChatSession}
+                onAddJournal={handleAddJournal}
+              />
+            )}
 
-        {currentTab === "journal" && (
-          <JournalView
-            journals={journals}
-            notes={notes}
-            settings={settings}
-            presetTags={presetTags}
-            presetMoods={presetMoods}
-            onAddJournal={handleAddJournal}
-            onEditJournal={handleEditJournal}
-            onDeleteJournal={handleDeleteJournal}
-            onAddNote={handleAddNote}
-            onEditNote={handleEditNote}
-            onDeleteNote={handleDeleteNote}
-            onSavePresetTags={handleSavePresetTags}
-            onSavePresetMoods={handleSavePresetMoods}
-          />
-        )}
+            {currentTab === "journal" && (
+              <JournalView
+                journals={journals}
+                notes={notes}
+                settings={settings}
+                presetTags={presetTags}
+                presetMoods={presetMoods}
+                onAddJournal={handleAddJournal}
+                onEditJournal={handleEditJournal}
+                onDeleteJournal={handleDeleteJournal}
+                onAddNote={handleAddNote}
+                onEditNote={handleEditNote}
+                onDeleteNote={handleDeleteNote}
+                onSavePresetTags={handleSavePresetTags}
+                onSavePresetMoods={handleSavePresetMoods}
+              />
+            )}
 
-        {currentTab === "progress" && (
-          <LifeBrainView
-            brainCards={brainCards}
-            journals={journals}
-            brainFullTree={brainFullTree}
-            brainTreeTypes={brainTreeTypes}
-            brainTreeDimensions={brainTreeDims}
-            brainTreeTags={brainTreeTags}
-            onAddType={handleAddBrainTreeType}
-            onUpdateType={handleUpdateBrainTreeType}
-            onDeleteType={handleDeleteBrainTreeType}
-            onAddDimension={handleAddBrainTreeDimension}
-            onUpdateDimension={handleUpdateBrainTreeDimension}
-            onDeleteDimension={handleDeleteBrainTreeDimension}
-            onAddTag={handleAddBrainTreeTag}
-            onUpdateTag={handleUpdateBrainTreeTag}
-            onDeleteTag={handleDeleteBrainTreeTag}
-          />
+            {currentTab === "progress" && (
+              <LifeBrainView
+                brainCards={brainCards}
+                journals={journals}
+                brainFullTree={brainFullTree}
+                brainTreeTypes={brainTreeTypes}
+                brainTreeDimensions={brainTreeDims}
+                brainTreeTags={brainTreeTags}
+                onAddType={handleAddBrainTreeType}
+                onUpdateType={handleUpdateBrainTreeType}
+                onDeleteType={handleDeleteBrainTreeType}
+                onAddDimension={handleAddBrainTreeDimension}
+                onUpdateDimension={handleUpdateBrainTreeDimension}
+                onDeleteDimension={handleDeleteBrainTreeDimension}
+                onAddTag={handleAddBrainTreeTag}
+                onUpdateTag={handleUpdateBrainTreeTag}
+                onDeleteTag={handleDeleteBrainTreeTag}
+              />
+            )}
+          </>
         )}
       </main>
 
       <BottomNav
         currentTab={currentTab}
-        hidden={isKeyboardOpen}
+        hidden={isKeyboardOpen || isManifestOpen}
         onTabChange={(tab) => {
+          setIsManifestOpen(false);
+          setIsManifestEditing(false);
           setCurrentTab(tab);
         }}
       />

@@ -2,6 +2,7 @@
 
 @layer base {
   :root {
+    --app-header-height: 60px;
     --color-bg-app: #0A0E0A;
     --color-text-main: #EBF1EA;
     --color-text-muted: #869883;

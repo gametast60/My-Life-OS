@@ -76,6 +76,9 @@ const KEYS = {
   BIE_INSIGHTS: "mylifeos_bie_insights_v1", // Insights FIFO 100, applied=false until HITL (Phase 4D)
   BIE_TIMELINE: "mylifeos_bie_timeline_v1", // Timeline cache (contentHash-invalidated, rebuildable)
   BIE_PENDING_QUEUE: "mylifeos_bie_pending_queue_v1", // HITL pending structural suggestions (applied=false by definition)
+  // Manifest (Standalone Storage — KD5)
+  MANIFEST_TEXT: "mylifeos_manifest_text_v1",
+  MANIFEST_LAST_UPDATED: "mylifeos_manifest_last_updated_v1",
 };
 
 // ── Default Brain Configuration ──────────────────────────────────
@@ -933,6 +936,24 @@ export class RoomDatabase {
   }
   static saveNotes(notes: NoteItem[]) {
     this.set(KEYS.NOTES, notes);
+  }
+
+  // ── Manifest (Standalone Storage — KD5) ──────────────────────────
+  static getManifestText(): string | null {
+    return this.get<string | null>(KEYS.MANIFEST_TEXT, null);
+  }
+  static getManifestLastUpdated(): string | null {
+    return this.get<string | null>(KEYS.MANIFEST_LAST_UPDATED, null);
+  }
+  static saveManifest(text: string): { text: string; lastUpdated: string } {
+    const timestamp = new Date().toISOString();
+    this.set(KEYS.MANIFEST_TEXT, text);
+    this.set(KEYS.MANIFEST_LAST_UPDATED, timestamp);
+    return { text, lastUpdated: timestamp };
+  }
+  static deleteManifest(): void {
+    localStorage.removeItem(KEYS.MANIFEST_TEXT);
+    localStorage.removeItem(KEYS.MANIFEST_LAST_UPDATED);
   }
 
   // ── BIE: Embedding Cache (bie_embeddings) ────────────────────────

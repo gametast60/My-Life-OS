@@ -1,7 +1,8 @@
 import React from "react";
 import { UserSettings, ReminderItem } from "../types";
-import { Search, Settings, Key, Brain } from "lucide-react";
+import { Search, Key } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
+import { AppMenuDrawer, MenuItemId } from "./Navigation/AppMenuDrawer";
 
 interface HeaderProps {
   settings: UserSettings;
@@ -13,6 +14,7 @@ interface HeaderProps {
   onOpenAIQuick?: () => void;
   onOpenManageAPI?: () => void;
   onOpenBieDiscovery?: () => void;
+  onNavigate?: (itemId: MenuItemId) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,15 +27,14 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAIQuick,
   onOpenManageAPI,
   onOpenBieDiscovery,
+  onNavigate = () => {},
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-30 bg-[#0A0E0A]/90 backdrop-blur-md border-b border-[#6B9361]/15 px-4 md:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* App Title / Logo */}
+        {/* App Title / Menu Drawer replacing static logo */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4E7345] to-[#6B9361] flex items-center justify-center text-white font-bold text-sm shadow-md shadow-[#4E7345]/20">
-            OS
-          </div>
+          <AppMenuDrawer onNavigate={onNavigate} />
         </div>
 
         {/* Right Actions */}
@@ -62,14 +63,6 @@ export const Header: React.FC<HeaderProps> = ({
             onMarkAsRead={onMarkReminderAsRead}
             onNavigateToReminder={onNavigateToReminder}
           />
-
-          <button
-            onClick={onOpenSettings}
-            className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all"
-            title="ตั้งค่า"
-          >
-            <Settings size={18} />
-          </button>
         </div>
       </div>
     </header>
