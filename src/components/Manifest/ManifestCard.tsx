@@ -189,11 +189,11 @@ export function ManifestCard({
         </div>
       )}
 
-      {/* Edit Mode: Fixed Viewport Container with Native Scrollable Textarea */}
+      {/* Edit Mode: Full Height Matching View Mode Container */}
       {mode === "edit" && (
-        <div className="flex-1 flex flex-col justify-between h-[calc(100dvh-110px)] md:h-[calc(100vh-140px)] overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col justify-between">
           {/* Frameless transparent scrollable textarea */}
-          <div className="flex-1 min-h-0 py-2">
+          <div className="flex-1 min-h-[350px] py-2 flex flex-col">
             <textarea
               ref={textareaRef}
               autoFocus
@@ -203,7 +203,7 @@ export function ManifestCard({
                 setDirty(true);
               }}
               placeholder="พิมพ์ Manifest ของคุณที่นี่..."
-              className="w-full h-full bg-transparent outline-none border-none p-0 text-[#EBF1EA] text-sm md:text-base leading-relaxed placeholder-[#869883]/50 resize-none font-sans overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#1F2B1F]"
+              className="w-full flex-1 min-h-[350px] bg-transparent outline-none border-none p-0 text-[#EBF1EA] text-sm md:text-base leading-relaxed placeholder-[#869883]/50 resize-none font-sans overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#1F2B1F]"
             />
           </div>
 
