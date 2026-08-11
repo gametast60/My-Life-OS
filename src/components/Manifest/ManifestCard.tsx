@@ -62,43 +62,6 @@ export function ManifestCard({
     }
   }, [dotsOpen]);
 
-  // Auto-resize textarea height to fit content smoothly without nested scrollbar
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      const el = textareaRef.current;
-      const prevHeight = el.style.height;
-      el.style.height = "auto";
-      const newHeight = el.scrollHeight;
-      el.style.height = `${newHeight}px`;
-
-      // Keep focus caret in view if height changed
-      if (prevHeight !== `${newHeight}px` && document.activeElement === el) {
-        const textBeforeCaret = el.value.substring(0, el.selectionStart || 0);
-        const lineIndex = textBeforeCaret.split("\n").length;
-        const lineHeight = 24;
-        const caretY = el.offsetTop + lineIndex * lineHeight;
-        const vv = window.visualViewport;
-        const vHeight = vv ? vv.height : window.innerHeight;
-        const scrollY = window.scrollY;
-
-        if (caretY > scrollY + vHeight - 100 || caretY < scrollY + 60) {
-          window.scrollTo({
-            top: Math.max(0, caretY - vHeight / 2),
-            behavior: "smooth",
-          });
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (mode === "edit") {
-      requestAnimationFrame(() => {
-        adjustTextareaHeight();
-      });
-    }
-  }, [mode, draft]);
-
   const hasManifest = !!manifestText && manifestText.trim().length > 0;
 
   function startEdit() {
@@ -226,11 +189,11 @@ export function ManifestCard({
         </div>
       )}
 
-      {/* Edit Mode: Clean Auto-grow Textarea + Sticky Footer */}
+      {/* Edit Mode: Fixed Viewport Container with Native Scrollable Textarea */}
       {mode === "edit" && (
-        <div className="flex-1 flex flex-col justify-between">
-          {/* Frameless transparent auto-growing textarea */}
-          <div className="flex-1 py-2">
+        <div className="flex-1 flex flex-col justify-between h-[calc(100dvh-110px)] md:h-[calc(100vh-140px)] overflow-hidden">
+          {/* Frameless transparent scrollable textarea */}
+          <div className="flex-1 min-h-0 py-2">
             <textarea
               ref={textareaRef}
               autoFocus
@@ -238,15 +201,14 @@ export function ManifestCard({
               onChange={(e) => {
                 setDraft(e.target.value);
                 setDirty(true);
-                adjustTextareaHeight();
               }}
               placeholder="พิมพ์ Manifest ของคุณที่นี่..."
-              className="w-full bg-transparent outline-none border-none p-0 text-[#EBF1EA] text-sm md:text-base leading-relaxed placeholder-[#869883]/50 resize-none font-sans overflow-hidden min-h-[260px]"
+              className="w-full h-full bg-transparent outline-none border-none p-0 text-[#EBF1EA] text-sm md:text-base leading-relaxed placeholder-[#869883]/50 resize-none font-sans overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#1F2B1F]"
             />
           </div>
 
           {/* Sticky Footer for Action Buttons & Real-time Character Counter */}
-          <div className="sticky bottom-0 bg-[#0A0E0A] pt-4 pb-2 border-t border-[#1F2B1F] z-20 mt-4 flex flex-col gap-3">
+          <div className="bg-[#0A0E0A] pt-3 pb-2 border-t border-[#1F2B1F] z-20 shrink-0 flex flex-col gap-3">
             {/* Real-time Character Counter */}
             <div className="flex items-center justify-between text-xs text-[#869883]">
               <span className="font-mono">
