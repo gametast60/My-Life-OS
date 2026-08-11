@@ -26,6 +26,24 @@ export function useKeyboardScrollFix(): void {
       const elRect = active.getBoundingClientRect();
       const margin = 16;
 
+      // Special handling for tall textareas: track caret line instead of centering full element
+      if (tag === "textarea") {
+        const ta = active as HTMLTextAreaElement;
+        const textBeforeCaret = ta.value.substring(0, ta.selectionStart || 0);
+        const lineIndex = textBeforeCaret.split("\n").length;
+        const lineHeight = 24;
+        const caretRectTop = elRect.top + Math.min(elRect.height, lineIndex * lineHeight);
+
+        if (caretRectTop + 40 > vvRect.bottom || caretRectTop - 40 < vvRect.top) {
+          const targetY = window.scrollY + caretRectTop - (vv.offsetTop + vv.height / 2);
+          window.scrollTo({
+            top: Math.max(0, targetY),
+            behavior: "smooth",
+          });
+        }
+        return;
+      }
+
       if (elRect.bottom + margin > vvRect.bottom || elRect.top - margin < vvRect.top) {
         const targetY =
           window.scrollY +

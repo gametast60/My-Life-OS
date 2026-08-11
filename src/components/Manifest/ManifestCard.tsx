@@ -62,11 +62,32 @@ export function ManifestCard({
     }
   }, [dotsOpen]);
 
-  // Auto-resize textarea height to fit content without nested scrollbar
+  // Auto-resize textarea height to fit content smoothly without nested scrollbar
   const adjustTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const el = textareaRef.current;
+      const prevHeight = el.style.height;
+      el.style.height = "auto";
+      const newHeight = el.scrollHeight;
+      el.style.height = `${newHeight}px`;
+
+      // Keep focus caret in view if height changed
+      if (prevHeight !== `${newHeight}px` && document.activeElement === el) {
+        const textBeforeCaret = el.value.substring(0, el.selectionStart || 0);
+        const lineIndex = textBeforeCaret.split("\n").length;
+        const lineHeight = 24;
+        const caretY = el.offsetTop + lineIndex * lineHeight;
+        const vv = window.visualViewport;
+        const vHeight = vv ? vv.height : window.innerHeight;
+        const scrollY = window.scrollY;
+
+        if (caretY > scrollY + vHeight - 100 || caretY < scrollY + 60) {
+          window.scrollTo({
+            top: Math.max(0, caretY - vHeight / 2),
+            behavior: "smooth",
+          });
+        }
+      }
     }
   };
 
