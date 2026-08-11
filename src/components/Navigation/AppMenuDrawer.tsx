@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-export type MenuItemId = "manifest" | "insights" | "journal" | "settings";
+export type MenuItemId = "manifest" | "insights" | "notes" | "settings";
 
 export interface AppMenuDrawerProps {
   onNavigate: (itemId: MenuItemId) => void;
@@ -35,10 +35,10 @@ export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
       description: "วิเคราะห์ข้อมูลและ AI Intelligence",
     },
     {
-      id: "journal",
-      label: "Journal & Notes",
-      icon: "ti ti-book",
-      description: "บันทึกประจำวันและโน๊ตย่อย",
+      id: "notes",
+      label: "Notes",
+      icon: "ti ti-notes",
+      description: "โน๊ตย่อยและบันทึกด่วน",
     },
   ];
 

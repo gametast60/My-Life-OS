@@ -12,6 +12,7 @@ import { ProgressView } from "./views/ProgressView";
 import { LifeBrainView } from "./views/LifeBrainView";
 import { PersonalIntelligenceView } from "./views/PersonalIntelligenceView";
 
+import { NotesView } from "./views/NotesView";
 import { SettingsModal } from "./views/SettingsModal";
 import { ManageAPIModal } from "./components/ManageAPIModal";
 import { GoalsModal } from "./views/GoalsModal";
@@ -145,6 +146,7 @@ export default function App() {
   const [manifestLastUpdated, setManifestLastUpdated] = useState<string | null>(() => RoomDatabase.getManifestLastUpdated());
   const [isManifestOpen, setIsManifestOpen] = useState(false);
   const [isManifestEditing, setIsManifestEditing] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
 
   const handleSaveManifest = (newText: string) => {
     const saved = RoomDatabase.saveManifest(newText);
@@ -163,12 +165,14 @@ export default function App() {
   const handleMenuNavigate = (itemId: MenuItemId) => {
     if (itemId === "manifest") {
       setIsManifestOpen(true);
+      setIsNotesOpen(false);
     } else if (itemId === "insights") {
       setIsManifestOpen(false);
+      setIsNotesOpen(false);
       setCurrentTab("pi");
-    } else if (itemId === "journal") {
+    } else if (itemId === "notes") {
       setIsManifestOpen(false);
-      setCurrentTab("journal");
+      setIsNotesOpen(true);
     } else if (itemId === "settings") {
       setIsSettingsOpen(true);
     }
@@ -840,6 +844,14 @@ export default function App() {
             onDelete={handleDeleteManifest}
             onEditModeChange={setIsManifestEditing}
           />
+        ) : isNotesOpen ? (
+          <NotesView
+            notes={notes}
+            onAddNote={handleAddNote}
+            onEditNote={handleEditNote}
+            onDeleteNote={handleDeleteNote}
+            onBack={() => setIsNotesOpen(false)}
+          />
         ) : (
           <>
             {currentTab === "home" && (
@@ -861,6 +873,7 @@ export default function App() {
                 onToggleMission={handleToggleMission}
                 onNavigateTab={(tab) => {
                   setIsManifestOpen(false);
+                  setIsNotesOpen(false);
                   setCurrentTab(tab);
                 }}
                 onOpenQuickAction={handleQuickAction}
@@ -910,16 +923,12 @@ export default function App() {
             {currentTab === "journal" && (
               <JournalView
                 journals={journals}
-                notes={notes}
                 settings={settings}
                 presetTags={presetTags}
                 presetMoods={presetMoods}
                 onAddJournal={handleAddJournal}
                 onEditJournal={handleEditJournal}
                 onDeleteJournal={handleDeleteJournal}
-                onAddNote={handleAddNote}
-                onEditNote={handleEditNote}
-                onDeleteNote={handleDeleteNote}
                 onSavePresetTags={handleSavePresetTags}
                 onSavePresetMoods={handleSavePresetMoods}
               />
@@ -950,10 +959,11 @@ export default function App() {
 
       <BottomNav
         currentTab={currentTab}
-        hidden={isKeyboardOpen || isManifestOpen}
+        hidden={isKeyboardOpen || isManifestOpen || isNotesOpen}
         onTabChange={(tab) => {
           setIsManifestOpen(false);
           setIsManifestEditing(false);
+          setIsNotesOpen(false);
           setCurrentTab(tab);
         }}
       />
