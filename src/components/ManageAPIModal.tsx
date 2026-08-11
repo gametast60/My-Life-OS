@@ -15,6 +15,7 @@ import {
   ChevronUp,
   ChevronDown,
   GripVertical,
+  ClipboardPaste,
 } from "lucide-react";
 
 interface ManageAPIModalProps {
@@ -60,6 +61,21 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
 
   const toggleShowKey = (id: string) => {
     setShowKeys((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePasteClipboard = async (onPaste: (text: string) => void) => {
+    try {
+      if (!navigator?.clipboard?.readText) {
+        alert("เบราว์เซอร์หรืออุปกรณ์นี้ยังไม่รองรับการอ่านคลิปบอร์ดโดยตรง");
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        onPaste(text.trim());
+      }
+    } catch (err) {
+      console.error("Paste clipboard error:", err);
+    }
   };
 
   const handleAddProvider = (name: "Gemini" | "Groq" | "OpenRouter") => {
@@ -334,13 +350,52 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
                           </a>
                         )}
                       </div>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <input
                           type={showKey ? "text" : "password"}
                           value={p.apiKey}
                           onChange={(e) => handleUpdateProvider(p.id, { apiKey: e.target.value })}
                           placeholder={defaults?.placeholder || "ใส่ API Key..."}
-                          className="w-full pl-3 pr-9 py-2 rounded-lg text-xs outline-none"
+                          className="w-full pl-3 pr-20 py-2 rounded-lg text-xs outline-none"
+                          style={{
+                            background: "rgba(0,0,0,0.3)",
+                            border: "1px solid rgba(107,147,97,0.2)",
+                            color: "#EBF1EA",
+                          }}
+                        />
+                        <div className="absolute right-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handlePasteClipboard((text) => handleUpdateProvider(p.id, { apiKey: text }))}
+                            className="px-1.5 py-1 rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors flex items-center gap-1 text-[11px] font-medium"
+                            title="วางข้อความจากคลิปบอร์ด"
+                          >
+                            <ClipboardPaste size={13} />
+                            <span>วาง</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleShowKey(p.id)}
+                            className="p-1 rounded text-gray-400 hover:text-white"
+                            title={showKey ? "ซ่อน" : "แสดง"}
+                          >
+                            {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: "#869883" }}>
+                        Model Name
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={p.model === "auto-free" ? "openrouter/free" : p.model}
+                          onChange={(e) => handleUpdateProvider(p.id, { model: e.target.value })}
+                          placeholder={defaults?.defaultModel}
+                          className="w-full pl-3 pr-16 py-2 rounded-lg text-xs outline-none"
                           style={{
                             background: "rgba(0,0,0,0.3)",
                             border: "1px solid rgba(107,147,97,0.2)",
@@ -349,30 +404,14 @@ export const ManageAPIModal: React.FC<ManageAPIModalProps> = ({
                         />
                         <button
                           type="button"
-                          onClick={() => toggleShowKey(p.id)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                          onClick={() => handlePasteClipboard((text) => handleUpdateProvider(p.id, { model: text }))}
+                          className="absolute right-2 px-1.5 py-1 rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors flex items-center gap-1 text-[11px] font-medium"
+                          title="วางข้อความจากคลิปบอร์ด"
                         >
-                          {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                          <ClipboardPaste size={13} />
+                          <span>วาง</span>
                         </button>
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: "#869883" }}>
-                        Model Name
-                      </label>
-                      <input
-                        type="text"
-                        value={p.model === "auto-free" ? "openrouter/free" : p.model}
-                        onChange={(e) => handleUpdateProvider(p.id, { model: e.target.value })}
-                        placeholder={defaults?.defaultModel}
-                        className="w-full px-3 py-2 rounded-lg text-xs outline-none"
-                        style={{
-                          background: "rgba(0,0,0,0.3)",
-                          border: "1px solid rgba(107,147,97,0.2)",
-                          color: "#EBF1EA",
-                        }}
-                      />
                       {p.name === "OpenRouter" && (
                         <p className="text-[10px] mt-1" style={{ color: "#5f6e5d" }}>
                           พิมพ์ชื่อ model เอง เช่น qwen/qwen3.7-flash, google/gemma-2-9b-it:free
