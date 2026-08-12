@@ -4,10 +4,11 @@ import { createPortal } from "react-dom";
 export type MenuItemId = "home" | "manifest" | "vision" | "insights" | "notes" | "settings";
 
 export interface AppMenuDrawerProps {
+  activeItem?: MenuItemId;
   onNavigate: (itemId: MenuItemId) => void;
 }
 
-export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
+export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ activeItem, onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   // Close drawer on ESC key
@@ -62,6 +63,55 @@ export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
     onNavigate(id);
   };
 
+  const renderMenuItem = (item: { id: MenuItemId; label: string; icon: string; description: string }) => {
+    const isActive = activeItem === item.id;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => handleItemClick(item.id)}
+        className={`w-full flex items-start gap-3.5 p-3 rounded-2xl border text-left transition-all cursor-pointer group ${
+          isActive
+            ? "bg-[#3F5C3A] text-white border-[#6B9361]/60 shadow-lg ring-1 ring-[#6B9361]/40"
+            : "bg-[#131913]/60 hover:bg-[#182218] border-transparent hover:border-[#273727]"
+        }`}
+      >
+        <div
+          className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-colors shrink-0 ${
+            isActive
+              ? "bg-[#4E7345] text-white border-[#6B9361]/50 shadow-sm"
+              : "bg-[#182218] group-hover:bg-[#4E7345]/20 border-[#273727] text-[#6B9361] group-hover:text-[#EBF1EA]"
+          }`}
+        >
+          <i className={`${item.icon} text-lg`} aria-hidden="true" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div
+            className={`font-semibold text-xs transition-colors ${
+              isActive ? "text-white font-bold" : "text-[#EBF1EA] group-hover:text-emerald-400"
+            }`}
+          >
+            {item.label}
+          </div>
+          <div
+            className={`text-[11px] truncate mt-0.5 ${
+              isActive ? "text-[#EBF1EA]/80" : "text-[#869883]"
+            }`}
+          >
+            {item.description}
+          </div>
+        </div>
+        <i
+          className={`text-xs transition-all self-center ${
+            isActive
+              ? "ti ti-check text-white font-bold"
+              : "ti ti-chevron-right text-[#869883]/50 group-hover:text-[#EBF1EA] group-hover:translate-x-0.5"
+          }`}
+        />
+      </button>
+    );
+  };
+
   return (
     <>
       {/* Trigger Button: Clean Hamburger ☰ Button only (No OS Badge) */}
@@ -111,52 +161,12 @@ export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
 
               {/* Primary Menu Items List (Flex 1) */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {primaryItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleItemClick(item.id)}
-                    className="w-full flex items-start gap-3.5 p-3 rounded-2xl bg-[#131913]/60 hover:bg-[#182218] border border-transparent hover:border-[#273727] text-left transition-all cursor-pointer group"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-[#182218] group-hover:bg-[#4E7345]/20 border border-[#273727] flex items-center justify-center text-[#6B9361] group-hover:text-[#EBF1EA] transition-colors shrink-0">
-                      <i className={`${item.icon} text-lg`} aria-hidden="true" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-xs text-[#EBF1EA] group-hover:text-emerald-400 transition-colors">
-                        {item.label}
-                      </div>
-                      <div className="text-[11px] text-[#869883] truncate mt-0.5">
-                        {item.description}
-                      </div>
-                    </div>
-                    <i className="ti ti-chevron-right text-xs text-[#869883]/50 group-hover:text-[#EBF1EA] group-hover:translate-x-0.5 transition-all self-center" />
-                  </button>
-                ))}
+                {primaryItems.map((item) => renderMenuItem(item))}
               </div>
 
               {/* Footer Section: Settings separated by a subtle top border line */}
               <div className="p-4 border-t border-[#1F2B1F]">
-                {footerItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleItemClick(item.id)}
-                    className="w-full flex items-start gap-3.5 p-3 rounded-2xl bg-[#131913]/60 hover:bg-[#182218] border border-transparent hover:border-[#273727] text-left transition-all cursor-pointer group"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-[#182218] group-hover:bg-[#4E7345]/20 border border-[#273727] flex items-center justify-center text-[#6B9361] group-hover:text-[#EBF1EA] transition-colors shrink-0">
-                      <i className={`${item.icon} text-lg`} aria-hidden="true" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-xs text-[#EBF1EA] group-hover:text-emerald-400 transition-colors">
-                        {item.label}
-                      </div>
-                      <div className="text-[11px] text-[#869883] truncate mt-0.5">
-                        {item.description}
-                      </div>
-                    </div>
-                    <i className="ti ti-chevron-right text-xs text-[#869883]/50 group-hover:text-[#EBF1EA] group-hover:translate-x-0.5 transition-all self-center" />
-                  </button>
-                ))}
+                {footerItems.map((item) => renderMenuItem(item))}
               </div>
             </div>
           </div>,

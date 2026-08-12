@@ -7,6 +7,7 @@ import { AppMenuDrawer, MenuItemId } from "./Navigation/AppMenuDrawer";
 interface HeaderProps {
   settings: UserSettings;
   reminders?: ReminderItem[];
+  activeMenuItem?: MenuItemId;
   onMarkReminderAsRead?: (id: string) => void;
   onNavigateToReminder?: (reminder: ReminderItem) => void;
   onOpenSettings: () => void;
@@ -20,6 +21,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   settings,
   reminders = [],
+  activeMenuItem,
   onMarkReminderAsRead = () => {},
   onNavigateToReminder = () => {},
   onOpenSettings,
@@ -34,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* App Title / Menu Drawer replacing static logo */}
         <div className="flex items-center gap-3">
-          <AppMenuDrawer onNavigate={onNavigate} />
+          <AppMenuDrawer activeItem={activeMenuItem} onNavigate={onNavigate} />
         </div>
 
         {/* Right Actions */}

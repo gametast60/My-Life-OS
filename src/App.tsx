@@ -826,11 +826,24 @@ export default function App() {
     ? journals.find((j) => j.id === pendingJournalPlacement.journalId) ?? null
     : null;
 
+  const activeMenuItem: MenuItemId = isManifestOpen
+    ? "manifest"
+    : isNotesOpen
+    ? "notes"
+    : isSettingsOpen
+    ? "settings"
+    : currentTab === "vision"
+    ? "vision"
+    : currentTab === "pi"
+    ? "insights"
+    : "home";
+
   return (
     <div className="min-h-screen bg-[#0A0E0A] text-[#EBF1EA] font-sans antialiased selection:bg-[#4E7345]/30 selection:text-[#6B9361]">
       <Header
         settings={settings}
         reminders={reminders}
+        activeMenuItem={activeMenuItem}
         onMarkReminderAsRead={handleMarkReminderAsRead}
         onNavigateToReminder={handleNavigateToReminder}
         onOpenSettings={() => setIsSettingsOpen(true)}
