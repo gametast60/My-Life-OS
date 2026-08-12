@@ -1,7 +1,7 @@
 import React from "react";
 import { LayoutDashboard, Brain, Bot, BookOpen, Layers } from "lucide-react";
 
-export type NavTab = "home" | "pi" | "coach" | "journal" | "brain" | "journey" | "progress";
+export type NavTab = "home" | "pi" | "coach" | "journal" | "brain" | "journey" | "progress" | "vision";
 
 interface BottomNavProps {
   currentTab: NavTab;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-export type MenuItemId = "manifest" | "insights" | "notes" | "settings";
+export type MenuItemId = "home" | "manifest" | "vision" | "insights" | "notes" | "settings";
 
 export interface AppMenuDrawerProps {
   onNavigate: (itemId: MenuItemId) => void;
@@ -23,10 +23,22 @@ export const AppMenuDrawer: React.FC<AppMenuDrawerProps> = ({ onNavigate }) => {
 
   const primaryItems: { id: MenuItemId; label: string; icon: string; description: string }[] = [
     {
+      id: "home",
+      label: "หน้าหลัก",
+      icon: "ti ti-home",
+      description: "กลับสู่ภาพรวมระบบและแดชบอร์ดหลัก",
+    },
+    {
       id: "manifest",
       label: "Manifest",
       icon: "ti ti-sparkles",
-      description: "เป้าหมายหลักและวิสัยทัศน์ชีวิต",
+      description: "ตัวตนและชีวิตที่ฉันเลือก",
+    },
+    {
+      id: "vision",
+      label: "Vision Board",
+      icon: "ti ti-eye",
+      description: "ภาพชีวิตที่ฉันกำลังสร้าง",
     },
     {
       id: "notes",

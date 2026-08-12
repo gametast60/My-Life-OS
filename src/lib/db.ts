@@ -852,7 +852,72 @@ export class RoomDatabase {
 
   // ── Vision ───────────────────────────────────────────────────────
   static getVision(): VisionCategoryItem[] {
-    return this.get<VisionCategoryItem[]>(KEYS.VISION, DEFAULT_VISION);
+    const raw = this.get<VisionCategoryItem[]>(KEYS.VISION, DEFAULT_VISION);
+    if (!Array.isArray(raw)) return DEFAULT_VISION;
+
+    let modified = false;
+    const normalized = raw.map((item) => {
+      let itemModified = false;
+      let startDate = item.startDate;
+
+      if (!startDate) {
+        // Derive default startDate from id numeric timestamp suffix ("v-1712345678901")
+        if (item.id && item.id.startsWith("v-")) {
+          const tsStr = item.id.replace("v-", "");
+          const ts = parseInt(tsStr, 10);
+          if (!isNaN(ts) && ts > 0) {
+            const d = new Date(ts);
+            if (!isNaN(d.getTime())) {
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              startDate = `${year}-${month}-${day}`;
+            }
+          }
+        }
+
+        if (!startDate) {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, "0");
+          const day = String(now.getDate()).padStart(2, "0");
+          startDate = `${year}-${month}-${day}`;
+        }
+
+        itemModified = true;
+      }
+
+      const subVisions = Array.isArray(item.subVisions)
+        ? item.subVisions.map((sv) => {
+            if (!sv.startDate) {
+              itemModified = true;
+              return { ...sv, startDate: startDate };
+            }
+            return sv;
+          })
+        : [];
+
+      if (!item.subVisions) {
+        itemModified = true;
+      }
+
+      if (itemModified) {
+        modified = true;
+        return {
+          ...item,
+          startDate,
+          subVisions,
+        };
+      }
+
+      return item;
+    });
+
+    if (modified) {
+      this.saveVision(normalized);
+    }
+
+    return normalized;
   }
   static saveVision(vision: VisionCategoryItem[]) {
     this.set(KEYS.VISION, vision);

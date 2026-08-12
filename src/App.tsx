@@ -18,7 +18,7 @@ import { ManageAPIModal } from "./components/ManageAPIModal";
 import { GoalsModal } from "./views/GoalsModal";
 import { HabitsModal } from "./views/HabitsModal";
 import { ChecklistModal } from "./views/ChecklistModal";
-import { VisionBoardModal } from "./views/VisionBoardModal";
+import { VisionBoardView } from "./views/VisionBoardView";
 import { AffirmationsModal } from "./views/AffirmationsModal";
 import { TimelineModal } from "./views/TimelineModal";
 import { DailyCheckinModal } from "./views/DailyCheckinModal";
@@ -133,7 +133,6 @@ export default function App() {
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isHabitsOpen, setIsHabitsOpen] = useState(false);
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
-  const [isVisionOpen, setIsVisionOpen] = useState(false);
   const [isAffirmationOpen, setIsAffirmationOpen] = useState(false);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
@@ -163,9 +162,18 @@ export default function App() {
   };
 
   const handleMenuNavigate = (itemId: MenuItemId) => {
-    if (itemId === "manifest") {
+    if (itemId === "home") {
+      setIsManifestOpen(false);
+      setIsManifestEditing(false);
+      setIsNotesOpen(false);
+      setCurrentTab("home");
+    } else if (itemId === "manifest") {
       setIsManifestOpen(true);
       setIsNotesOpen(false);
+    } else if (itemId === "vision") {
+      setIsManifestOpen(false);
+      setIsNotesOpen(false);
+      setCurrentTab("vision");
     } else if (itemId === "insights") {
       setIsManifestOpen(false);
       setIsNotesOpen(false);
@@ -807,7 +815,7 @@ export default function App() {
     if (action === "journal") setCurrentTab("journal");
     if (action === "goal") setIsGoalsOpen(true);
     if (action === "habit") setIsHabitsOpen(true);
-    if (action === "vision") setIsVisionOpen(true);
+    if (action === "vision") setCurrentTab("vision");
     if (action === "affirmation") setIsAffirmationOpen(true);
     if (action === "checklist") setIsChecklistOpen(true);
     if (action === "checkin") setIsCheckinOpen(true);
@@ -953,13 +961,23 @@ export default function App() {
                 onDeleteTag={handleDeleteBrainTreeTag}
               />
             )}
+
+            {currentTab === "vision" && (
+              <VisionBoardView
+                visionItems={vision}
+                onSaveVision={(v) => {
+                  setVision(v);
+                  RoomDatabase.saveVision(v);
+                }}
+              />
+            )}
           </>
         )}
       </main>
 
       <BottomNav
         currentTab={currentTab}
-        hidden={isKeyboardOpen || isManifestOpen || isNotesOpen}
+        hidden={isKeyboardOpen || isManifestOpen || isNotesOpen || currentTab === "vision"}
         onTabChange={(tab) => {
           setIsManifestOpen(false);
           setIsManifestEditing(false);
@@ -1042,16 +1060,6 @@ export default function App() {
         onSaveChecklist={(c) => {
           setChecklist(c);
           RoomDatabase.saveChecklist(c);
-        }}
-      />
-
-      <VisionBoardModal
-        isOpen={isVisionOpen}
-        onClose={() => setIsVisionOpen(false)}
-        visionItems={vision}
-        onSaveVision={(v) => {
-          setVision(v);
-          RoomDatabase.saveVision(v);
         }}
       />
 

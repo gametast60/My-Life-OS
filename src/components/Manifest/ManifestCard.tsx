@@ -103,19 +103,6 @@ export function ManifestCard({
         style={{ top: 'var(--app-header-height)' }}
       >
         <div className="flex items-center gap-3">
-          <button
-            aria-label="กลับ"
-            onClick={() => {
-              if (mode === "edit" && dirty) {
-                setShowUnsavedConfirm(true);
-              } else {
-                onBack();
-              }
-            }}
-            className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center"
-          >
-            <i className="ti ti-arrow-left text-lg" aria-hidden="true" />
-          </button>
           <h1 className="text-lg font-bold text-[#EBF1EA]">Manifest</h1>
         </div>
 

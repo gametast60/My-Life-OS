@@ -324,6 +324,15 @@ export interface ChecklistItem {
   aiSuggestion?: string;
 }
 
+export interface SubVisionItem {
+  id: string;
+  title: string;
+  imageUrl: string;
+  notes: string;
+  startDate?: string;
+  targetDate?: string;
+}
+
 export interface VisionCategoryItem {
   id: string;
   category: "Health" | "Career" | "Business" | "Finance" | "Languages" | "Family" | "Travel" | "Trading" | "Dream House" | "Dream Life";
@@ -331,6 +340,9 @@ export interface VisionCategoryItem {
   imageUrl: string;
   notes: string;
   progressPercent: number;
+  startDate?: string;
+  targetDate?: string;
+  subVisions?: SubVisionItem[];
 }
 
 export interface AffirmationItem {

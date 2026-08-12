@@ -88,14 +88,6 @@ export const NotesView: React.FC<NotesViewProps> = ({
         style={{ top: "var(--app-header-height)" }}
       >
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="กลับ"
-            onClick={onBack}
-            className="p-2 rounded-xl text-[#869883] hover:text-[#EBF1EA] hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center"
-          >
-            <i className="ti ti-arrow-left text-lg" aria-hidden="true" />
-          </button>
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-[#F59E0B]" />
             <h1 className="text-lg font-bold text-[#EBF1EA]">Notes</h1>
